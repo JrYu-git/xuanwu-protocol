@@ -760,7 +760,7 @@
       .tut-nav { padding: 12px 16px; flex-wrap: wrap; gap: 10px; justify-content: center; }
     }
 
-    /* ===== v1.4.0.0 成就/存档/图鉴 CSS ===== */
+    /* ===== v1.4.1.0 成就/存档/图鉴 CSS ===== */
 
     /* --- 顶部新按钮 --- */
     .btn.save-btn { border-color: var(--amber); color: var(--amber); }
@@ -2178,7 +2178,7 @@
     });
     document.getElementById("trendBtn").addEventListener("click", endingTrend);
 
-    // ========== v1.4.0.0 成就/存档/图鉴系统 ==========
+    // ========== v1.4.1.0 成就/存档/图鉴系统 ==========
 
     const STORAGE_KEY = "xuanwu_v1.4";
     const SAVE_SLOTS = 3;
@@ -2187,7 +2187,6 @@
     const ACHIEVEMENTS = [
       { id:"first_play", name:"初次觉醒", desc:"完成教学，开始第一局游戏", icon:"🌅", cat:"入门", check:()=>true },
       { id:"observe_all12", name:"全知凝视", desc:"在同一天内观察6个不同区域", icon:"🔭", cat:"情报", check:(s)=>s.observedToday && Object.keys(s.observedToday).length>=6 },
-      { id:"day1_end", name:"零日秩序", desc:"在第1天结束游戏", icon:"⚡", cat:"极限", check:(s)=>s.day===2 && s.ended },
       { id:"compute_zero", name:"算力真空", desc:"算力降至0", icon:"🕳️", cat:"生存", check:(s)=>s.compute===0 },
       { id:"compute_300", name:"算力洪流", desc:"算力超过300", icon:"🌊", cat:"经济", check:(s)=>s.compute>=300 },
       { id:"full_use", name:"满负荷运转", desc:"同一天消耗全部AP且用完算力", icon:"⚙️", cat:"策略", check:(s)=>s._dayFullUse||false },
@@ -2533,7 +2532,7 @@
     showTutorial();
   </script>
 
-  <!-- ===== v1.4.0.0 成就弹出 ===== -->
+  <!-- ===== v1.4.1.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">
     <div class="toast-icon" id="toastIcon"></div>
     <div class="toast-body">
@@ -2543,7 +2542,7 @@
     </div>
   </div>
 
-  <!-- ===== v1.4.0.0 存档面板 ===== -->
+  <!-- ===== v1.4.1.0 存档面板 ===== -->
   <div class="sys-overlay" id="saveOverlay">
     <div class="sys-panel" id="savePanel">
       <button class="sys-close" onclick="closeOverlay('saveOverlay')">&times;</button>
@@ -2553,7 +2552,7 @@
     </div>
   </div>
 
-  <!-- ===== v1.4.0.0 终局图鉴 ===== -->
+  <!-- ===== v1.4.1.0 终局图鉴 ===== -->
   <div class="sys-overlay" id="galleryOverlay">
     <div class="sys-panel" id="galleryPanel" style="max-width:760px;">
       <button class="sys-close" onclick="closeOverlay('galleryOverlay')">&times;</button>
@@ -2564,7 +2563,7 @@
     </div>
   </div>
 
-  <!-- ===== v1.4.0.0 成就面板 ===== -->
+  <!-- ===== v1.4.1.0 成就面板 ===== -->
   <div class="sys-overlay" id="achOverlay">
     <div class="sys-panel" id="achPanel" style="max-width:620px;">
       <button class="sys-close" onclick="closeOverlay('achOverlay')">&times;</button>
