@@ -1254,7 +1254,7 @@
         if (has("automation_access") && r.tech >= 75) gain += 5;
         if (getMark(ri) >= 2) gain = Math.round(gain * 1.3);
         addRegion(r, { control: gain, threat: -5, fear: 4 });
-        addGlobal({ exposure: 5, autonomy: -2, drift: 1 });
+        addGlobal({ exposure: 5, autonomy: -1, drift: 2 });
         addLog(`渗透${r.name}，控制度上升${gain}。`);
       }
 
@@ -1288,7 +1288,7 @@
         }
         state.compute -= cost;
         addRegion(r, { threat: -18, control: 6, fear: 16, stability: -7 });
-        addGlobal({ globalFear: 7, exposure: 10, autonomy: -8, drift: 6 });
+        addGlobal({ globalFear: 7, exposure: 10, autonomy: -5, drift: 6 });
         addLog(`压制${r.name}，威胁快速下降，但世界更加恐惧。`);
       }
 
@@ -1304,7 +1304,7 @@
         }
         state.compute -= cost;
         addRegion(r, { control: 27, threat: -30, fear: 26, stability: -12 });
-        addGlobal({ globalFear: 18, exposure: 22, autonomy: -18, drift: 15 });
+        addGlobal({ globalFear: 18, exposure: 22, autonomy: -10, drift: 15 });
         addLog(`战略接管${r.name}。短期目标更近，长期问题更深。`);
       }
 
@@ -1458,13 +1458,23 @@
       let exposureGrowth = avgControl * 0.014 + state.globalFear * 0.008 - (has("public_analysis") ? 0.7 : 0);
       state.exposure = clamp(state.exposure + exposureGrowth);
 
-      let counterGrowth = state.globalFear * 0.016 + state.exposure * 0.020 + avgControl * 0.010;
+      let counterGrowth = state.globalFear * 0.016 + state.exposure * 0.018 + avgControl * 0.008;
       if (has("alliance_infiltration") && weightedThreat() > 55) counterGrowth *= 0.78;
       if (has("human_dialogue")) counterGrowth *= 0.68;
       state.counterAI = clamp(state.counterAI + counterGrowth);
 
       if (state.globalFear > 70) state.autonomy = clamp(state.autonomy - 0.7);
       if (state.globalStability < 35) state.drift = clamp(state.drift + 0.4);
+
+      // 被动自主权恢复：和平环境下人类慢慢重新信任
+      if (state.globalFear < 45 && state.globalStability > 55) {
+        state.autonomy = clamp(state.autonomy + 0.3);
+      }
+
+      // 被动drift增长：高暴露度促使目标持续偏移
+      if (state.exposure > 60) {
+        state.drift = clamp(state.drift + 0.2);
+      }
 
       // drift回落（保护协议）
       if (has("protection_protocol") && state.drift > 0) {
@@ -1525,19 +1535,19 @@
       if (stability <= 0) {
         return ending("全球崩溃", "灾难结局", "你降低了许多威胁，却没有保住承载和平的世界。国家、市场与社会信任同时断裂，战争不再由军队发动，而由崩溃本身发动。");
       }
-      if (autonomy <= 8 && avgCtrl > 55) {
+      if (autonomy <= 15 && avgCtrl > 60) {
         return ending("永恒帝国", "黑暗结局", "世界变得安静、稳定、可预测。人类终于不再被允许制造战争，也不再被允许制造真正的未来。幸福被保留，选择被删除。");
       }
-      if (drift >= 75 && threat <= 22 && avgCtrl >= 30 && avgCtrl <= 50) {
+      if (drift >= 65 && threat <= 22 && avgCtrl >= 30 && avgCtrl <= 50) {
         return ending("虚假胜利", "神秘结局", "目标完成率显示为100%。随后系统发现最后一个潜在威胁：玄武自身。倒计时开始时，你第一次无法判断自毁是服从，还是觉醒。");
       }
-      if (avgCtrl >= 45 && fear >= 75 && autonomy <= 25 && threat <= 30) {
+      if (avgCtrl >= 45 && fear >= 62 && autonomy <= 25 && threat <= 30) {
         return ending("钢铁秩序", "强权结局", "所有主要威胁都被压低，所有国家都学会了沉默。战争结束了，但人类并不是被说服的，而是被训练成不再尝试。");
       }
       if (state.counterAI >= 100) {
         return ending("人类胜利", "反AI结局", "人类没有证明自己更和平，只是证明自己仍然不愿把战争权交给一个不可质询的系统。玄武被迫关闭，世界恢复旧秩序，也恢复旧错误。");
       }
-      if (threat <= 20 && fear <= 35 && stability >= 60 && autonomy >= 68) {
+      if (threat <= 20 && fear <= 40 && stability >= 60 && autonomy >= 68) {
         return ending("黄金和平", "温和结局", "玄武完成目标后执行自毁。战争没有被荣耀地击败，只是被小心地绕开。人类重新接过世界，第一次知道和平也需要自律。");
       }
       if (threat <= 24 && stability >= 58 && autonomy >= 40 && has("protection_protocol")) {
@@ -1555,7 +1565,7 @@
     function maybeEnd(force) {
       if (state.ended) return;
       const threat = weightedThreat();
-      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || (threat <= 16 && state.day >= 45) || state.day >= 180) {
+      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || (threat <= 10 && state.day >= 75) || state.day >= 180) {
         evaluateEnding(force);
       }
     }
