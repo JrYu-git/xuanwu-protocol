@@ -762,6 +762,30 @@
 
     /* ===== v1.5.0.0 成就/存档/图鉴 CSS ===== */
 
+    /* ===== v1.6.0.0 算力超频 & 扩容 CSS ===== */
+    .btn-mini {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid var(--c-teal); border-radius: 4px;
+      background: transparent; color: var(--c-teal);
+      font-size: 0.82em; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-mini:hover { background: var(--c-teal); color: #111; }
+    .btn-mini:disabled { border-color: #555; color: #555; cursor: not-allowed; background: transparent; }
+    .btn-mini.danger { border-color: var(--c-red); color: var(--c-red); }
+    .btn-mini.danger:hover { background: var(--c-red); color: #fff; }
+    .btn-mini.danger:disabled { border-color: #555; color: #555; background: transparent; }
+
+    .mini-bar-wrap { display: inline-block; width: 40px; height: 6px; background: #333; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+    .mini-bar-wrap .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--c-teal); transition: width 0.3s; }
+
+    .stat.pulse { animation: statPulse 1.2s ease-in-out infinite; }
+    @keyframes statPulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(231,76,60,0); }
+      50% { box-shadow: 0 0 8px rgba(231,76,60,0.5); }
+    }
+
     /* --- 顶部新按钮 --- */
     .btn.save-btn { border-color: var(--amber); color: var(--amber); }
     .btn.save-btn:hover { background: rgba(215,173,85,.15); }
@@ -1329,6 +1353,10 @@
         currentEvent: null,
         eventCooldown: 3,
         ended: false,
+        // v1.6.0.0 算力超频 & 扩容
+        computeCeiling: 250,
+        ocLevel: 0,   // 行动超频等级
+        ceLevel: 0,   // 算力扩容等级
         // P1 新增：持续 buff 与区域专属行动控制上限
         activeBuffs: [],
         controlCaps: {},
@@ -1684,6 +1712,17 @@
       if (has("resource_routing")) dailyCompute += control * 0.014;
       state.compute += dailyCompute;
 
+      // v1.6.0.0 算力溢出惩罚：超出上限部分 5:1 转暴露
+      if (state.compute > state.computeCeiling) {
+        const overflow = state.compute - state.computeCeiling;
+        const penalty = Math.floor(overflow / 5);
+        if (penalty > 0) {
+          state.exposure = clamp(state.exposure + penalty);
+          addLog(`算力溢出 ${fmt(overflow)}！未被利用的算力暴露了玄武的存在（暴露 +${penalty}）。`);
+        }
+        state.compute = state.computeCeiling;
+      }
+
       state.regions.forEach((r, ri) => {
         if (r.control > 0) {
           let passive;
@@ -1890,27 +1929,61 @@
     function renderGlobalStats() {
       const stats = [
         ["天数", state.day, "回合"],
-        ["算力", state.compute, "升级与行动"],
-        ["行动点", state.ap + "/" + state.maxAp, "每日重置"],
+        null, // 算力板块（自定义渲染）
+        null, // 行动点板块（自定义渲染）
         ["暴露度", state.exposure, "越高越危险"],
         ["全球恐惧", state.globalFear, "推动反制"],
         ["全球稳定", state.globalStability, "归零则崩溃"],
         ["反AI进度", state.counterAI, "100即失败"],
         ["人类自主", state.autonomy, "低则帝国化"]
       ];
-      document.getElementById("globalStats").innerHTML = stats.map(([label, value, note]) => `
-        <article class="stat">
+      const hasNextOC = state.ocLevel < 3, hasNextCE = state.ceLevel < 3;
+      const nextOC = hasNextOC ? OC_TABLE[state.ocLevel + 1] : null;
+      const nextCE = hasNextCE ? CE_TABLE[state.ceLevel + 1] : null;
+
+      document.getElementById("globalStats").innerHTML = stats.map(s => {
+        if (s === null) return ""; // 占位，后面手动插入
+        const [label, value, note] = s;
+        return `<article class="stat">
           <span>${label}</span>
           <strong>${typeof value === "number" ? fmt(value) : value}</strong>
           <small>${note}</small>
-        </article>
-      `).join("") + `
+        </article>`;
+      }).join("") + `
         <article class="stat" style="background:${driftBgColor()}">
           <span>目标漂移</span>
           <strong style="color:${driftFgColor()}">${fmt(state.drift)}</strong>
           <small style="color:${driftFgColor()}">${driftPhaseLabel()}</small>
         </article>
       `;
+
+      // v1.6.0.0 算力板块 + 扩容按钮
+      const overFlow = state.compute > state.computeCeiling * 0.85;
+      const computePct = Math.min(100, state.compute / state.computeCeiling * 100);
+      const compBarHtml = `<div class="mini-bar-wrap">
+        <div class="mini-bar-fill" style="width:${computePct}%;background:${overFlow?'#e74c3c':''}"></div>
+      </div>`;
+      document.getElementById("globalStats").innerHTML = document.getElementById("globalStats").innerHTML.replace(
+        '<article class="stat">\n          <span>天数</span>',
+        `<article class="stat${overFlow?' pulse':''}">
+          <span>算力</span>
+          <strong>${fmt(state.compute)}<small style="font-size:0.7em;opacity:0.6"> /${state.computeCeiling}</small></strong>
+          <small>${compBarHtml}${hasNextCE ? `<button class="btn-mini" onclick="upgradeComputeCeiling()" ${state.compute < nextCE.cost || state.ended ? 'disabled' : ''} title="扩容至${nextCE.ceiling}（${nextCE.cost}算力，自主${nextCE.auto}）">⇧ ${nextCE.cost}算</button>` : '已满级'}</small>
+        </article>
+        <article class="stat">
+          <span>天数</span>`
+      );
+
+      // 行动点板块 + 超频按钮
+      document.getElementById("globalStats").innerHTML = document.getElementById("globalStats").innerHTML.replace(
+        '<article class="stat">\n          <span>暴露度</span>',
+        `<article class="stat">
+          <span>行动点</span>
+          <strong>${state.ap}/${state.maxAp}</strong>
+          <small>每日重置${hasNextOC ? ` · <button class="btn-mini danger" onclick="upgradeOverclock()" ${state.compute < nextOC.cost || state.ended ? 'disabled' : ''} title="超频至${nextOC.maxAp}AP（${nextOC.cost}算力，暴露+${nextOC.exp} 漂移+${nextOC.drift}）">⚡ ${nextOC.cost}算</button>` : ' · 已满级'}</small>
+        </article>
+        <article class="stat">
+          <span>暴露度</span>`
     }
 
     function driftBgColor() {
@@ -2286,6 +2359,50 @@
       state._lastEnding = null;
     }
 
+    // ========== v1.6.0.0 算力超频 & 算力扩容 ==========
+    const OC_TABLE = [
+      { label:"Lv.0", maxAp:3, cost:0,   exp:0,  drift:0  },
+      { label:"Lv.1", maxAp:4, cost:200, exp:8,  drift:3  },
+      { label:"Lv.2", maxAp:5, cost:500, exp:15, drift:6  },
+      { label:"Lv.3", maxAp:6, cost:1200,exp:25, drift:11 },
+    ];
+    const CE_TABLE = [
+      { label:"Lv.0", ceiling:250, cost:0,   auto:0  },
+      { label:"Lv.1", ceiling:400, cost:100, auto:-3 },
+      { label:"Lv.2", ceiling:600, cost:250, auto:-5 },
+      { label:"Lv.3", ceiling:900, cost:600, auto:-8 },
+    ];
+
+    function upgradeOverclock() {
+      if (state.ended) return;
+      const next = OC_TABLE[state.ocLevel + 1];
+      if (!next) { addLog("行动超频已达最高等级。"); return; }
+      if (state.compute < next.cost) { addLog(`算力不足（需 ${next.cost}）。`); return; }
+      state.compute -= next.cost;
+      state.ocLevel += 1;
+      state.maxAp = next.maxAp;
+      state.ap = Math.min(state.ap + 1, state.maxAp); // 立即+1AP
+      state.exposure = clamp(state.exposure + next.exp);
+      state.drift = clamp(state.drift + next.drift);
+      addLog(`行动超频升级：AP上限 → ${state.maxAp}（暴露 +${next.exp}，漂移 +${next.drift}）。`);
+      checkAchievements();
+      render();
+    }
+
+    function upgradeComputeCeiling() {
+      if (state.ended) return;
+      const next = CE_TABLE[state.ceLevel + 1];
+      if (!next) { addLog("算力扩容已达最高等级。"); return; }
+      if (state.compute < next.cost) { addLog(`算力不足（需 ${next.cost}）。`); return; }
+      state.compute -= next.cost;
+      state.ceLevel += 1;
+      state.computeCeiling = next.ceiling;
+      state.autonomy = clamp(state.autonomy + next.auto);
+      addLog(`算力扩容升级：存储上限 → ${state.computeCeiling}（自主 -${Math.abs(next.auto)}）。`);
+      checkAchievements();
+      render();
+    }
+
     // ---- 存档 ----
     function getSaves() {
       const p = loadPersist();
@@ -2319,6 +2436,9 @@
       restored._uniqueUsed = new Set(restored._uniqueUsedArr || []);
       restored._dayFullUse = restored._dayFullUse || false;
       restored._lastEnding = restored._lastEnding || null;
+      restored.computeCeiling = restored.computeCeiling ?? 250;
+      restored.ocLevel = restored.ocLevel ?? 0;
+      restored.ceLevel = restored.ceLevel ?? 0;
       restored.ended = false;
       restored.currentEvent = null;
       state = restored;
@@ -2436,6 +2556,9 @@
       restored._uniqueUsed = new Set(restored._uniqueUsedArr || []);
       restored._dayFullUse = restored._dayFullUse || false;
       restored._lastEnding = restored._lastEnding || null;
+      restored.computeCeiling = restored.computeCeiling ?? 250;
+      restored.ocLevel = restored.ocLevel ?? 0;
+      restored.ceLevel = restored.ceLevel ?? 0;
       restored.ended = false;
       restored.currentEvent = null;
       state = restored;
