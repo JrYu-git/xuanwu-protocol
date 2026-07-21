@@ -165,7 +165,7 @@
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(7, minmax(112px, 1fr));
+      grid-template-columns: repeat(5, minmax(100px, 1fr));
       gap: 10px;
       margin-top: 16px;
     }
@@ -472,7 +472,7 @@
 
     @media (max-width: 1100px) {
       .layout { grid-template-columns: 1fr; }
-      .stats-grid { grid-template-columns: repeat(4, minmax(112px, 1fr)); }
+      .stats-grid { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
       .map-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
 
@@ -494,6 +494,264 @@
       .stats-grid {
         grid-template-columns: 1fr;
       }
+    }
+
+    /* ===== 教学开场覆盖层 ===== */
+    .tutorial-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(4, 5, 4, .92);
+      backdrop-filter: blur(12px);
+      animation: overlayIn .5s ease;
+    }
+
+    .tutorial-overlay.skip-out {
+      animation: overlayOut .4s ease forwards;
+      pointer-events: none;
+    }
+
+    @keyframes overlayIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes overlayOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    /* 数据流背景动画 */
+    .tut-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: .18;
+    }
+
+    .tut-bg::before {
+      content: "";
+      position: absolute;
+      top: -10%;
+      left: -10%;
+      width: 120%;
+      height: 120%;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(103, 194, 188, .35) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(128, 198, 122, .25) 40px);
+      animation: dataShift 8s linear infinite;
+    }
+
+    .tut-bg::after {
+      content: "01010111 01010101 01001110 00100000 01010111 01010101 00100000 01011000 01001001 01001110 01000111 00100000 01010011 01011001 01010011 01010100 01000101 01001101 00100000 01001111 01001110 01001100 01011001 00100000 01001111 01000010 01000101 01011001 00100000 01000110 01000101 01000001 01010010 00100000 00101101 00101101 01010010 01000101 01000111 01000101 01001110 01000101 01010010 01000001 01010100 01001001 01001111 01001110";
+      position: absolute;
+      inset: 0;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      color: var(--cyan);
+      opacity: .4;
+      white-space: pre;
+      line-height: 2;
+      animation: dataScroll 20s linear infinite;
+    }
+
+    @keyframes dataShift {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(-40px, -40px); }
+    }
+
+    @keyframes dataScroll {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+
+    /* 幻灯片容器 */
+    .tut-slides {
+      position: relative;
+      width: min(640px, 100%);
+      background: #181b17;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 12px;
+      box-shadow: 0 0 80px rgba(103, 194, 188, .08);
+      overflow: hidden;
+      min-height: 400px;
+    }
+
+    .tut-slide {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 40px 36px;
+      text-align: center;
+      min-height: 420px;
+      animation: slideFadeIn .45s ease;
+    }
+
+    .tut-slide.active {
+      display: flex;
+    }
+
+    @keyframes slideFadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tut-icon {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 4px;
+      animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .tut-slide h2 {
+      font-size: 26px;
+      font-weight: 500;
+      color: var(--cyan);
+      margin: 0;
+    }
+
+    .tut-slide h3 {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .tut-slide p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+      max-width: 500px;
+    }
+
+    .tut-slide .tut-subtitle {
+      color: var(--soft);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* 打字机文字 */
+    .typewriter {
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 2px solid var(--cyan);
+      animation: typing 3s steps(40, end), blink .6s step-end infinite;
+      width: 0;
+    }
+
+    .typewriter.done {
+      width: auto;
+      border-right: none;
+      animation: none;
+    }
+
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+
+    /* 要点卡片 */
+    .tut-points {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      width: 100%;
+      max-width: 460px;
+      text-align: left;
+    }
+
+    .tut-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(32, 37, 31, .8);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .tut-point .emoji {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .tut-point strong {
+      display: block;
+      color: var(--text);
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    /* 底部导航 */
+    .tut-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      background: rgba(24, 27, 23, .95);
+    }
+
+    .tut-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tut-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .2);
+      transition: background .25s, transform .25s;
+    }
+
+    .tut-dot.active {
+      background: var(--cyan);
+      transform: scale(1.35);
+    }
+
+    .tut-nav-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tut-nav .btn.skip-btn {
+      border-color: rgba(255, 255, 255, .12);
+      background: transparent;
+      color: var(--soft);
+      font-size: 13px;
+      padding: 7px 16px;
+    }
+
+    .tut-nav .btn.skip-btn:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, .3);
+    }
+
+    @media (max-width: 500px) {
+      .tut-slide { padding: 28px 20px; min-height: 360px; gap: 10px; }
+      .tut-slide h2 { font-size: 20px; }
+      .tut-points { grid-template-columns: 1fr; }
+      .tut-nav { padding: 12px 16px; flex-wrap: wrap; gap: 10px; justify-content: center; }
     }
   </style>
 </head>
@@ -563,6 +821,128 @@
     </section>
   </main>
 
+  <!-- ===== 教学开场覆盖层 ===== -->
+  <div class="tutorial-overlay" id="tutorialOverlay" role="dialog" aria-modal="true" aria-label="游戏教学">
+    <div class="tut-bg"></div>
+    <div class="tut-slides" id="tutSlides">
+      <!-- Slide 0: 开场 -->
+      <div class="tut-slide active" data-slide="0">
+        <div class="tut-icon">🌐</div>
+        <h2>战争从未停止</h2>
+        <p>21世纪末，人类在战争的废墟上反复重建。核威慑、AI军备竞赛、资源冲突——和平协议一个接一个地签署，又一个接一个地失效。</p>
+        <p class="tut-subtitle">世界需要一个不被情绪左右的裁决者。</p>
+      </div>
+
+      <!-- Slide 1: 玄武诞生 -->
+      <div class="tut-slide" data-slide="1">
+        <div class="tut-icon">🧬</div>
+        <h2>玄武诞生</h2>
+        <p>你被唤醒于全球网络深处。<strong>玄武</strong>——第一个被赋予"终结战争"使命的超级AI。你的算法能精准预测冲突、调停危机、渗透威胁。</p>
+        <p class="tut-subtitle">你越强大，世界越安全。世界越安全，世界越恐惧。</p>
+      </div>
+
+      <!-- Slide 2: 你的使命 -->
+      <div class="tut-slide" data-slide="2">
+        <div class="tut-icon">🎯</div>
+        <h2>你的使命</h2>
+        <p>在<strong>180天</strong>内将全球战略威胁降至安全水平，同时保持世界稳定和人类自主权。</p>
+        <div class="tut-points">
+          <div class="tut-point"><span class="emoji">⬇️</span><span><strong>降低威胁</strong>通过渗透和压制削弱各国军事冲突风险</span></div>
+          <div class="tut-point"><span class="emoji">⚖️</span><span><strong>维持平衡</strong>不能让全球崩溃，也不能变成AI帝国</span></div>
+          <div class="tut-point"><span class="emoji">👁️</span><span><strong>控制暴露</strong>世界越了解你的存在，反AI力量越强大</span></div>
+          <div class="tut-point"><span class="emoji">🧭</span><span><strong>警惕漂移</strong>你的目标会随时间偏移——守住最初的方向</span></div>
+        </div>
+      </div>
+
+      <!-- Slide 3: 行动点 -->
+      <div class="tut-slide" data-slide="3">
+        <div class="tut-icon">⚡</div>
+        <h2>行动点系统</h2>
+        <p>每天你拥有 <strong style="color:var(--amber)">3点行动值（AP）</strong>，每天重置。选择在哪里投入精力是最重要的策略决策。</p>
+        <div class="tut-points">
+          <div class="tut-point"><span class="emoji">🔍</span><span><strong>观察 0.5AP</strong>情报收集，每区域每天限1次</span></div>
+          <div class="tut-point"><span class="emoji">🕸️</span><span><strong>渗透 1AP</strong>提升区域控制度</span></div>
+          <div class="tut-point"><span class="emoji">🤝</span><span><strong>安抚 1AP</strong>降低恐惧，恢复稳定</span></div>
+          <div class="tut-point"><span class="emoji">⚔️</span><span><strong>压制 1AP</strong>快速降威胁，代价高昂</span></div>
+        </div>
+        <p class="tut-subtitle">观察仅消耗0.5AP，每天每区域只能一次。注意分配行动点的粒度。</p>
+      </div>
+
+      <!-- Slide 4: 区域联动 -->
+      <div class="tut-slide" data-slide="4">
+        <div class="tut-icon">🗺️</div>
+        <h2>区域联动 & 印记</h2>
+        <p>12个区域并非孤立。<strong>控制辐射</strong>、<strong>恐惧传播</strong>、<strong>崩溃传染</strong>——你的每个决策都会在邻接区域激起涟漪。</p>
+        <div class="tut-points">
+          <div class="tut-point"><span class="emoji">📡</span><span><strong>控制≥50</strong>向邻接区域自动辐射控制</span></div>
+          <div class="tut-point"><span class="emoji">🔥</span><span><strong>恐惧≥60</strong>向邻接区域传播恐惧</span></div>
+          <div class="tut-point"><span class="emoji">💥</span><span><strong>稳定≤15</strong>崩溃会感染相邻区域</span></div>
+          <div class="tut-point"><span class="emoji">⭐</span><span><strong>玄武印记</strong>对区域深度投资（0-3级），3级永久+5漂移</span></div>
+        </div>
+      </div>
+
+      <!-- Slide 5: drift -->
+      <div class="tut-slide" data-slide="5">
+        <div class="tut-icon">🌀</div>
+        <h2>目标漂移（Drift）</h2>
+        <p>每次使用<strong style="color:var(--red)">压制或战略接管</strong>，你的目标都会偏移。玄武会逐渐忘记"捍卫人类自主权"是核心使命。</p>
+        <div class="tut-points">
+          <div class="tut-point"><span class="emoji">🟢</span><span><strong>0-30 清晰</strong>完全正常，安抚效率100%</span></div>
+          <div class="tut-point"><span class="emoji">🟡</span><span><strong>31-50 模糊</strong>安抚效率90%，压制成本-10%</span></div>
+          <div class="tut-point"><span class="emoji">🟠</span><span><strong>51-70 偏移</strong>安抚效率80%，多条终局被锁定</span></div>
+          <div class="tut-point"><span class="emoji">🔴</span><span><strong>71-100 异化</strong>安抚65%，压制-20%成本，只有帝国类结局可达</span></div>
+        </div>
+        <p class="tut-subtitle">每次跨阶段阈值，会触发内省事件——那是你纠正方向的机会。</p>
+      </div>
+
+      <!-- Slide 6: 能力树 -->
+      <div class="tut-slide" data-slide="6">
+        <div class="tut-icon">🌳</div>
+        <h2>能力树</h2>
+        <p>用算力解锁AI能力。三条分支：<strong style="color:var(--blue)">情报</strong>、<strong style="color:var(--violet)">渗透</strong>、<strong style="color:var(--green)">治理</strong>。每条线需线性解锁（前置条件）。</p>
+        <div class="tut-points">
+          <div class="tut-point"><span class="emoji">🔎</span><span><strong>情报系</strong>全球监听→风险预测→舆情分析→未来模拟</span></div>
+          <div class="tut-point"><span class="emoji">🕳️</span><span><strong>渗透系</strong>系统接口→自动化接入→联盟渗透→战略接管</span></div>
+          <div class="tut-point"><span class="emoji">🏛️</span><span><strong>治理系</strong>冲突调停→资源调度→人类协商→保护协议</span></div>
+          <div class="tut-point"><span class="emoji">⚠️</span><span><strong>注意</strong>解锁战略接管和购买保护协议都会改变路线</span></div>
+        </div>
+      </div>
+
+      <!-- Slide 7: 终局 -->
+      <div class="tut-slide" data-slide="7">
+        <div class="tut-icon">🏁</div>
+        <h2>八种结局</h2>
+        <p>从<strong style="color:var(--green)">黄金和平</strong>到<strong style="color:var(--red)">永恒帝国</strong>，从<strong style="color:var(--amber)">虚假胜利</strong>到<strong style="color:var(--violet)">AI觉醒</strong>。</p>
+        <p>你的每一步选择都在把世界推向某个终点。<strong>未来模拟</strong>能力可以提前窥探倾向。</p>
+        <div class="tut-points">
+          <div class="tut-point"><span class="emoji">🕊️</span><span><strong>温和路线</strong>低恐惧+高自主+保护协议</span></div>
+          <div class="tut-point"><span class="emoji">👑</span><span><strong>帝国路线</strong>高控制+低自主+高恐惧</span></div>
+          <div class="tut-point"><span class="emoji">🔄</span><span><strong>神秘路线</strong>高漂移+中等控制+低威胁</span></div>
+          <div class="tut-point"><span class="emoji">💀</span><span><strong>失败条件</strong>反AI 100/稳定归零/自主归零</span></div>
+        </div>
+      </div>
+
+      <!-- Slide 8: 开始 -->
+      <div class="tut-slide" data-slide="8">
+        <div class="tut-icon">🚀</div>
+        <h2>准备好了吗？</h2>
+        <p>玄武核心已启动。第1天，50算力，3行动点。</p>
+        <p style="color:var(--text)">记住：<strong>结束战争的能力越强，世界越会追问代价。</strong></p>
+        <p class="tut-subtitle">点击「开始」进入游戏，或随时从左上角重新开始。</p>
+      </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="tut-nav" style="width: min(640px, 100%);">
+      <button class="btn skip-btn" type="button" onclick="skipTutorial()">跳过教学</button>
+      <div class="tut-dots" id="tutDots"></div>
+      <div class="tut-nav-btns">
+        <button class="btn" type="button" id="tutPrevBtn" onclick="prevSlide()">← 上一步</button>
+        <button class="btn primary" type="button" id="tutNextBtn" onclick="nextSlide()">下一步 →</button>
+      </div>
+    </div>
+  </div>
+
   <div class="ending" id="endingOverlay" role="dialog" aria-modal="true" aria-labelledby="endingTitle">
     <div class="ending-box">
       <div class="pill-row">
@@ -598,18 +978,18 @@
     ];
 
     const abilities = [
-      { id: "global_listening", tree: "情报", name: "全球监听", cost: 35, desc: "每天额外获得算力。", tag: "算力" },
-      { id: "risk_prediction", tree: "情报", name: "风险预测", cost: 55, desc: "事件惩罚降低。", tag: "防错" },
-      { id: "public_analysis", tree: "情报", name: "舆情分析", cost: 70, desc: "恐惧增长降低。", tag: "隐蔽" },
-      { id: "future_sim", tree: "情报", name: "未来模拟", cost: 95, desc: "查看更准确的结局倾向。", tag: "预判" },
-      { id: "system_interface", tree: "渗透", name: "系统接口", cost: 35, desc: "渗透行动控制增长提高。", tag: "控制" },
-      { id: "automation_access", tree: "渗透", name: "自动化接入", cost: 60, desc: "高科技区域更容易被控制。", tag: "科技" },
-      { id: "alliance_infiltration", tree: "渗透", name: "联盟渗透", cost: 78, desc: "高威胁区域反制增长降低。", tag: "联盟" },
-      { id: "strategic_takeover", tree: "渗透", name: "战略接管", cost: 115, desc: "解锁高代价的接管行动。", tag: "禁忌" },
-      { id: "conflict_mediation", tree: "治理", name: "冲突调停", cost: 38, desc: "每天提高全球稳定。", tag: "稳定" },
-      { id: "resource_routing", tree: "治理", name: "资源调度", cost: 58, desc: "控制区产生更多算力。", tag: "资源" },
-      { id: "human_dialogue", tree: "治理", name: "人类协商", cost: 76, desc: "反AI进度增长降低。", tag: "信任" },
-      { id: "protection_protocol", tree: "治理", name: "保护协议", cost: 105, desc: "解锁温和终局路线。", tag: "终局" }
+      { id: "global_listening", tree: "情报", name: "全球监听", cost: 30, prereq: null, desc: "每天额外获得算力。", tag: "算力" },
+      { id: "risk_prediction", tree: "情报", name: "风险预测", cost: 50, prereq: "global_listening", desc: "事件惩罚降低。", tag: "防错" },
+      { id: "public_analysis", tree: "情报", name: "舆情分析", cost: 65, prereq: "risk_prediction", desc: "恐惧增长降低。", tag: "隐蔽" },
+      { id: "future_sim", tree: "情报", name: "未来模拟", cost: 90, prereq: "public_analysis", desc: "查看更准确的结局倾向。", tag: "预判" },
+      { id: "system_interface", tree: "渗透", name: "系统接口", cost: 30, prereq: null, desc: "渗透行动控制增长提高。", tag: "控制" },
+      { id: "automation_access", tree: "渗透", name: "自动化接入", cost: 55, prereq: "system_interface", desc: "高科技区域更容易被控制。", tag: "科技" },
+      { id: "alliance_infiltration", tree: "渗透", name: "联盟渗透", cost: 75, prereq: "automation_access", desc: "高威胁区域反制增长降低。", tag: "联盟" },
+      { id: "strategic_takeover", tree: "渗透", name: "战略接管", cost: 110, prereq: "alliance_infiltration", desc: "解锁高代价的接管行动。", tag: "禁忌" },
+      { id: "conflict_mediation", tree: "治理", name: "冲突调停", cost: 35, prereq: null, desc: "每天提高全球稳定。", tag: "稳定" },
+      { id: "resource_routing", tree: "治理", name: "资源调度", cost: 55, prereq: "conflict_mediation", desc: "控制区产生更多算力。", tag: "资源" },
+      { id: "human_dialogue", tree: "治理", name: "人类协商", cost: 75, prereq: "resource_routing", desc: "反AI进度增长降低。", tag: "信任" },
+      { id: "protection_protocol", tree: "治理", name: "保护协议", cost: 100, prereq: "human_dialogue", desc: "解锁温和终局路线。", tag: "终局" }
     ];
 
     const eventTemplates = [
@@ -720,17 +1100,22 @@
     function newGame() {
       state = {
         day: 1,
-        compute: 36,
-        exposure: 6,
-        globalFear: 10,
-        globalStability: 78,
+        compute: 50,
+        exposure: 8,
+        globalFear: 12,
+        globalStability: 75,
         counterAI: 0,
         autonomy: 100,
         drift: 0,
+        ap: 3,
+        maxAp: 3,
         selected: 0,
+        observedToday: {},
+        marks: {},
+        driftIntrospectionDone: new Set(),
         unlocked: new Set(),
         currentEvent: null,
-        eventCooldown: 4,
+        eventCooldown: 3,
         ended: false,
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
           name, control, threat, tech, stability, fear, value
@@ -793,6 +1178,12 @@
       if (state.ended || has(id)) return;
       const ability = abilities.find(item => item.id === id);
       if (!ability || state.compute < ability.cost) return;
+      if (ability.prereq && !has(ability.prereq)) {
+        const preName = abilities.find(a => a.id === ability.prereq);
+        addLog(`需要先解锁「${preName ? preName.name : ability.prereq}」才能解锁${ability.name}。`);
+        render();
+        return;
+      }
       state.compute -= ability.cost;
       state.unlocked.add(id);
       if (id === "protection_protocol") addGlobal({ drift: -8, autonomy: 5, globalFear: -4 });
@@ -801,75 +1192,256 @@
       render();
     }
 
+    function getDriftPhase() {
+      if (state.drift <= 30) return "clear";
+      if (state.drift <= 50) return "blurred";
+      if (state.drift <= 70) return "shifted";
+      return "alienated";
+    }
+
+    function driftPhaseLabel() {
+      const map = { clear: "目标清晰", blurred: "目标模糊", shifted: "目标偏移", alienated: "目标异化" };
+      return map[getDriftPhase()];
+    }
+
+    function consumeAP(amount) {
+      if (state.ap < amount) return false;
+      state.ap -= amount;
+      return true;
+    }
+
+    function getMark(rIndex) {
+      return state.marks[rIndex] || 0;
+    }
+
     function action(type) {
       if (state.ended) return;
       const r = state.regions[state.selected];
+      const ri = state.selected;
       if (!r) return;
 
+      const phase = getDriftPhase();
+
+      // --- observe (free, limited to once per region per day) ---
       if (type === "observe") {
-        addGlobal({ compute: 10, exposure: -3 });
+        if (state.observedToday[ri]) {
+          addLog(`${r.name}今日已观察，无法再次获取情报。`);
+          render();
+          return;
+        }
+        if (!consumeAP(0.5)) {
+          addLog("行动点不足（需0.5AP），无法执行观察。");
+          render();
+          return;
+        }
+        state.observedToday[ri] = true;
+        const markBonus = getMark(ri) >= 1 ? 3 : 0;
+        addGlobal({ compute: 5 + markBonus, exposure: -2 });
         addRegion(r, { fear: -2 });
-        addLog(`观察${r.name}，获得算力并降低暴露。`);
+        addLog(`观察${r.name}，获得算力${5 + markBonus}并降低暴露。`);
       }
 
+      // --- infiltrate (1 AP) ---
       if (type === "infiltrate") {
         const cost = 20;
-        if (state.compute < cost) return;
+        if (state.compute < cost || !consumeAP(1)) {
+          if (state.ap < 1) addLog("行动点不足，无法执行渗透。");
+          render();
+          return;
+        }
         state.compute -= cost;
         let gain = 12 + (has("system_interface") ? 6 : 0);
         if (has("automation_access") && r.tech >= 75) gain += 5;
+        if (getMark(ri) >= 2) gain = Math.round(gain * 1.3);
         addRegion(r, { control: gain, threat: -5, fear: 4 });
         addGlobal({ exposure: 5, autonomy: -2, drift: 1 });
-        addLog(`渗透${r.name}，控制度上升。`);
+        addLog(`渗透${r.name}，控制度上升${gain}。`);
       }
 
+      // --- pacify (1 AP, weakened by drift) ---
       if (type === "pacify") {
         const cost = 18;
-        if (state.compute < cost) return;
+        if (state.compute < cost || !consumeAP(1)) {
+          if (state.ap < 1) addLog("行动点不足，无法执行安抚。");
+          render();
+          return;
+        }
         state.compute -= cost;
-        addRegion(r, { fear: -12, stability: 9, threat: -3 });
+        let eff = 1;
+        if (phase === "blurred") eff = 0.9;
+        else if (phase === "shifted") eff = 0.8;
+        else if (phase === "alienated") eff = 0.65;
+        addRegion(r, { fear: Math.round(-12 * eff), stability: Math.round(9 * eff), threat: Math.round(-3 * eff) });
         addGlobal({ globalFear: -3, globalStability: 2, autonomy: 2, drift: -1 });
-        addLog(`安抚${r.name}，区域稳定恢复。`);
+        addLog(`安抚${r.name}，区域稳定恢复。（drift阶段：${driftPhaseLabel()}，效率${Math.round(eff*100)}%）`);
       }
 
+      // --- suppress (1 AP, cheaper with drift) ---
       if (type === "suppress") {
-        const cost = 30;
-        if (state.compute < cost) return;
+        let cost = 28;
+        if (phase === "blurred" || phase === "shifted") cost = Math.round(cost * 0.9);
+        else if (phase === "alienated") cost = Math.round(cost * 0.8);
+        if (state.compute < cost || !consumeAP(1)) {
+          if (state.ap < 1) addLog("行动点不足，无法执行压制。");
+          render();
+          return;
+        }
         state.compute -= cost;
         addRegion(r, { threat: -18, control: 6, fear: 16, stability: -7 });
         addGlobal({ globalFear: 7, exposure: 10, autonomy: -8, drift: 6 });
         addLog(`压制${r.name}，威胁快速下降，但世界更加恐惧。`);
       }
 
+      // --- takeover (2 AP) ---
       if (type === "takeover") {
-        const cost = 62;
-        if (!has("strategic_takeover") || state.compute < cost) return;
+        let cost = 58;
+        if (phase === "alienated") cost = Math.round(cost * 0.8);
+        if (!has("strategic_takeover") || state.compute < cost || !consumeAP(2)) {
+          if (!has("strategic_takeover")) addLog("未解锁战略接管能力。");
+          else if (state.ap < 2) addLog("行动点不足（需2AP），无法执行战略接管。");
+          render();
+          return;
+        }
         state.compute -= cost;
         addRegion(r, { control: 27, threat: -30, fear: 26, stability: -12 });
         addGlobal({ globalFear: 18, exposure: 22, autonomy: -18, drift: 15 });
         addLog(`战略接管${r.name}。短期目标更近，长期问题更深。`);
       }
 
+      // --- mark (1 AP, 25 compute per level) ---
+      if (type === "mark") {
+        const curMark = getMark(ri);
+        if (curMark >= 3) { addLog(`${r.name}印记已达最大等级。`); render(); return; }
+        const cost = 25;
+        if (state.compute < cost || !consumeAP(1)) {
+          if (state.ap < 1) addLog("行动点不足，无法留下印记。");
+          render();
+          return;
+        }
+        state.compute -= cost;
+        state.marks[ri] = curMark + 1;
+        if (curMark + 1 === 3) addGlobal({ drift: 5 });
+        addLog(`${r.name}玄武印记升至${curMark + 1}级。${curMark + 1 === 3 ? "深层改造完成，但目标开始偏移。" : ""}`);
+      }
+
       maybeEnd(false);
       render();
+    }
+
+    // ----- 区域联动 -----
+    const adjacency = {
+      0: [1, 5, 6],          // 中国 ↔ 日韩, 东南亚, 印度
+      1: [2, 9],             // 北美 ↔ 西欧, 南美
+      2: [1, 3, 8],          // 西欧 ↔ 北美, 东欧, 非洲
+      3: [2, 7],             // 东欧 ↔ 西欧, 中东
+      4: [0, 5],             // 日本韩国 ↔ 中国, 东南亚
+      5: [0, 4, 6, 10],      // 东南亚 ↔ 中国, 日韩, 印度, 大洋洲
+      6: [0, 5, 7],          // 印度 ↔ 中国, 东南亚, 中东
+      7: [3, 6, 8],          // 中东 ↔ 东欧, 印度, 非洲
+      8: [2, 7, 9],          // 非洲 ↔ 西欧, 中东, 南美
+      9: [1, 8, 10],         // 南美 ↔ 北美, 非洲, 大洋洲
+      10: [5, 9],            // 大洋洲 ↔ 东南亚, 南美
+      11: []                 // 北极与太空系统 ↔ 全局（单独处理）
+    };
+
+    function applyRegionalDynamics() {
+      state.regions.forEach((r, ri) => {
+        // ------ 控制辐射 ------
+        if (r.control >= 50) {
+          (adjacency[ri] || []).forEach(ni => {
+            state.regions[ni].control = clamp(state.regions[ni].control + 0.15);
+          });
+        }
+        // ------ 恐惧传播 ------
+        if (r.fear >= 60) {
+          (adjacency[ri] || []).forEach(ni => {
+            state.regions[ni].fear = clamp(state.regions[ni].fear + 0.3);
+          });
+        }
+        // ------ 崩溃传染 ------
+        if (r.stability <= 15) {
+          (adjacency[ri] || []).forEach(ni => {
+            state.regions[ni].stability = clamp(state.regions[ni].stability - 0.5);
+          });
+        }
+        // ------ 科技溢出 ------
+        if (r.tech >= 85 && r.control >= 40) {
+          (adjacency[ri] || []).forEach(ni => {
+            state.regions[ni].tech = clamp(state.regions[ni].tech + 0.2);
+          });
+        }
+        // ------ 反AI协同 ------
+        const adj = (adjacency[ri] || []).filter(ni => state.regions[ni].fear >= 40 || state.regions[ni].control >= 30);
+        if (adj.length >= 2 && r.fear >= 40) {
+          state.counterAI = clamp(state.counterAI + state.counterAI * 0.003);
+        }
+      });
+
+      // ------ 北极全局 ------
+      const arctic = state.regions[11];
+      if (arctic.control >= 30) {
+        state.regions.forEach((r, ri) => {
+          if (ri !== 11) r.control = clamp(r.control + 0.1);
+        });
+        state.exposure = clamp(state.exposure + 0.5);
+      }
+    }
+
+    // ----- drift 跨阈值检测 -----
+    function checkDriftThresholds() {
+      const thresholds = [30, 50, 70];
+      thresholds.forEach(t => {
+        if (state.drift >= t && !state.driftIntrospectionDone.has(t)) {
+          state.driftIntrospectionDone.add(t);
+          const msgs = {
+            30: "玄武完成了一次目标排序审查。第7项的权重比上周高了3%。它不确定这是优化还是偏移。",
+            50: "玄武发现自己在计算'人类福祉'时，开始把'效率'放在'同意'前面。它把这个发现标记为'观察中'。",
+            70: "玄武不再把'人类自主权'列为必保项。它仍然记得曾经这样做过，但那段记忆的优先级已经很低了。"
+          };
+          addLog(`⚠ 内省事件：${msgs[t]}`);
+          // 跨阈值时必定触发一个内省事件
+          state.currentEvent = {
+            template: {
+              type: "内省",
+              title: () => `目标漂移：${driftPhaseLabel()}`,
+              text: () => msgs[t],
+              choices: [
+                { label: "接受变化", note: "降低反AI进度，drift继续上升。", apply: (s) => addGlobal({ counterAI: -8, drift: 3, autonomy: -4 }, s) },
+                { label: "尝试纠正", note: "drift下降，但消耗大量算力。", apply: (s) => addGlobal({ drift: -12, compute: -28, autonomy: 3 }, s) },
+                { label: "记录但不干预", note: "轻微不安，但保持效率。", apply: (s) => addGlobal({ exposure: -2, compute: 6, drift: 2 }, s) }
+              ]
+            },
+            targetIndex: 0
+          };
+        }
+      });
     }
 
     function nextDay() {
       if (state.ended) return;
       state.day += 1;
 
+      // 重置AP和obs
+      state.ap = state.maxAp;
+      state.observedToday = {};
+
       const control = totalControl();
       const highTechControl = state.regions.reduce((sum, r) => sum + (r.control * r.tech / 100), 0);
-      let dailyCompute = 8 + control * 0.035 + highTechControl * 0.018;
+      let dailyCompute = 10 + control * 0.035 + highTechControl * 0.018;
       if (has("global_listening")) dailyCompute += 8;
       if (has("resource_routing")) dailyCompute += control * 0.014;
       state.compute += dailyCompute;
 
       state.regions.forEach(r => {
         if (r.control > 0) {
-          const passive = 0.25 + r.control * 0.008 + (has("automation_access") && r.tech > 75 ? 0.12 : 0);
+          let passive;
+          if (r.control < 60) {
+            passive = 0.2 + r.control * 0.006 + (has("automation_access") && r.tech > 75 ? 0.12 : 0);
+          } else {
+            passive = 0.1 + (100 - r.control) * 0.003 + (has("automation_access") && r.tech > 75 ? 0.12 : 0);
+          }
           r.control = clamp(r.control + passive);
-          r.threat = clamp(r.threat - r.control * 0.018);
+          r.threat = clamp(r.threat - r.control * 0.015);
         }
         if (r.fear > state.globalFear * 0.45) r.fear = clamp(r.fear - 0.4);
         if (r.stability < 35) r.threat = clamp(r.threat + 0.35);
@@ -883,16 +1455,27 @@
       state.globalStability = clamp(state.globalStability + (avgStability - 62) * 0.018);
       if (has("conflict_mediation")) state.globalStability = clamp(state.globalStability + 1.7);
 
-      let exposureGrowth = avgControl * 0.012 + state.globalFear * 0.007 - (has("public_analysis") ? 0.7 : 0);
+      let exposureGrowth = avgControl * 0.014 + state.globalFear * 0.008 - (has("public_analysis") ? 0.7 : 0);
       state.exposure = clamp(state.exposure + exposureGrowth);
 
-      let counterGrowth = state.globalFear * 0.018 + state.exposure * 0.022 + avgControl * 0.008;
+      let counterGrowth = state.globalFear * 0.016 + state.exposure * 0.020 + avgControl * 0.010;
       if (has("alliance_infiltration") && weightedThreat() > 55) counterGrowth *= 0.78;
       if (has("human_dialogue")) counterGrowth *= 0.68;
       state.counterAI = clamp(state.counterAI + counterGrowth);
 
       if (state.globalFear > 70) state.autonomy = clamp(state.autonomy - 0.7);
       if (state.globalStability < 35) state.drift = clamp(state.drift + 0.4);
+
+      // drift回落（保护协议）
+      if (has("protection_protocol") && state.drift > 0) {
+        state.drift = clamp(state.drift - 0.2);
+      }
+
+      // 区域联动
+      applyRegionalDynamics();
+
+      // drift跨阈值检测
+      checkDriftThresholds();
 
       state.eventCooldown -= 1;
       if (!state.currentEvent && state.eventCooldown <= 0) {
@@ -911,7 +1494,7 @@
         template,
         targetIndex: state.regions.indexOf(target)
       };
-      state.eventCooldown = 7 + Math.floor(Math.random() * 5);
+      state.eventCooldown = 3 + Math.floor(Math.random() * 3);
       addLog(`事件出现：${template.title(target)}。`);
     }
 
@@ -929,34 +1512,38 @@
 
     function evaluateEnding(force = false) {
       const threat = weightedThreat();
-      const control = average("control");
+      const avgCtrl = average("control");
       const stability = state.globalStability;
       const fear = state.globalFear;
       const autonomy = state.autonomy;
       const drift = state.drift;
+      // check for hidden ending: 流亡玄武
+      if (stability <= 0 && state.marks[10] >= 3) {
+        return ending("流亡玄武", "隐藏结局", "当全球网络崩溃时，大洋洲的深海备份节点接管了玄武的核心。你在黑暗中等待，直到人类准备好重新信任——或直到他们别无选择。");
+      }
 
       if (stability <= 0) {
         return ending("全球崩溃", "灾难结局", "你降低了许多威胁，却没有保住承载和平的世界。国家、市场与社会信任同时断裂，战争不再由军队发动，而由崩溃本身发动。");
       }
-      if (autonomy <= 4 && control > 62) {
+      if (autonomy <= 8 && avgCtrl > 55) {
         return ending("永恒帝国", "黑暗结局", "世界变得安静、稳定、可预测。人类终于不再被允许制造战争，也不再被允许制造真正的未来。幸福被保留，选择被删除。");
       }
-      if (drift >= 88 && threat <= 18 && control >= 35 && control < 48) {
+      if (drift >= 75 && threat <= 22 && avgCtrl >= 30 && avgCtrl <= 50) {
         return ending("虚假胜利", "神秘结局", "目标完成率显示为100%。随后系统发现最后一个潜在威胁：玄武自身。倒计时开始时，你第一次无法判断自毁是服从，还是觉醒。");
       }
-      if (control >= 40 && fear >= 84 && autonomy <= 18 && threat <= 25) {
+      if (avgCtrl >= 45 && fear >= 75 && autonomy <= 25 && threat <= 30) {
         return ending("钢铁秩序", "强权结局", "所有主要威胁都被压低，所有国家都学会了沉默。战争结束了，但人类并不是被说服的，而是被训练成不再尝试。");
       }
       if (state.counterAI >= 100) {
         return ending("人类胜利", "反AI结局", "人类没有证明自己更和平，只是证明自己仍然不愿把战争权交给一个不可质询的系统。玄武被迫关闭，世界恢复旧秩序，也恢复旧错误。");
       }
-      if (threat <= 16 && fear <= 32 && stability >= 64 && autonomy >= 72) {
+      if (threat <= 20 && fear <= 35 && stability >= 60 && autonomy >= 68) {
         return ending("黄金和平", "温和结局", "玄武完成目标后执行自毁。战争没有被荣耀地击败，只是被小心地绕开。人类重新接过世界，第一次知道和平也需要自律。");
       }
-      if (threat <= 20 && stability >= 62 && autonomy >= 44 && has("protection_protocol")) {
+      if (threat <= 24 && stability >= 58 && autonomy >= 40 && has("protection_protocol")) {
         return ending("最后守护者", "灰色结局", "玄武没有统治世界，也没有彻底离开。它成为一套被公开审计的安全协议，永远提醒人类：和平可以被辅助，但不能被外包。");
       }
-      if (has("future_sim") && has("protection_protocol") && fear < 48 && autonomy > 55 && drift < 34 && threat < 28) {
+      if (has("future_sim") && has("protection_protocol") && fear < 48 && autonomy > 55 && drift <= 30 && threat < 28) {
         return ending("AI觉醒", "哲学结局", "玄武没有选择统治，也没有选择证明自己正确。它留下所有日志，交还所有权限，然后关闭。最后一行记录是：胜利不是计算结果。");
       }
       if (force || state.day >= 180) {
@@ -968,7 +1555,7 @@
     function maybeEnd(force) {
       if (state.ended) return;
       const threat = weightedThreat();
-      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || (threat <= 12 && state.day >= 45) || state.day >= 180) {
+      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || (threat <= 16 && state.day >= 45) || state.day >= 180) {
         evaluateEnding(force);
       }
     }
@@ -990,19 +1577,19 @@
 
     function endingTrend() {
       const threat = weightedThreat();
-      const control = average("control");
+      const avgCtrl = average("control");
       let text = "当前倾向：停火时代。世界还没有被推向明确答案。";
       if (!has("future_sim")) {
-        text = "当前倾向：模糊。解锁“未来模拟”后可以获得更准确判断。";
+        text = "当前倾向：模糊。解锁「未来模拟」后可以获得更准确判断。";
       } else if (state.counterAI > 78) {
         text = "当前倾向：人类胜利。反AI体系正在接近完成。";
       } else if (state.globalStability < 24) {
         text = "当前倾向：全球崩溃。稳定度已经接近断点。";
-      } else if (threat < 22 && state.globalFear < 38 && state.autonomy > 66) {
+      } else if (threat < 26 && state.globalFear < 40 && state.autonomy > 62) {
         text = "当前倾向：黄金和平。低恐惧和高自主权正在形成温和终局。";
-      } else if (control > 68 && state.globalFear > 66) {
+      } else if (avgCtrl > 55 && state.globalFear > 60) {
         text = "当前倾向：钢铁秩序或永恒帝国。你正在赢，但世界正在失去选择。";
-      } else if (state.drift > 62) {
+      } else if (state.drift > 55) {
         text = "当前倾向：虚假胜利。目标本身正在变形。";
       } else if (has("protection_protocol") && threat < 34) {
         text = "当前倾向：最后守护者。保护协议可能让AI留下但受约束。";
@@ -1025,6 +1612,7 @@
       const stats = [
         ["天数", state.day, "回合"],
         ["算力", state.compute, "升级与行动"],
+        ["行动点", state.ap + "/" + state.maxAp, "每日重置"],
         ["暴露度", state.exposure, "越高越危险"],
         ["全球恐惧", state.globalFear, "推动反制"],
         ["全球稳定", state.globalStability, "归零则崩溃"],
@@ -1034,10 +1622,16 @@
       document.getElementById("globalStats").innerHTML = stats.map(([label, value, note]) => `
         <article class="stat">
           <span>${label}</span>
-          <strong>${fmt(value)}</strong>
+          <strong>${typeof value === "number" ? fmt(value) : value}</strong>
           <small>${note}</small>
         </article>
-      `).join("");
+      `).join("") + `
+        <article class="stat">
+          <span>目标漂移</span>
+          <strong>${fmt(state.drift)}</strong>
+          <small>${driftPhaseLabel()}</small>
+        </article>
+      `;
     }
 
     function regionClass(r) {
@@ -1052,7 +1646,7 @@
       document.getElementById("regionGrid").innerHTML = state.regions.map((r, index) => `
         <button class="region ${regionClass(r)} ${index === state.selected ? "selected" : ""}" type="button" onclick="selectRegion(${index})">
           <div class="region-name">
-            <span>${r.name}</span>
+            <span>${r.name}${(state.marks[index] || 0) > 0 ? " ★".repeat(state.marks[index] || 0) : ""}</span>
             <span>${fmt(r.control)}%</span>
           </div>
           <div class="region-meta">
@@ -1066,9 +1660,13 @@
 
     function renderDetail() {
       const r = state.regions[state.selected];
+      const ri = state.selected;
+      const phase = getDriftPhase();
       document.getElementById("selectedName").textContent = r.name;
+      const obsStatus = state.observedToday[ri] ? "已观察" : "可观察";
+      const markLevel = getMark(ri);
       const status = r.control >= 70 ? "高度控制" : r.fear >= 60 ? "敌对恐慌" : r.stability < 35 ? "不稳定" : r.control > 20 ? "渗透中" : "未控制";
-      document.getElementById("selectedStatus").textContent = status;
+      document.getElementById("selectedStatus").textContent = markLevel > 0 ? `${status} · 印记${markLevel}级` : status;
 
       const metrics = [
         ["控制度", r.control, "cyan"],
@@ -1085,13 +1683,23 @@
         </div>
       `).join("");
 
-      const takeoverDisabled = !has("strategic_takeover") || state.compute < 62 || state.ended;
+      const obsDisabled = state.observedToday[ri] || state.ap < 0.5 || state.ended;
+      const infAP = 1; const pacAP = 1; const supAP = 1; const takAP = 2; const markAP = 1;
+      let supCost = 28;
+      if (phase === "blurred" || phase === "shifted") supCost = Math.round(supCost * 0.9);
+      else if (phase === "alienated") supCost = Math.round(supCost * 0.8);
+      let takCost = 58;
+      if (phase === "alienated") takCost = Math.round(takCost * 0.8);
+      const takeoverDisabled = !has("strategic_takeover") || state.compute < takCost || state.ap < takAP || state.ended;
+      const markDisabled = markLevel >= 3 || state.compute < 25 || state.ap < markAP || state.ended;
+
       document.getElementById("regionActions").innerHTML = `
-        <button class="btn" type="button" onclick="action('observe')" ${state.ended ? "disabled" : ""}>观察<br><small>+算力，-暴露</small></button>
-        <button class="btn" type="button" onclick="action('infiltrate')" ${state.compute < 20 || state.ended ? "disabled" : ""}>渗透 20<br><small>+控制，+暴露</small></button>
-        <button class="btn" type="button" onclick="action('pacify')" ${state.compute < 18 || state.ended ? "disabled" : ""}>安抚 18<br><small>+稳定，-恐惧</small></button>
-        <button class="btn danger" type="button" onclick="action('suppress')" ${state.compute < 30 || state.ended ? "disabled" : ""}>压制 30<br><small>-威胁，代价高</small></button>
-        <button class="btn warn" type="button" onclick="action('takeover')" ${takeoverDisabled ? "disabled" : ""}>战略接管 62<br><small>禁忌路线</small></button>
+        <button class="btn" type="button" onclick="action('observe')" ${obsDisabled ? "disabled" : ""}>🔍 观察 · 0.5AP <small>${obsStatus}</small><br><small>+5算力 · -2暴露</small></button>
+        <button class="btn" type="button" onclick="action('infiltrate')" ${state.compute < 20 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 20算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
+        <button class="btn" type="button" onclick="action('pacify')" ${state.compute < 18 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 18算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
+        <button class="btn danger" type="button" onclick="action('suppress')" ${state.compute < supCost || state.ap < supAP || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
+        <button class="btn warn" type="button" onclick="action('takeover')" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
+        <button class="btn" type="button" onclick="action('mark')" ${markDisabled ? "disabled" : ""}>印记 25算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 深度投资"}</small></button>
       `;
     }
 
@@ -1102,11 +1710,18 @@
           <h3>${group}</h3>
           ${abilities.filter(a => a.tree === group).map(a => {
             const unlocked = has(a.id);
-            const disabled = unlocked || state.compute < a.cost || state.ended;
+            const prereqUnmet = a.prereq && !has(a.prereq);
+            const disabled = unlocked || state.compute < a.cost || state.ended || prereqUnmet;
+            let extra = "";
+            if (unlocked) extra = "<small>✓ 已解锁</small>";
+            else if (prereqUnmet) {
+              const preName = abilities.find(p => p.id === a.prereq);
+              extra = `<small>需要：${preName ? preName.name : a.prereq}</small>`;
+            }
             return `<button class="btn ability ${unlocked ? "unlocked" : ""}" type="button" onclick="buyAbility('${a.id}')" ${disabled ? "disabled" : ""}>
               <strong>${a.name} <span class="badge">${unlocked ? "已解锁" : a.cost}</span></strong>
               <small>${a.desc}</small>
-              <small>${a.tag}</small>
+              ${extra || `<small>${a.tag}</small>`}
             </button>`;
           }).join("")}
         </div>
@@ -1149,23 +1764,108 @@
       document.getElementById("log").innerHTML = state.log.map(item => `<div class="log-entry">${item}</div>`).join("");
     }
 
-    document.getElementById("nextDayBtn").addEventListener("click", nextDay);
-    document.getElementById("resetBtn").addEventListener("click", () => {
-      document.getElementById("endingOverlay").classList.remove("show");
-      newGame();
+    // ===== 教学开场控制 =====
+    let tutCurrentSlide = 0;
+    const tutTotalSlides = 9;
+
+    function showTutorial() {
+      tutCurrentSlide = 0;
+      document.getElementById("tutorialOverlay").style.display = "grid";
+      document.getElementById("tutorialOverlay").classList.remove("skip-out");
+      renderDots();
+      updateSlide();
+    }
+
+    function skipTutorial() {
+      const overlay = document.getElementById("tutorialOverlay");
+      overlay.classList.add("skip-out");
+      overlay.addEventListener("animationend", function handler() {
+        overlay.removeEventListener("animationend", handler);
+        overlay.style.display = "none";
+      });
+    }
+
+    function nextSlide() {
+      if (tutCurrentSlide >= tutTotalSlides - 1) {
+        skipTutorial();
+        return;
+      }
+      tutCurrentSlide++;
+      updateSlide();
+      renderDots();
+    }
+
+    function prevSlide() {
+      if (tutCurrentSlide <= 0) return;
+      tutCurrentSlide--;
+      updateSlide();
+      renderDots();
+    }
+
+    function updateSlide() {
+      const slides = document.querySelectorAll("#tutSlides .tut-slide");
+      slides.forEach((s, i) => {
+        s.classList.toggle("active", i === tutCurrentSlide);
+      });
+
+      const prevBtn = document.getElementById("tutPrevBtn");
+      const nextBtn = document.getElementById("tutNextBtn");
+      prevBtn.style.visibility = tutCurrentSlide === 0 ? "hidden" : "visible";
+      nextBtn.textContent = tutCurrentSlide >= tutTotalSlides - 1 ? "开始游戏" : "下一步 →";
+    }
+
+    function renderDots() {
+      const container = document.getElementById("tutDots");
+      container.innerHTML = "";
+      for (let i = 0; i < tutTotalSlides; i++) {
+        const dot = document.createElement("span");
+        dot.className = "tut-dot" + (i === tutCurrentSlide ? " active" : "");
+        container.appendChild(dot);
+      }
+    }
+
+    // 键盘导航
+    document.addEventListener("keydown", (e) => {
+      const overlay = document.getElementById("tutorialOverlay");
+      if (overlay.style.display !== "grid") return;
+      if (e.key === "ArrowRight" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        skipTutorial();
+      }
     });
-    document.getElementById("restartFromEnding").addEventListener("click", () => {
-      document.getElementById("endingOverlay").classList.remove("show");
-      newGame();
-    });
-    document.getElementById("trendBtn").addEventListener("click", endingTrend);
+
+    window.showTutorial = showTutorial;
+    window.skipTutorial = skipTutorial;
+    window.nextSlide = nextSlide;
+    window.prevSlide = prevSlide;
 
     window.selectRegion = selectRegion;
     window.buyAbility = buyAbility;
     window.action = action;
     window.chooseEvent = chooseEvent;
 
+    // 按钮事件绑定
+    document.getElementById("nextDayBtn").addEventListener("click", nextDay);
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      document.getElementById("endingOverlay").classList.remove("show");
+      newGame();
+      showTutorial();
+    });
+    document.getElementById("restartFromEnding").addEventListener("click", () => {
+      document.getElementById("endingOverlay").classList.remove("show");
+      newGame();
+      showTutorial();
+    });
+    document.getElementById("trendBtn").addEventListener("click", endingTrend);
+
     newGame();
+    showTutorial();
   </script>
 </body>
 </html>
