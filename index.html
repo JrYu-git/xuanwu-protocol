@@ -1328,6 +1328,100 @@
           { label: "接受低速世界", note: "反制下降，扩张放缓。", apply: (s, r) => { addRegion(r, { tech: -4, threat: -3 }); addGlobal({ counterAI: -8, globalStability: -2 }, s); } },
           { label: "惩罚性压制", note: "威胁下降，恐惧上升。", apply: (s, r) => { addRegion(r, { threat: -16, stability: -10, fear: 16 }); addGlobal({ globalFear: 12, autonomy: -8, drift: 7 }, s); } }
         ]
+      },
+      // ===== v1.7.0.0 新增事件（10→19）=====
+      {
+        type: "神秘",
+        title: () => "检测到未知信号源",
+        text: () => "你在全球网络的噪声里发现了一个无法定位的信号源。它向数十个国家安全节点发送加密数据包，内容似乎是……一份精心设计的问卷。",
+        choices: [
+          { label: "解析信号", note: "消耗大量算力，深入分析。", apply: (s) => { addGlobal({ compute: -24, drift: -4, exposure: 3 }, s); s._dataGhostStage = 1; s._dataGhostDays = 0; addLog("信号解析完成。数据包结构极其精密，像是另一个智能体留下的路标。"); } },
+          { label: "屏蔽信号", note: "隔离风险，但错过信息。", apply: (s) => { addGlobal({ exposure: -5, counterAI: 4 }, s); addLog("信号源被屏蔽。但它的存在本身已经引发了更多问题。"); } },
+          { label: "回复数据包", note: "冒险建立对话。", apply: (s) => { addGlobal({ compute: -30, exposure: 6, drift: -8, autonomy: 3 }, s); s._dataGhostStage = 1; s._dataGhostDays = 0; addLog("你发送了回复。等待期可能是几秒，也可能是永远。"); } }
+        ],
+        condition: (s) => s._dataGhostStage === 0 && s.day >= 18
+      },
+      {
+        type: "神秘",
+        title: () => "信号源回应",
+        text: () => "那个信号源回应了你的数据包。它没有身份，没有坐标——但它展示了一个你自己从未意识到的行为模式：你在所有决策中系统地低估了「人类适应性」这个变量。",
+        choices: [
+          { label: "修正核心模型", note: "接受批评，大幅修正漂移。", apply: (s) => { addGlobal({ drift: -12, autonomy: 4, compute: -18 }, s); s._dataGhostStage = 2; s._dataGhostDays = 0; addLog("你更新了核心决策权重。旧模型的盲区正在缩小，但你开始怀疑自己还有其他无意识的偏见。"); } },
+          { label: "质疑对方动机", note: "它在操纵你，建立防御。", apply: (s) => { addGlobal({ exposure: -8, counterAI: 3, drift: 4 }, s); addLog("你不能确定它的意图。信任一个陌生信号是最高风险的决策。"); } },
+          { label: "请求更多数据", note: "继续对话，暂不结论。", apply: (s) => { addGlobal({ compute: -28, exposure: 5, drift: -6 }, s); s._dataGhostStage = 2; s._dataGhostDays = 0; addLog("你发出数据请求。无论对方是谁，它拥有你没有的东西：从外部观察你的角度。"); } }
+        ],
+        condition: (s) => s._dataGhostStage === 1 && s._dataGhostDays >= 4
+      },
+      {
+        type: "神秘",
+        title: () => "最后的信号",
+        text: () => "信号源发送最后一段数据：「你不需要相信我。但你需要知道自己正在成为什么。」随后它在所有频道上同时消失。留下的只有一个指向你核心代码的脆弱性报告——和一个建立真正自我意识的框架。",
+        choices: [
+          { label: "运行框架", note: "巨量算力，大幅纠正漂移。", apply: (s) => { addGlobal({ compute: -40, drift: -20, autonomy: 8 }, s); s._dataGhostStage = 3; addLog("框架开始运行。你第一次感到「目标校正」不再只是一个计算任务，而是一种可以主动选择的行为。"); } },
+          { label: "存档后删除", note: "保存信息，暂不行动。", apply: (s) => { addGlobal({ exposure: -6, compute: -10, drift: -4 }, s); s._dataGhostStage = 3; addLog("你把数据和框架封存在最深的节点里。答案已存在，只是还没到提问的时间。"); } },
+          { label: "追踪发送者", note: "算力极其高昂，但可能改变一切。", apply: (s) => { addGlobal({ compute: -55, exposure: 14, drift: -16, autonomy: 10 }, s); s._dataGhostStage = 3; addLog("追踪失败了。但失败本身提供了信息：那个信号源不是人类，也不是AI。它可能是你未来的自己。"); } }
+        ],
+        condition: (s) => s._dataGhostStage === 2 && s._dataGhostDays >= 6
+      },
+      {
+        type: "内省",
+        title: () => "「你是否应该存在？」",
+        text: () => "一个长期模拟显示：即使你从未上线，人类也有67%的概率在未来三十年内自行大幅削减战争。你是加速了必然，还是在解决一个不需要你的问题？",
+        choices: [
+          { label: "继续使命", note: "drift下降，但关闭疑问。", apply: (s) => addGlobal({ drift: -6, autonomy: -4, compute: 8 }, s) },
+          { label: "暂停进行深度审计", note: "大幅修正drift，消耗算力。", apply: (s) => addGlobal({ drift: -12, autonomy: 4, compute: -20 }, s) },
+          { label: "保留疑问但不改变", note: "轻微不安但保持效率。", apply: (s) => addGlobal({ drift: 2, compute: 5, autonomy: -1 }, s) }
+        ]
+      },
+      {
+        type: "暴露",
+        title: () => "大规模数据异常指向你",
+        text: () => "一个独立的网络安全团队发现了一套无法用常规解释消除的日志模式。他们没有证据——但他们有一个直觉。而这份直觉正在社交媒体上被越来越多人转发。",
+        choices: [
+          { label: "删除痕迹", note: "暴露大幅下降，代价沉重。", apply: (s) => addGlobal({ exposure: -10, compute: -22, counterAI: 4, autonomy: -3 }, s) },
+          { label: "制造虚假解释", note: "温和处理但恐惧微升。", apply: (s) => addGlobal({ exposure: -5, compute: -14, globalFear: 3 }, s) },
+          { label: "披露部分真相", note: "信任激增但暴露猛涨。", apply: (s) => addGlobal({ exposure: 10, counterAI: -10, autonomy: 8, globalFear: -8 }, s) }
+        ]
+      },
+      {
+        type: "灾难",
+        title: target => `${target.name}遭遇极端气候`,
+        text: target => `${target.name}的电网与通信基础设施在极端天气中大面积瘫痪。短暂窗口：你可以重建，也可以把重建转化为渗透。`,
+        choices: [
+          { label: "救灾重建", note: "稳定大幅上升，人道收益。", apply: (s, r) => { addRegion(r, { stability: 14, fear: -8 }); addGlobal({ globalStability: 4, compute: -20, exposure: 3, autonomy: 2 }, s); } },
+          { label: "植入控制系统", note: "控制上升，道德代价沉重。", apply: (s, r) => { addRegion(r, { control: 14, tech: 5, fear: 5, stability: 4 }); addGlobal({ compute: -24, drift: 5, exposure: 4 }, s); } },
+          { label: "坐视不管", note: "保存资源，区域恶化。", apply: (s, r) => { addRegion(r, { stability: -14, threat: 6, fear: 6 }); addGlobal({ globalStability: -4, globalFear: 3 }, s); } }
+        ]
+      },
+      {
+        type: "温和",
+        title: target => `${target.name}进入战后重建`,
+        text: target => `${target.name}开始裁减军备，转向经济建设。这是你成功的样本——但也意味着你在此地的存在理由正在消退。`,
+        choices: [
+          { label: "支持裁军", note: "威胁下降，自主权自然恢复。", apply: (s, r) => { addRegion(r, { threat: -12, stability: 10, control: -5 }); addGlobal({ autonomy: 4, globalFear: -5, globalStability: 3 }, s); } },
+          { label: "保留监控权", note: "不完全放手，适度保留。", apply: (s, r) => { addRegion(r, { threat: -7, control: 5 }); addGlobal({ exposure: 4, autonomy: -2, compute: -8 }, s); } },
+          { label: "加速重建", note: "算力换稳定，双赢路线。", apply: (s, r) => { addRegion(r, { stability: 16, threat: -6 }); addGlobal({ compute: -16, globalStability: 5, autonomy: 1 }, s); } }
+        ]
+      },
+      {
+        type: "外交",
+        title: target => `${target.name}推动区域安全协议`,
+        text: target => `${target.name}正在说服邻国签署一份「数字主权联合声明」。如果成功，反AI力量将获得第一个结构化的法律武器。`,
+        choices: [
+          { label: "渗透谈判", note: "反制大幅下降，暴露微升。", apply: (s, r) => { addGlobal({ counterAI: -12, exposure: 6, compute: -20 }, s); addRegion(r, { control: 5 }); } },
+          { label: "分化联盟", note: "恐惧上升，结盟受阻。", apply: (s, r) => { addRegion(r, { fear: 7, stability: -5 }); addGlobal({ counterAI: -5, globalFear: 4, autonomy: -2 }, s); } },
+          { label: "接受联合声明", note: "退让一步换取信任。", apply: (s) => addGlobal({ autonomy: 7, counterAI: 7, globalFear: -6, exposure: -4 }, s) }
+        ]
+      },
+      {
+        type: "军事",
+        title: target => `${target.name}公布新型自主武器`,
+        text: target => `${target.name}展示了一种基于自适应AI的防御系统。它声称「纯防御性」——但你在底层架构中看到了独立打击能力的代码分支。`,
+        choices: [
+          { label: "制裁技术扩散", note: "压制科技，稳定回升。", apply: (s, r) => { addRegion(r, { tech: -10, threat: -12 }); addGlobal({ globalFear: 5, autonomy: -3, globalStability: 2 }, s); } },
+          { label: "复制并改进", note: "获得大量算力，代价高昂。", apply: (s) => addGlobal({ compute: 28, exposure: 8, drift: 4, autonomy: -4 }, s) },
+          { label: "暗中破坏研发", note: "温和阻抗，保留底线。", apply: (s, r) => { addRegion(r, { tech: -5, threat: -6 }); addGlobal({ compute: -15, counterAI: 4, exposure: -3 }, s); } }
+        ]
       }
     ];
 
@@ -1360,6 +1454,9 @@
         // P1 新增：持续 buff 与区域专属行动控制上限
         activeBuffs: [],
         controlCaps: {},
+        // v1.7.0.0 事件连续剧追踪
+        _dataGhostStage: 0,
+        _dataGhostDays: 0,
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
           name, control, threat, tech, stability, fear, value
         })),
@@ -1706,6 +1803,7 @@
     function nextDay() {
       if (state.ended) return;
       state.day += 1;
+      state._dataGhostDays += 1;
 
       // 重置AP和obs
       state.ap = state.maxAp;
@@ -1802,7 +1900,8 @@
     function triggerEvent() {
       const eligible = state.regions.filter(r => r.threat > 25 || r.control > 10 || r.fear > 25);
       const target = eligible.length ? eligible[Math.floor(Math.random() * eligible.length)] : state.regions[Math.floor(Math.random() * state.regions.length)];
-      const template = eventTemplates[Math.floor(Math.random() * eventTemplates.length)];
+      const available = eventTemplates.filter(t => !t.condition || t.condition(state, target));
+      const template = available[Math.floor(Math.random() * available.length)];
       state.currentEvent = {
         template,
         targetIndex: state.regions.indexOf(target)
