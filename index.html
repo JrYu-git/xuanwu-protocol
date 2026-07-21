@@ -117,6 +117,12 @@
       color: #f0b1aa;
     }
 
+    .btn.heal {
+      background: rgba(109, 216, 155, .14);
+      border-color: rgba(109, 216, 155, .55);
+      color: #aaf0cb;
+    }
+
     .layout {
       display: grid;
       grid-template-columns: minmax(320px, 1.2fr) minmax(300px, .8fr);
@@ -1100,7 +1106,7 @@
     function newGame() {
       state = {
         day: 1,
-        compute: 50,
+        compute: 65,
         exposure: 8,
         globalFear: 12,
         globalStability: 75,
@@ -1243,7 +1249,7 @@
 
       // --- infiltrate (1 AP) ---
       if (type === "infiltrate") {
-        const cost = 20;
+        const cost = 18;
         if (state.compute < cost || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行渗透。");
           render();
@@ -1260,7 +1266,7 @@
 
       // --- pacify (1 AP, weakened by drift) ---
       if (type === "pacify") {
-        const cost = 18;
+        const cost = 22;
         if (state.compute < cost || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行安抚。");
           render();
@@ -1322,6 +1328,25 @@
         state.marks[ri] = curMark + 1;
         if (curMark + 1 === 3) addGlobal({ drift: 5 });
         addLog(`${r.name}玄武印记升至${curMark + 1}级。${curMark + 1 === 3 ? "深层改造完成，但目标开始偏移。" : ""}`);
+      }
+
+      // --- audit (1 AP, 25 compute, drift -8, autonomy +2) ---
+      if (type === "audit") {
+        const cost = 25;
+        if (state.compute < cost || !consumeAP(1)) {
+          if (state.ap < 1) addLog("行动点不足，无法执行自我审计。");
+          render();
+          return;
+        }
+        if (state.drift <= 0) {
+          addLog("目标状态正常，无需审计。");
+          state.ap += 1; // refund AP
+          render();
+          return;
+        }
+        state.compute -= cost;
+        addGlobal({ drift: -Math.min(8, state.drift), autonomy: 2, exposure: -2 });
+        addLog(`执行自我审计，目标偏移减少，人类自主权恢复。`);
       }
 
       maybeEnd(false);
@@ -1636,12 +1661,27 @@
           <small>${note}</small>
         </article>
       `).join("") + `
-        <article class="stat">
+        <article class="stat" style="background:${driftBgColor()}">
           <span>目标漂移</span>
-          <strong>${fmt(state.drift)}</strong>
-          <small>${driftPhaseLabel()}</small>
+          <strong style="color:${driftFgColor()}">${fmt(state.drift)}</strong>
+          <small style="color:${driftFgColor()}">${driftPhaseLabel()}</small>
         </article>
       `;
+    }
+
+    function driftBgColor() {
+      const p = getDriftPhase();
+      if (p === "alienated") return "rgba(216,109,98,.22)";
+      if (p === "shifted")  return "rgba(215,173,85,.18)";
+      if (p === "blurred")  return "rgba(215,173,85,.10)";
+      return "transparent";
+    }
+    function driftFgColor() {
+      const p = getDriftPhase();
+      if (p === "alienated") return "#f0b1aa";
+      if (p === "shifted")  return "#f2d699";
+      if (p === "blurred")  return "#e8d07a";
+      return "inherit";
     }
 
     function regionClass(r) {
@@ -1705,11 +1745,12 @@
 
       document.getElementById("regionActions").innerHTML = `
         <button class="btn" type="button" onclick="action('observe')" ${obsDisabled ? "disabled" : ""}>🔍 观察 · 0.5AP <small>${obsStatus}</small><br><small>+5算力 · -2暴露</small></button>
-        <button class="btn" type="button" onclick="action('infiltrate')" ${state.compute < 20 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 20算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
-        <button class="btn" type="button" onclick="action('pacify')" ${state.compute < 18 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 18算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
+        <button class="btn" type="button" onclick="action('infiltrate')" ${state.compute < 18 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 18算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
+        <button class="btn" type="button" onclick="action('pacify')" ${state.compute < 22 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 22算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
         <button class="btn danger" type="button" onclick="action('suppress')" ${state.compute < supCost || state.ap < supAP || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
         <button class="btn warn" type="button" onclick="action('takeover')" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
         <button class="btn" type="button" onclick="action('mark')" ${markDisabled ? "disabled" : ""}>印记 25算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 深度投资"}</small></button>
+        <button class="btn heal" type="button" onclick="action('audit')" ${state.compute < 25 || state.ap < 1 || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
       `;
     }
 
