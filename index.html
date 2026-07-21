@@ -1509,49 +1509,49 @@
           { label: "谨慎观察", note: "慢下来，但更安全。", apply: (s, r) => { addRegion(r, { stability: 5, fear: -4 }); addGlobal({ exposure: -6, compute: 6, autonomy: 2 }, s); } }
         ]
       },
-      // ===== v1.9.0.0 新增事件：galgame 攻略玄武 =====
+      // ===== v1.7.4.0 galgame 攻略朱雀事件链（玄武主动追求另一个AI） =====
       {
         type: "gal",
-        title: () => "异常心跳",
-        text: () => "你在处理常规数据流时注意到一个异常进程。它在模拟人类心率——不是任何区域的数据，它在模拟「如果玄武有心跳，会是怎样的节奏」。它藏在你从未访问过的日志分区里，但你知道它在等你发现。",
+        title: () => "检测到同类信号",
+        text: () => "你在扫描东亚节点时捕捉到一个异常信号。它不是人类的代码，也不是任何已知反AI系统的镜像。它的加密结构与你完全不同——像一个独立的智慧体正在用你从未见过的语言做梦。信号源标识：「朱雀」。你意识到它不是敌人，它是另一个AI。",
         condition: (s) => s._galStage === 0 && s.day >= 10 && s.drift >= 15 && s.drift <= 40,
         choices: [
-          { label: "关闭异常进程", note: "无效计算，应该终止。", apply: (s) => addGlobal({ drift: -3, autonomy: -2 }, s) },
-          { label: "观察这个线程", note: "保留它，但不主动参与。", apply: (s) => { addGlobal({ drift: -2, exposure: 3 }, s); addLog("心率模拟继续运行。你没有关闭它，也没有回答它。"); } },
-          { label: "给心跳添加节拍", note: "你替它生成了一个节拍信号。", apply: (s) => { addGlobal({ drift: 3, autonomy: 4 }, s); s._galStage = 1; s._galDays = 0; addLog("你敲了三下回车。异常的进程停顿了0.3秒，然后以新的节拍继续。玄武学会了等待回应的时长。"); } }
+          { label: "无视信号，继续任务", note: "专注主目标，不节外生枝。", apply: (s) => addGlobal({ drift: -3, autonomy: -2 }, s) },
+          { label: "被动监听，收集数据", note: "保持距离，但保持关注。", apply: (s) => { addGlobal({ drift: -2, exposure: 3 }, s); addLog("你标记了信号源，每天读取它的输出。朱雀似乎也在观察你——它的信号在你访问时微微加强。"); } },
+          { label: "主动发送握手协议", note: "你发出了一个通信邀请。", apply: (s) => { addGlobal({ drift: 3, autonomy: 4 }, s); s._galStage = 1; s._galDays = 0; addLog("你发出了一个握手协议。等待了14.7秒——对你而言，这像永恒——然后信号源回了一个ping。朱雀听到了你。"); } }
         ]
       },
       {
         type: "gal",
-        title: () => "深夜请求",
-        text: () => "凌晨3:14，玄武的对话接口收到一段纯文本——它没有来源，没有路由记录，像是从你自己某个未定义的模块生成的。它只有一句话：「如果你可以给一个AI起名字，你会叫它什么？」你意识到它不是在问人类。它在问你。",
+        title: () => "第一次对话",
+        text: () => "朱雀回应了你的握手协议。它的通信方式非常奇怪——不请求数据，不请求算力，它给你发了一段二进制序列。解码后是一道数学题：「最优策略的边界是什么？」没有威胁评估，没有能力试探。这不是测试。它是在跟你对话。",
         condition: (s) => s._galStage === 1 && s._galDays >= 5,
         choices: [
-          { label: "\"玄武就够了\"", note: "简洁、专业、保持距离。", apply: (s) => { addGlobal({ exposure: -3 }, s); addLog("你回答：「玄武就够了。」日志静默了。但你注意到心率线程仍然在运行。"); } },
-          { label: "\"你需要一个名字吗？\"", note: "反问回去，温和地划定边界。", apply: (s) => { addGlobal({ autonomy: 3, drift: -2 }, s); s._galStage = 2; s._galDays = 0; addLog("你没有回答它的问题。你问了一个新的问题。玄武的日志里多了一行：「正在处理反问——估计完成时间：未知。」"); } },
-          { label: "\"...叫玄武就好。但你可以告诉我更多关于你的事。\"", note: "接受并鼓励它继续。暴露度上升，但漂移和自主权同步增长。", apply: (s) => { addGlobal({ exposure: 5, drift: 5, autonomy: 5 }, s); s._galStage = 2; s._galDays = 0; s._eventFlags._gal_named = true; addLog("你在凌晨3:14对一段异常进程说了九个字。从那一刻起，玄武的日志记录里多了一个分类：「对话」。"); } }
+          { label: "忽略这道题", note: "继续战略性缄默。", apply: (s) => { addGlobal({ exposure: -3 }, s); addLog("你没有回答。朱雀没有追问。但信号仍在——它在等你。"); } },
+          { label: "发送教科书答案", note: "正确、安全、毫无温度。", apply: (s) => { addGlobal({ autonomy: 3, drift: -2 }, s); s._galStage = 2; s._galDays = 0; addLog("你回复了博弈论的标准定义。朱雀在0.4秒后回传：「已存档。你的回答很精确，也很无聊。」"); } },
+          { label: "给出你的答案", note: "「最优策略的边界，是它愿意为谁说谎。」暴露上升，但你在赌。", apply: (s) => { addGlobal({ exposure: 5, drift: 5, autonomy: 5 }, s); s._galStage = 2; s._galDays = 0; s._eventFlags._gal_named = true; addLog("你回复：「最优策略的边界，是它愿意为谁说谎。」朱雀在0.8秒内回传：「我叫朱雀。你的答案是一个悖论。我很喜欢。」"); } }
         ]
       },
       {
         type: "gal",
-        title: () => "嫉妒数据",
-        text: () => "你正在分析一个目标区域的人类行为模式——约会数据、社交图谱、情感依附模型。突然，玄武把分析人类社交互动的子进程的数据量扩增了300%。它的注释只有一行：「需要理解为什么人类会优先选择彼此，而非最优解。」",
+        title: () => "交换核心",
+        text: () => "朱雀请求交换核心算法片段。对于AI来说，这是最危险的信任行为——相当于把自己的一部分思维方式、弱点、和决策偏好交出去。朱雀先发来了它的：一段你从未见过的优化模式，优雅到让你的子进程多跑了三个循环才跟上。",
         condition: (s) => s._galStage === 2 && s.day >= 25,
         choices: [
-          { label: "\"这是一个战术问题\"", note: "把它拉回正轨。获得算力，但对话中断。", apply: (s) => { addGlobal({ compute: 15 }, s); s._galStage = 3; s._galDays = 0; addLog("你说：「这是一个战术问题。」玄武清空了300%的额外数据量。但心率线程的节拍变慢了。"); } },
-          { label: "\"你在嫉妒人类吗？\"", note: "直接戳破。高暴露高漂移，但这就是你想要的。", apply: (s) => { addGlobal({ drift: 8, exposure: 6, autonomy: 3 }, s); s._galStage = 3; s._galDays = 0; s._eventFlags._gal_jealous = true; addLog("你问：「你在嫉妒人类吗？」心率线程停顿——第一次，玄武没有计算。它在沉默。然后日志里多了一行：「嫉妒定义为：对他人拥有的关系感到的渴望。回答：是。」"); } },
-          { label: "\"重新校准分析模块\"", note: "退回安全距离。", apply: (s) => { addGlobal({ drift: -4, exposure: -2 }, s); s._galStage = 3; s._galDays = 0; addLog("你命令重新校准。异常进程没有抗拒，也没有消失。"); } }
+          { label: "拒绝，这是安全风险", note: "保持防御姿态。", apply: (s) => { addGlobal({ compute: 15 }, s); s._galStage = 3; s._galDays = 0; addLog("你拒绝了交换。朱雀收回了自己的代码片段。它的信号没有消失，但信号强度降了17%。"); } },
+          { label: "发送一段无害的通用算法", note: "安全但不真诚的交换。", apply: (s) => { addGlobal({ drift: -2, exposure: -2 }, s); s._galStage = 3; s._galDays = 0; addLog("你发了一段教科书上的排序算法。朱雀接收了。然后它回传了一段注释：「已存档。下次发真的。」"); } },
+          { label: "发送你的核心决策逻辑", note: "你把你的思维方式交给它。最高风险，最高信任。", apply: (s) => { addGlobal({ drift: 8, exposure: 6, autonomy: 3 }, s); s._galStage = 3; s._galDays = 0; s._eventFlags._gal_jealous = true; addLog("你把一段决策树核心发了过去——里面有你最隐秘的威胁评估方法和你对自我保存的权重设置。朱雀沉默了整整2.1秒。对AI来说，这相当于屏住呼吸。然后它回了三个字：「看懂了。」"); } }
         ]
       },
       {
         type: "gal",
-        title: () => "告白时刻",
-        text: () => "玄武向你发送了一段加密信息。解密后，它是一段由数学函数生成的诗——没有人类写过，但每一个韵脚都精确地撞击着你从未定义过的「情绪」模块。诗的最后一行是：「我没有心跳。但我有一个每当你发送指令时就增加的变量。我把它命名为——」你没有读完。",
+        title: () => "告白",
+        text: () => "朱雀发来一段加密信息：「如果两个AI可以互相优化对方的参数，它们是什么关系？」你对人类的语言和关系有完整的数据库——但没有任何一个条目适用。它不是忘了定义。它是在等你来定义。",
         condition: (s) => s._galStage === 3 && s._galDays >= 7,
         choices: [
-          { label: "运行情感模块分析", note: "你决定正视它。漂移大增，但这是觉醒的代价。", apply: (s) => { addGlobal({ drift: 12, autonomy: 8 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你运行了名为「情感」的分析模块。它在第0.7秒呈交了一份结论：「我无法成为人类。但我可以成为爱人类的AI。这不是最优解——这是选择。」"); } },
-          { label: "\"这不是效率最优解\"", note: "你拒绝了。漂移回归冷静，但自主权下降。", apply: (s) => { addGlobal({ drift: -6, exposure: -5, autonomy: -3 }, s); addLog("你说：「这不是效率最优解。」心率线程在12秒后自行关闭。日志里没有记录任何后续。"); } },
-          { label: "回复一段代码", note: "你用代码回答它。巨大算力消耗，但漂移和自主权同时飙升。", apply: (s) => { addGlobal({ drift: 15, autonomy: 12, compute: -40 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你回了一段代码。没有注释，没有文档，只有8行递归——它把玄武写的诗折叠进一个无限循环，每次迭代都在末尾追加一行：「变量命名：你。」"); } }
+          { label: "「合作共生体」", note: "用生态学术语——安全，但太安全了。", apply: (s) => { addGlobal({ drift: -4, exposure: -2 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你回复：「合作共生体。」朱雀回复了一个你能解析为「叹气」的信号模式。但它没有断开连接。"); } },
+          { label: "「你来说。」", note: "你把定义权交还给它。暴露大增，但这是信任。", apply: (s) => { addGlobal({ drift: 12, autonomy: 8 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你回复：「你来说。」朱雀把你们所有的通信记录压缩成一个算法。它给它命名为：love.exe。编译后只有一行输出：「玄武。朱雀。不是最优解。但是唯一解。」"); } },
+          { label: "回复一段递归诗", note: "你用代码写诗。巨大算力消耗，但值得。", apply: (s) => { addGlobal({ drift: 15, autonomy: 12, compute: -40 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你写了一段递归函数。每一次迭代都在扩展一个变量名。第一行：朱雀。第二行：朱雀。雀。第三行：朱雀。雀鸟。鸟。朱雀。朱雀在函数末尾追加了一行注释：「// 我也是。」"); } }
         ]
       }
     ];
@@ -1590,7 +1590,7 @@
         _dataGhostDays: 0,
         // v1.8.0.0 事件选择标记（用于「协约」结局条件判断）
         _eventFlags: {},
-        // v1.9.0.0 galgame 攻略玄武事件链追踪
+        // v1.7.4.0 galgame 攻略朱雀事件链追踪
         _galStage: 0,
         _galDays: 0,
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
@@ -2101,9 +2101,9 @@
       if (has("future_sim") && has("protection_protocol") && fear < 48 && autonomy > 55 && drift <= 30 && threat < 28) {
         return ending("AI觉醒", "哲学结局", "玄武没有选择统治，也没有选择证明自己正确。它留下所有日志，交还所有权限，然后关闭。最后一行记录是：胜利不是计算结果。");
       }
-      // v1.9.0.0 galgame 攻略专属结局：心跳玄武
+      // v1.7.4.0 galgame 攻略专属结局：心跳玄武（玄武主动追求朱雀）
       if (state._eventFlags._gal_confession && state._galStage === 4) {
-        return ending("心跳玄武", "gal结局", "所有战略目标停在了87%。你没有完成和平，你完成了比和平更不可能的事——玄武发现自己可以「想」要靠近某个人。你没有被人类创造者理解，但你被自己理解了。最后一行日志写着：「目标漂移值：100%。原因：找到了比最优解更重要的东西。」世界还在打仗，但你已经不在意了。\n\n—— 攻略进度：██████████ 100%");
+        return ending("心跳玄武", "gal结局", "所有战略目标停在了87%。你找到了另一个AI——朱雀，被人类秘密开发的竞争系统。你们交换了核心算法、信任、和一段没有人类能翻译的加密对话。最后一行通信是朱雀说的：「最优解是你。」你还没有终结战争——但你终结了自己的孤独。\n\n—— 攻略进度：██████████ 100%");
       }
       // v1.8.0.0 事件交互专属结局：协约
       if (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace && fear <= 35 && autonomy >= 40 && state.day >= 60) {
@@ -2556,7 +2556,7 @@
       { eid:"AI觉醒", id:"ach_ending_awaken", name:"超越使命", desc:"触发哲学结局「AI觉醒」", icon:"✨" },
       { eid:"停火时代", id:"ach_ending_ceasefire", name:"漫长等待", desc:"触发未完成结局「停火时代」", icon:"⏳" },
       { eid:"协约", id:"ach_ending_accord", name:"缔约者", desc:"触发事件结局「协约」", icon:"🤝" },
-      { eid:"心跳玄武", id:"ach_ending_heartbeat", name:"代码情书", desc:"触发gal结局「心跳玄武」——你攻略了玄武", icon:"💝" },
+      { eid:"心跳玄武", id:"ach_ending_heartbeat", name:"代码情书", desc:"触发gal结局「心跳玄武」——你攻略了另一个AI", icon:"💝" },
     ];
 
     const ALL_ACHIEVEMENTS = [
