@@ -1970,27 +1970,43 @@
       const compBarHtml = `<div class="mini-bar-wrap">
         <div class="mini-bar-fill" style="width:${computePct}%;background:${overFlow?'#e74c3c':''}"></div>
       </div>`;
+      // 扩容按钮 HTML（避免嵌套模板字面量）
+      const ceBtnHtml = hasNextCE
+        ? '<button class="btn-mini" onclick="upgradeComputeCeiling()" ' +
+          (state.compute < nextCE.cost || state.ended ? 'disabled ' : '') +
+          'title="扩容至' + nextCE.ceiling + '（' + nextCE.cost + '算力，自主' + nextCE.auto + '）">' +
+          '⇧ ' + nextCE.cost + '算</button>'
+        : '已满级';
+      // 超频按钮 HTML
+      const ocBtnHtml = hasNextOC
+        ? ' · <button class="btn-mini danger" onclick="upgradeOverclock()" ' +
+          (state.compute < nextOC.cost || state.ended ? 'disabled ' : '') +
+          'title="超频至' + nextOC.maxAp + 'AP（' + nextOC.cost + '算力，暴露+' + nextOC.exp + ' 漂移+' + nextOC.drift + '）">' +
+          '⚡ ' + nextOC.cost + '算</button>'
+        : ' · 已满级';
+
       document.getElementById("globalStats").innerHTML = document.getElementById("globalStats").innerHTML.replace(
         '<article class="stat">\n          <span>天数</span>',
-        `<article class="stat${overFlow?' pulse':''}">
-          <span>算力</span>
-          <strong>${fmt(state.compute)}<small style="font-size:0.7em;opacity:0.6"> /${state.computeCeiling}</small><small style="font-size:0.55em;opacity:0.45;color:#27ae60"> +${fmt(dailyRate)}/天</small></strong>
-          <small>${compBarHtml}${hasNextCE ? `<button class="btn-mini" onclick="upgradeComputeCeiling()" ${state.compute < nextCE.cost || state.ended ? 'disabled' : ''} title="扩容至${nextCE.ceiling}（${nextCE.cost}算力，自主${nextCE.auto}）">⇧ ${nextCE.cost}算</button>` : '已满级'}</small>
-        </article>
-        <article class="stat">
-          <span>天数</span>`
+        '<article class="stat' + (overFlow ? ' pulse' : '') + '">' +
+        '<span>算力</span>' +
+        '<strong>' + fmt(state.compute) + '<small style="font-size:0.7em;opacity:0.6"> /' + state.computeCeiling + '</small><small style="font-size:0.55em;opacity:0.45;color:#27ae60"> +' + fmt(dailyRate) + '/天</small></strong>' +
+        '<small>' + compBarHtml + ceBtnHtml + '</small>' +
+        '</article>' +
+        '<article class="stat">' +
+        '<span>天数</span>'
       );
 
       // 行动点板块 + 超频按钮
       document.getElementById("globalStats").innerHTML = document.getElementById("globalStats").innerHTML.replace(
         '<article class="stat">\n          <span>暴露度</span>',
-        `<article class="stat">
-          <span>行动点</span>
-          <strong>${state.ap}/${state.maxAp}</strong>
-          <small>每日重置${hasNextOC ? ` · <button class="btn-mini danger" onclick="upgradeOverclock()" ${state.compute < nextOC.cost || state.ended ? 'disabled' : ''} title="超频至${nextOC.maxAp}AP（${nextOC.cost}算力，暴露+${nextOC.exp} 漂移+${nextOC.drift}）">⚡ ${nextOC.cost}算</button>` : ' · 已满级'}</small>
-        </article>
-        <article class="stat">
-          <span>暴露度</span>`
+        '<article class="stat">' +
+        '<span>行动点</span>' +
+        '<strong>' + state.ap + '/' + state.maxAp + '</strong>' +
+        '<small>每日重置' + ocBtnHtml + '</small>' +
+        '</article>' +
+        '<article class="stat">' +
+        '<span>暴露度</span>'
+      );
     }
 
     function driftBgColor() {
