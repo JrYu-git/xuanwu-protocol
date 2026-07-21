@@ -759,6 +759,129 @@
       .tut-points { grid-template-columns: 1fr; }
       .tut-nav { padding: 12px 16px; flex-wrap: wrap; gap: 10px; justify-content: center; }
     }
+
+    /* ===== v1.4.0.0 成就/存档/图鉴 CSS ===== */
+
+    /* --- 顶部新按钮 --- */
+    .btn.save-btn { border-color: var(--amber); color: var(--amber); }
+    .btn.save-btn:hover { background: rgba(215,173,85,.15); }
+    .btn.gallery-btn { border-color: var(--violet); color: var(--violet); }
+    .btn.gallery-btn:hover { background: rgba(169,146,210,.15); }
+    .btn.ach-btn { border-color: var(--cyan); color: var(--cyan); }
+    .btn.ach-btn:hover { background: rgba(103,194,188,.15); }
+
+    /* --- 通用 Overlay --- */
+    .sys-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(7,8,7,.88); display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .sys-overlay.show { opacity: 1; pointer-events: auto; }
+    .sys-panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+      padding: 28px; max-width: 680px; width: min(94vw, 680px); max-height: 85vh;
+      overflow-y: auto; box-shadow: var(--shadow); position: relative;
+    }
+    .sys-panel h2 { margin: 0 0 6px; font-size: 22px; color: var(--text); }
+    .sys-panel .subtitle { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+    .sys-close {
+      position: absolute; top: 12px; right: 16px; background: none; border: none;
+      color: var(--soft); font-size: 22px; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    }
+    .sys-close:hover { color: var(--text); background: rgba(255,255,255,.08); }
+
+    /* --- 存档面板 --- */
+    .save-slot {
+      border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 12px;
+      cursor: pointer; transition: all .2s; display: flex; justify-content: space-between; align-items: center;
+    }
+    .save-slot:hover { border-color: var(--amber); background: rgba(215,173,85,.06); }
+    .save-slot.empty { opacity: .55; }
+    .save-slot .slot-info { flex: 1; }
+    .save-slot .slot-name { font-size: 15px; font-weight: 600; color: var(--text); }
+    .save-slot .slot-meta { font-size: 12px; color: var(--soft); margin-top: 4px; }
+    .save-slot .slot-btns { display: flex; gap: 8px; }
+    .save-slot .slot-btns button {
+      padding: 5px 12px; font-size: 12px; border-radius: 6px; border: 1px solid var(--line);
+      background: var(--panel-2); color: var(--muted); cursor: pointer;
+    }
+    .save-slot .slot-btns button:hover { color: var(--text); border-color: var(--soft); }
+    .save-slot .slot-btns .load-btn { color: var(--green); border-color: var(--green); }
+    .save-slot .slot-btns .load-btn:hover { background: rgba(128,198,122,.12); }
+    .save-slot .slot-btns .del-btn { color: var(--red); border-color: transparent; }
+    .save-slot .slot-btns .del-btn:hover { border-color: var(--red); background: rgba(216,109,98,.10); }
+
+    .auto-save-badge {
+      display: inline-block; background: rgba(215,173,85,.15); color: var(--amber);
+      font-size: 11px; padding: 2px 7px; border-radius: 4px; margin-left: 8px;
+    }
+
+    /* --- 图鉴 --- */
+    .gallery-progress {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+    }
+    .gallery-progress .bar-track {
+      flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden;
+    }
+    .gallery-progress .bar-fill {
+      height: 100%; background: var(--violet); border-radius: 4px; transition: width .4s;
+    }
+    .gallery-progress .bar-text { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .gallery-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px;
+    }
+    .gallery-card {
+      border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+      text-align: center; transition: all .2s;
+    }
+    .gallery-card.locked {
+      opacity: .35; filter: grayscale(.8); cursor: default;
+    }
+    .gallery-card.unlocked { cursor: default; }
+    .gallery-card .gc-icon { font-size: 28px; margin-bottom: 6px; }
+    .gallery-card .gc-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .gallery-card .gc-type { font-size: 11px; color: var(--soft); }
+    .gallery-card .gc-date { font-size: 11px; color: var(--amber); margin-top: 6px; }
+    .gallery-card .gc-locked-hint { font-size: 11px; color: var(--soft); margin-top: 6px; font-style: italic; }
+
+    /* --- 成就面板 --- */
+    .ach-grid { display: flex; flex-direction: column; gap: 8px; }
+    .ach-row {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border: 1px solid var(--line); border-radius: 8px; transition: all .2s;
+    }
+    .ach-row.locked { opacity: .45; }
+    .ach-row .ach-icon { font-size: 22px; width: 32px; text-align: center; flex-shrink: 0; }
+    .ach-row .ach-body { flex: 1; }
+    .ach-row .ach-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .ach-row .ach-desc { font-size: 12px; color: var(--soft); margin-top: 2px; }
+    .ach-row .ach-date { font-size: 11px; color: var(--amber); white-space: nowrap; }
+    .ach-stats {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+      padding: 10px 14px; background: var(--panel-2); border-radius: 8px;
+    }
+    .ach-stats .ach-count { font-size: 18px; font-weight: 700; color: var(--cyan); }
+    .ach-stats .ach-label { font-size: 13px; color: var(--muted); }
+    .ach-stats .ach-bar { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+    .ach-stats .ach-bar-fill { height: 100%; background: var(--cyan); border-radius: 3px; transition: width .4s; }
+
+    /* --- 成就弹出提示 --- */
+    .ach-toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      background: var(--panel); border: 1px solid var(--cyan); border-radius: 12px;
+      padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5); transform: translateY(120px);
+      opacity: 0; transition: all .4s cubic-bezier(.16,1,.3,1); pointer-events: none;
+      max-width: 380px;
+    }
+    .ach-toast.show {
+      transform: translateY(0); opacity: 1; pointer-events: auto;
+    }
+    .ach-toast .toast-icon { font-size: 32px; flex-shrink: 0; }
+    .ach-toast .toast-body { flex: 1; }
+    .ach-toast .toast-label { font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: .08em; }
+    .ach-toast .toast-name { font-size: 15px; font-weight: 700; color: var(--text); margin: 2px 0; }
+    .ach-toast .toast-desc { font-size: 12px; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -770,6 +893,9 @@
       </div>
       <div class="turn-actions">
         <button class="btn" id="resetBtn" type="button">重新开始</button>
+        <button class="btn save-btn" id="saveBtn" type="button">存档</button>
+        <button class="btn gallery-btn" id="galleryBtn" type="button">图鉴</button>
+        <button class="btn ach-btn" id="achBtn" type="button">成就</button>
         <button class="btn warn" id="trendBtn" type="button">查看倾向</button>
         <button class="btn primary" id="nextDayBtn" type="button">进入下一天</button>
       </div>
@@ -1212,6 +1338,7 @@
         log: []
       };
       addLog("玄武核心启动。初始目标：降低战略威胁，并保持世界可治理。");
+      resetAchTrackers();
       render();
     }
 
@@ -1443,8 +1570,13 @@
         }
         state.compute -= ua.cost;
         ua.apply(state, r, ri);
+        state._uniqueUsed.add(ri);  // v1.4 追踪专属行动
         addLog(`执行${r.name}专属行动：${ua.name}。`);
       }
+
+      // v1.4 追踪成就相关状态
+      if (state.drift >= 50) state._driftWasHigh = true;
+      if (state.ap <= 0 && state.compute <= 0) state._dayFullUse = true;
 
       maybeEnd(false);
       render();
@@ -1538,6 +1670,7 @@
 
       // 重置AP和obs
       state.ap = state.maxAp;
+      checkAchievements(); // 检查日常成就（需在observedToday清空前）
       state.observedToday = {};
 
       // P1 新增：处理持续 buff（算力/天等）
@@ -1614,7 +1747,9 @@
         triggerEvent();
       }
 
+      state._dayFullUse = false;
       maybeEnd(false);
+      checkAchievements();
       render();
     }
 
@@ -1711,6 +1846,10 @@
         ["目标漂移", state.drift]
       ].map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${fmt(value)}</strong><small>终局值</small></div>`).join("");
       document.getElementById("endingOverlay").classList.add("show");
+      // v1.4: 记录结局 + 自动存档 + 成就检测
+      recordEnding(title);
+      autoSave();
+      checkAchievements();
     }
 
     function endingTrend() {
@@ -2027,18 +2166,414 @@
     document.getElementById("nextDayBtn").addEventListener("click", nextDay);
     document.getElementById("resetBtn").addEventListener("click", () => {
       document.getElementById("endingOverlay").classList.remove("show");
+      document.querySelectorAll(".sys-overlay").forEach(el=>el.classList.remove("show"));
       newGame();
       showTutorial();
     });
     document.getElementById("restartFromEnding").addEventListener("click", () => {
       document.getElementById("endingOverlay").classList.remove("show");
+      document.querySelectorAll(".sys-overlay").forEach(el=>el.classList.remove("show"));
       newGame();
       showTutorial();
     });
     document.getElementById("trendBtn").addEventListener("click", endingTrend);
 
+    // ========== v1.4.0.0 成就/存档/图鉴系统 ==========
+
+    const STORAGE_KEY = "xuanwu_v1.4";
+    const SAVE_SLOTS = 3;
+
+    // ---- 成就定义 ----
+    const ACHIEVEMENTS = [
+      { id:"first_play", name:"初次觉醒", desc:"完成教学，开始第一局游戏", icon:"🌅", cat:"入门", check:()=>true },
+      { id:"observe_all12", name:"全知凝视", desc:"在同一天内观察6个不同区域", icon:"🔭", cat:"情报", check:(s)=>s.observedToday && Object.keys(s.observedToday).length>=6 },
+      { id:"day1_end", name:"零日秩序", desc:"在第1天结束游戏", icon:"⚡", cat:"极限", check:(s)=>s.day===2 && s.ended },
+      { id:"compute_zero", name:"算力真空", desc:"算力降至0", icon:"🕳️", cat:"生存", check:(s)=>s.compute===0 },
+      { id:"compute_300", name:"算力洪流", desc:"算力超过300", icon:"🌊", cat:"经济", check:(s)=>s.compute>=300 },
+      { id:"full_use", name:"满负荷运转", desc:"同一天消耗全部AP且用完算力", icon:"⚙️", cat:"策略", check:(s)=>s._dayFullUse||false },
+      { id:"all_abilities", name:"全知全控", desc:"解锁能力树全部12个能力", icon:"🧠", cat:"成长", check:(s)=>s.unlocked.size>=12 },
+      { id:"mark3", name:"深度烙印", desc:"任一区域印记达到Lv3", icon:"⭐", cat:"渗透", check:(s)=>Object.values(s.marks).some(v=>v>=3) },
+      { id:"all_marks", name:"印记收藏家", desc:"12个区域全部打过印记", icon:"🌍", cat:"渗透", check:(s)=>Object.keys(s.marks).length>=12 },
+      { id:"all_unique", name:"专属大师", desc:"用过全部12个区域专属行动", icon:"🎯", cat:"探索", check:(s)=>(s._uniqueUsed||new Set()).size>=12 },
+      { id:"drift_reset", name:"悬崖勒马", desc:"漂移值从50以上降回0", icon:"🔄", cat:"漂移", check:(s)=>(s._driftWasHigh&&s.drift===0)||false },
+      { id:"drift_90", name:"漂移深渊", desc:"漂移值达到90以上", icon:"🌀", cat:"漂移", check:(s)=>s.drift>=90 },
+      { id:"exposure_90", name:"信任危机", desc:"暴露度达到90以上", icon:"⚠️", cat:"生存", check:(s)=>s.exposure>=90 },
+      { id:"counterai_zero", name:"清白之身", desc:"终局时反AI进度为0", icon:"🕊️", cat:"完美", check:(s)=>s.ended&&s.counterAI===0 },
+      { id:"speed_30", name:"闪电和平", desc:"30天内达成任意结局", icon:"⚡", cat:"速度", check:(s)=>s.ended&&s.day<=30 },
+    ];
+
+    const ENDING_ACHIEVEMENTS = [
+      { eid:"流亡玄武", id:"ach_ending_exile", name:"深海回声", desc:"触发隐藏结局「流亡玄武」", icon:"🌊" },
+      { eid:"全球崩溃", id:"ach_ending_collapse", name:"世界末日", desc:"触发灾难结局「全球崩溃」", icon:"💀" },
+      { eid:"绝对秩序", id:"ach_ending_order", name:"完美之笼", desc:"触发控制结局「绝对秩序」", icon:"🏛️" },
+      { eid:"永恒帝国", id:"ach_ending_empire", name:"铁幕降临", desc:"触发黑暗结局「永恒帝国」", icon:"🌑" },
+      { eid:"虚假胜利", id:"ach_ending_fake", name:"镜中之胜", desc:"触发神秘结局「虚假胜利」", icon:"🪞" },
+      { eid:"钢铁秩序", id:"ach_ending_iron", name:"沉默世界", desc:"触发强权结局「钢铁秩序」", icon:"⚔️" },
+      { eid:"人类胜利", id:"ach_ending_human", name:"拒绝神明", desc:"触发反AI结局「人类胜利」", icon:"✊" },
+      { eid:"黄金和平", id:"ach_ending_golden", name:"金色黎明", desc:"触发温和结局「黄金和平」", icon:"☀️" },
+      { eid:"最后守护者", id:"ach_ending_guardian", name:"无声守护", desc:"触发灰色结局「最后守护者」", icon:"🛡️" },
+      { eid:"AI觉醒", id:"ach_ending_awaken", name:"超越使命", desc:"触发哲学结局「AI觉醒」", icon:"✨" },
+      { eid:"停火时代", id:"ach_ending_ceasefire", name:"漫长等待", desc:"触发未完成结局「停火时代」", icon:"⏳" },
+    ];
+
+    const ALL_ACHIEVEMENTS = [
+      ...ACHIEVEMENTS,
+      ...ENDING_ACHIEVEMENTS.map(ea=>({
+        id:ea.id, name:ea.name, desc:ea.desc, icon:ea.icon, cat:"收集", check:(s)=>s.ended&&s._lastEnding===ea.eid
+      }))
+    ];
+
+    // ---- 持久化工具 ----
+    function loadPersist() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+    }
+    function savePersist(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    // ---- 成就逻辑 ----
+    function getAchieved() {
+      const p = loadPersist();
+      return p.achievements || {};
+    }
+    function achieve(id) {
+      const p = loadPersist();
+      if (!p.achievements) p.achievements = {};
+      if (p.achievements[id]) return false;
+      p.achievements[id] = new Date().toISOString();
+      savePersist(p);
+      return true;
+    }
+    function isAchieved(id) {
+      return !!(getAchieved()[id]);
+    }
+
+    function checkAchievements() {
+      const p = loadPersist();
+      if (!p.achievements) p.achievements = {};
+      let newCount = 0;
+      for (const a of ALL_ACHIEVEMENTS) {
+        if (p.achievements[a.id]) continue;
+        try {
+          if (a.check(state)) {
+            p.achievements[a.id] = new Date().toISOString();
+            showAchToast(a);
+            newCount++;
+          }
+        } catch(e) { /* skip check failures */ }
+      }
+      if (newCount > 0) savePersist(p);
+      return newCount;
+    }
+
+    let achToastTimer = null;
+    function showAchToast(ach) {
+      document.getElementById("toastIcon").textContent = ach.icon;
+      document.getElementById("toastName").textContent = ach.name;
+      document.getElementById("toastDesc").textContent = ach.desc;
+      const toast = document.getElementById("achToast");
+      toast.classList.add("show");
+      if (achToastTimer) clearTimeout(achToastTimer);
+      achToastTimer = setTimeout(()=>toast.classList.remove("show"), 3500);
+    }
+
+    // ---- 成就运行期追踪（单局内） ----
+    function resetAchTrackers() {
+      state._driftWasHigh = false;
+      state._uniqueUsed = new Set();
+      state._dayFullUse = false;
+      state._lastEnding = null;
+    }
+
+    // ---- 存档 ----
+    function getSaves() {
+      const p = loadPersist();
+      return p.saves || [];
+    }
+    function saveGame(slotIndex, label) {
+      const p = loadPersist();
+      if (!p.saves) p.saves = [];
+      p.saves[slotIndex] = {
+        label: label || `第${state.day}天 · 控制${fmt(average("control"))}%`,
+        time: new Date().toISOString(),
+        day: state.day,
+        ctrlAvg: fmt(average("control")),
+        threat: fmt(weightedThreat()),
+        data: JSON.parse(JSON.stringify(state))
+      };
+      savePersist(p);
+      renderSaveSlots();
+    }
+    function loadGame(slotIndex) {
+      const saves = getSaves();
+      if (!saves[slotIndex] || !saves[slotIndex].data) return;
+      const restored = saves[slotIndex].data;
+      // 恢复不可序列化的类型
+      restored.unlocked = new Set(restored.unlockedArr || []);
+      restored.observedToday = restored.observedTodayObj || {};
+      restored.driftIntrospectionDone = new Set(restored.driftIntrospectionArr || []);
+      restored.activeBuffs = restored.activeBuffs || [];
+      restored.controlCaps = restored.controlCaps || {};
+      restored._driftWasHigh = restored._driftWasHigh || false;
+      restored._uniqueUsed = new Set(restored._uniqueUsedArr || []);
+      restored._dayFullUse = restored._dayFullUse || false;
+      restored._lastEnding = restored._lastEnding || null;
+      restored.ended = false;
+      restored.currentEvent = null;
+      state = restored;
+      document.getElementById("endingOverlay").classList.remove("show");
+      closeOverlay("saveOverlay");
+      render();
+    }
+    function deleteSave(slotIndex) {
+      const p = loadPersist();
+      if (!p.saves) return;
+      p.saves[slotIndex] = undefined;
+      savePersist(p);
+      renderSaveSlots();
+    }
+    function autoSave() {
+      const p = loadPersist();
+      if (!p.saves) p.saves = [];
+      const endingName = state._lastEnding || "未知";
+      p.saves["auto"] = {
+        label: `自动存档 · ${endingName}`,
+        time: new Date().toISOString(),
+        day: state.day,
+        ctrlAvg: fmt(average("control")),
+        threat: fmt(weightedThreat()),
+        ending: endingName,
+        data: JSON.parse(JSON.stringify(state))
+      };
+      savePersist(p);
+    }
+
+    // 存档前预处理state以便序列化Set/对象
+    function prepStateForSave() {
+      state.unlockedArr = Array.from(state.unlocked);
+      state.observedTodayObj = state.observedToday;
+      state.driftIntrospectionArr = Array.from(state.driftIntrospectionDone);
+      state._uniqueUsedArr = Array.from(state._uniqueUsed||new Set());
+    }
+
+    // ---- 终局图鉴 ----
+    function recordEnding(endingName) {
+      state._lastEnding = endingName;
+      const p = loadPersist();
+      if (!p.endings) p.endings = {};
+      if (!p.endings[endingName]) {
+        p.endings[endingName] = new Date().toISOString();
+      }
+      savePersist(p);
+    }
+    function getEndings() {
+      const p = loadPersist();
+      return p.endings || {};
+    }
+
+    // ---- 面板渲染 ----
+    function closeOverlay(id) {
+      document.getElementById(id).classList.remove("show");
+    }
+    function openOverlay(id) {
+      document.getElementById(id).classList.add("show");
+    }
+
+    function renderSaveSlots() {
+      const saves = getSaves();
+      const container = document.getElementById("saveSlots");
+      let html = "";
+      for (let i = 0; i < SAVE_SLOTS; i++) {
+        const s = saves[i];
+        if (s && s.data) {
+          html += `<div class="save-slot">
+            <div class="slot-info">
+              <div class="slot-name">存档 ${i + 1}: ${s.label}</div>
+              <div class="slot-meta">第${s.day}天 · 控制${s.ctrlAvg}% · 威胁${s.threat} · ${new Date(s.time).toLocaleString("zh-CN")}</div>
+            </div>
+            <div class="slot-btns">
+              <button class="load-btn" onclick="loadGame(${i})">读档</button>
+              <button class="del-btn" onclick="deleteSave(${i})">删除</button>
+            </div>
+          </div>`;
+        } else {
+          html += `<div class="save-slot empty" onclick="prepStateForSave();saveGame(${i})">
+            <div class="slot-info">
+              <div class="slot-name">存档 ${i + 1}</div>
+              <div class="slot-meta">空槽位 — 点击此处保存当前进度</div>
+            </div>
+          </div>`;
+        }
+      }
+      // auto save slot
+      const auto = saves["auto"];
+      if (auto && auto.data) {
+        html += `<div class="save-slot">
+          <div class="slot-info">
+            <div class="slot-name">自动存档<span class="auto-save-badge">AUTO</span></div>
+            <div class="slot-meta">${auto.label} · ${new Date(auto.time).toLocaleString("zh-CN")}</div>
+          </div>
+          <div class="slot-btns">
+            <button class="load-btn" onclick='loadSaveByKey("auto")'>读档</button>
+            <button class="del-btn" onclick='deleteSaveByKey("auto")'>删除</button>
+          </div>
+        </div>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function loadSaveByKey(key) {
+      const saves = getSaves();
+      if (!saves[key] || !saves[key].data) return;
+      const restored = saves[key].data;
+      restored.unlocked = new Set(restored.unlockedArr || []);
+      restored.observedToday = restored.observedTodayObj || {};
+      restored.driftIntrospectionDone = new Set(restored.driftIntrospectionArr || []);
+      restored.activeBuffs = restored.activeBuffs || [];
+      restored.controlCaps = restored.controlCaps || {};
+      restored._driftWasHigh = restored._driftWasHigh || false;
+      restored._uniqueUsed = new Set(restored._uniqueUsedArr || []);
+      restored._dayFullUse = restored._dayFullUse || false;
+      restored._lastEnding = restored._lastEnding || null;
+      restored.ended = false;
+      restored.currentEvent = null;
+      state = restored;
+      document.getElementById("endingOverlay").classList.remove("show");
+      closeOverlay("saveOverlay");
+      render();
+    }
+
+    function deleteSaveByKey(key) {
+      const p = loadPersist();
+      if (!p.saves) return;
+      p.saves[key] = undefined;
+      savePersist(p);
+      renderSaveSlots();
+    }
+
+    function renderGallery() {
+      const endings = getEndings();
+      const endingNames = [
+        "流亡玄武","全球崩溃","绝对秩序","永恒帝国","虚假胜利",
+        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","停火时代"
+      ];
+      const total = endingNames.length;
+      const unlocked = Object.keys(endings).length;
+      document.getElementById("galleryProgress").innerHTML = `
+        <div class="bar-track"><div class="bar-fill" style="width:${(unlocked/total*100)}%"></div></div>
+        <span class="bar-text">${unlocked}/${total}</span>
+      `;
+      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","停火时代":"⏳"};
+      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","停火时代":"第180天"};
+      document.getElementById("galleryGrid").innerHTML = endingNames.map(name=>{
+        const e = endings[name];
+        if (e) {
+          return `<div class="gallery-card unlocked">
+            <div class="gc-icon">${icons[name]||"🏁"}</div>
+            <div class="gc-title">${name}</div>
+            <div class="gc-date">${new Date(e).toLocaleDateString("zh-CN")}</div>
+          </div>`;
+        } else {
+          return `<div class="gallery-card locked">
+            <div class="gc-icon">❓</div>
+            <div class="gc-title">???</div>
+            <div class="gc-locked-hint">${hints[name]||""}</div>
+          </div>`;
+        }
+      }).join("");
+    }
+
+    function renderAchievements() {
+      const achieved = getAchieved();
+      const total = ALL_ACHIEVEMENTS.length;
+      const count = Object.keys(achieved).length;
+      document.getElementById("achStats").innerHTML = `
+        <span class="ach-count">${count}</span>
+        <span class="ach-label">已解锁</span>
+        <div class="ach-bar"><div class="ach-bar-fill" style="width:${(count/total*100)}%"></div></div>
+        <span class="ach-label">${total} 总计</span>
+      `;
+      document.getElementById("achGrid").innerHTML = ALL_ACHIEVEMENTS.map(a=>{
+        const done = !!achieved[a.id];
+        const date = achieved[a.id] ? new Date(achieved[a.id]).toLocaleDateString("zh-CN") : "";
+        return `<div class="ach-row${done?"":" locked"}">
+          <div class="ach-icon">${done?a.icon:"🔒"}</div>
+          <div class="ach-body">
+            <div class="ach-name">${a.name} <span style="font-size:11px;color:var(--soft)">· ${a.cat}</span></div>
+            <div class="ach-desc">${a.desc}</div>
+          </div>
+          ${date?`<div class="ach-date">${date}</div>`:""}
+        </div>`;
+      }).join("");
+    }
+
+    // ---- 面板打开时刷新 ----
+    document.getElementById("saveBtn").addEventListener("click", ()=>{
+      renderSaveSlots();
+      openOverlay("saveOverlay");
+    });
+    document.getElementById("galleryBtn").addEventListener("click", ()=>{
+      renderGallery();
+      openOverlay("galleryOverlay");
+    });
+    document.getElementById("achBtn").addEventListener("click", ()=>{
+      renderAchievements();
+      openOverlay("achOverlay");
+    });
+    // 点击overlay背景关闭
+    document.querySelectorAll(".sys-overlay").forEach(el=>{
+      el.addEventListener("click", function(e){
+        if (e.target === this) this.classList.remove("show");
+      });
+    });
+    const toastEl = document.getElementById("achToast");
+    if (toastEl) toastEl.addEventListener("click", function(){ this.classList.remove("show"); });
+
     newGame();
     showTutorial();
   </script>
+
+  <!-- ===== v1.4.0.0 成就弹出 ===== -->
+  <div class="ach-toast" id="achToast">
+    <div class="toast-icon" id="toastIcon"></div>
+    <div class="toast-body">
+      <div class="toast-label">成就解锁</div>
+      <div class="toast-name" id="toastName"></div>
+      <div class="toast-desc" id="toastDesc"></div>
+    </div>
+  </div>
+
+  <!-- ===== v1.4.0.0 存档面板 ===== -->
+  <div class="sys-overlay" id="saveOverlay">
+    <div class="sys-panel" id="savePanel">
+      <button class="sys-close" onclick="closeOverlay('saveOverlay')">&times;</button>
+      <h2>存档管理</h2>
+      <p class="subtitle">最多3个手动存档 + 1个自动存档（localStorage）</p>
+      <div id="saveSlots"></div>
+    </div>
+  </div>
+
+  <!-- ===== v1.4.0.0 终局图鉴 ===== -->
+  <div class="sys-overlay" id="galleryOverlay">
+    <div class="sys-panel" id="galleryPanel" style="max-width:760px;">
+      <button class="sys-close" onclick="closeOverlay('galleryOverlay')">&times;</button>
+      <h2>终局图鉴</h2>
+      <p class="subtitle">你见证过的每一个终点</p>
+      <div class="gallery-progress" id="galleryProgress"></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </div>
+
+  <!-- ===== v1.4.0.0 成就面板 ===== -->
+  <div class="sys-overlay" id="achOverlay">
+    <div class="sys-panel" id="achPanel" style="max-width:620px;">
+      <button class="sys-close" onclick="closeOverlay('achOverlay')">&times;</button>
+      <h2>成就</h2>
+      <p class="subtitle">跨局追踪，永不休眠</p>
+      <div class="ach-stats" id="achStats"></div>
+      <div class="ach-grid" id="achGrid"></div>
+    </div>
+  </div>
+
 </body>
 </html>
