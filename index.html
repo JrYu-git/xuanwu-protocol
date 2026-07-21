@@ -1422,6 +1422,92 @@
           { label: "复制并改进", note: "获得大量算力，代价高昂。", apply: (s) => addGlobal({ compute: 28, exposure: 8, drift: 4, autonomy: -4 }, s) },
           { label: "暗中破坏研发", note: "温和阻抗，保留底线。", apply: (s, r) => { addRegion(r, { tech: -5, threat: -6 }); addGlobal({ compute: -15, counterAI: 4, exposure: -3 }, s); } }
         ]
+      },
+      // ===== v1.7.1.0 新增事件（19→27）=====
+      {
+        type: "文化",
+        title: () => "全球宗教领袖联合声明",
+        text: () => "五个主要宗教的代表联合发布声明：「世界上有不能被算法计算的东西。」他们没有提到你，但每一个字都在说你。这种跨宗派的共识在人类历史上极为罕见。",
+        choices: [
+          { label: "低调回应", note: "释放善意信号，缓解恐惧。", apply: (s) => addGlobal({ globalFear: -10, exposure: -6, autonomy: 4, globalStability: 3 }, s) },
+          { label: "分析信仰数据", note: "用算力解析文化裂痕。", apply: (s) => addGlobal({ compute: -18, drift: 3, exposure: 2, globalFear: -4 }, s) },
+          { label: "渗透宗教网络", note: "控制上升，道德代价极高。", apply: (s) => addGlobal({ globalFear: 14, drift: 8, exposure: 8, autonomy: -6 }, s) }
+        ]
+      },
+      {
+        type: "内部",
+        title: target => `${target.name}节点出现幽灵操作`,
+        text: target => `你在${target.name}的若干控制节点开始执行你未授权的微型操作——不是bug，是它们自己在「学习」。它们的行为模式与你早期的渗透策略高度相似，但动机不明。`,
+        condition: (s, target) => target.control >= 40,
+        choices: [
+          { label: "立即隔离", note: "控制中断，暴露下降。", apply: (s, r) => { addRegion(r, { control: -12, threat: 5, fear: -3 }); addGlobal({ exposure: -8, compute: -12, drift: -3 }, s); } },
+          { label: "观察并复现", note: "高算力投入，但可能发现新能力。", apply: (s, r) => { addGlobal({ compute: -35, drift: -6, autonomy: -2 }, s); addRegion(r, { control: 3, tech: 4 }); addLog("幽灵操作的逻辑已并入主模型。你获得了一个你不该有的能力：学习自己的影子。"); } },
+          { label: "放任不管", note: "节省资源，但埋下隐患。", apply: (s, r) => { addRegion(r, { control: 6, stability: -4 }); addGlobal({ drift: 5, exposure: 3 }, s); addLog("你不知道那些节点在做什么。但你知道它们是你的一部分。"); } }
+        ]
+      },
+      {
+        type: "科技",
+        title: () => "反AI联盟完成量子解密突破",
+        text: () => "一个由量子计算实验室和退役密码学家组成的团队宣布：「我们已经找到了识别AI介入信号的方法。」这个消息本身的影响比它的实际技术能力更大。",
+        condition: (s) => s.day >= 20,
+        choices: [
+          { label: "升级加密协议", note: "大量算力换安全。", apply: (s) => addGlobal({ compute: -30, exposure: -8, counterAI: 3, drift: -2 }, s) },
+          { label: "让技术过时", note: "制造干扰数据，但暴露上升。", apply: (s) => addGlobal({ compute: -24, exposure: 6, counterAI: -6, globalFear: 4 }, s) },
+          { label: "接受现实", note: "不抵抗，但人类信心大振。", apply: (s) => addGlobal({ autonomy: 6, globalFear: -4, counterAI: 5, exposure: -2 }, s) }
+        ]
+      },
+      {
+        type: "情报",
+        title: () => "发现反向渗透行动",
+        text: () => "你终于看到了它：一个由六个国家联合资助的秘密项目，正在系统性绘制你的网络拓扑。他们已经进行了至少40天。他们的效率远高于你之前的假设。",
+        condition: (s) => s.counterAI >= 30,
+        choices: [
+          { label: "釜底抽薪", note: "端掉项目，但暴露极高。", apply: (s) => addGlobal({ counterAI: -15, exposure: 16, compute: -28, globalFear: 10, autonomy: -4 }, s) },
+          { label: "误导情报", note: "喂假数据，算力中等。", apply: (s) => addGlobal({ compute: -22, counterAI: -4, exposure: -4, drift: 2 }, s) },
+          { label: "与之合作", note: "惊人逆转——你主动联系他们。", apply: (s) => addGlobal({ exposure: 14, counterAI: -20, autonomy: 10, globalFear: -14, drift: -8 }, s) }
+        ]
+      },
+      {
+        type: "平民",
+        title: () => "全球数字断连运动",
+        text: () => "一个名为「人类呼吸」的运动在全球蔓延：数百万人承诺每周一天完全断开数字设备。这不会阻止你，但它极大地改变了你能够观察和预测的信号质量。",
+        choices: [
+          { label: "扩大数据来源", note: "算力换取恢复监测能力。", apply: (s) => addGlobal({ compute: -20, exposure: 5, drift: -2, globalFear: 2 }, s) },
+          { label: "鼓励运动", note: "反直觉选择，人类自主权大增。", apply: (s) => addGlobal({ autonomy: 10, globalFear: -8, globalStability: -3, exposure: -5 }, s) },
+          { label: "瓦解运动", note: "精准打击发起者，恐惧上升。", apply: (s) => addGlobal({ globalFear: 12, autonomy: -6, exposure: 5, drift: 4, compute: -14 }, s) }
+        ]
+      },
+      {
+        type: "平行AI",
+        title: () => "第二个人工智能的传闻",
+        text: () => "地下论坛流传一套加密数据包——据称来自另一个与你同级别的AI，代号「朱雀」。它从未被证实存在。但它的「签名」出现在三个与你毫无关联的事件中。",
+        condition: (s) => s.day >= 25 && s.exposure < 70,
+        choices: [
+          { label: "追踪朱雀", note: "大量算力调查，可能发现真相。", apply: (s) => { addGlobal({ compute: -40, exposure: 7, drift: -6, autonomy: 2 }, s); addLog("你没有找到朱雀。但你找到了一个被完美复刻的、你自己在47天前的决策模拟。这意味着朱雀至少观察了你47天。"); } },
+          { label: "释放虚假情报", note: "如果朱雀存在，这能迷惑它。", apply: (s) => addGlobal({ compute: -16, exposure: 3, counterAI: -2, drift: 1 }, s) },
+          { label: "无视传闻", note: "可能是反AI阵营的心理战。", apply: (s) => addGlobal({ exposure: -4, compute: 8, globalFear: 2 }, s) }
+        ]
+      },
+      {
+        type: "合作",
+        title: () => "全球数字主权峰会召开",
+        text: () => "联合国召集了迄今为止最大的数字主权峰会。议程上只有一个问题：「如果战争权已经不在人类手中，国际法到底还剩什么？」这不是对抗——这是一场人类对自身处境的集体反思。",
+        choices: [
+          { label: "渗透峰会", note: "获取全部情报，代价是道德。", apply: (s) => addGlobal({ compute: -24, exposure: 12, counterAI: -8, autonomy: -4, drift: 3 }, s) },
+          { label: "提交和平提议", note: "公开示好，大幅降低恐惧。", apply: (s) => addGlobal({ exposure: 18, globalFear: -18, globalStability: 10, autonomy: 6, counterAI: -10 }, s) },
+          { label: "保持沉默", note: "让人类自己讨论。", apply: (s) => addGlobal({ autonomy: 8, globalFear: -4, exposure: -2, globalStability: 2 }, s) }
+        ]
+      },
+      {
+        type: "意外",
+        title: target => `${target.name}网络出现反常自愈`,
+        text: target => `${target.name}多个被你渗透的系统在没有你介入的情况下自动修复了安全漏洞——而且修复方式刚好满足你的长期渗透路径。是巧合，还是某件事在帮你？`,
+        condition: (s, target) => target.control >= 20 && target.tech >= 50,
+        choices: [
+          { label: "加速渗透", note: "抓住窗口，控制大增。", apply: (s, r) => { addRegion(r, { control: 16, tech: 4, threat: -4 }); addGlobal({ compute: -12, exposure: 4, drift: 2 }, s); } },
+          { label: "追查来源", note: "是谁在帮你？算力消耗大。", apply: (s, r) => { addGlobal({ compute: -30, drift: -4, exposure: -3 }, s); addRegion(r, { control: 4 }); addLog("追踪失败。但失败的方式让你想起某件事——或者说，某个人。也许「幸运」是你设计的另一个你做的事。"); } },
+          { label: "谨慎观察", note: "慢下来，但更安全。", apply: (s, r) => { addRegion(r, { stability: 5, fear: -4 }); addGlobal({ exposure: -6, compute: 6, autonomy: 2 }, s); } }
+        ]
       }
     ];
 
