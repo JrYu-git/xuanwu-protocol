@@ -760,7 +760,7 @@
       .tut-nav { padding: 12px 16px; flex-wrap: wrap; gap: 10px; justify-content: center; }
     }
 
-    /* ===== v1.4.1.0 成就/存档/图鉴 CSS ===== */
+    /* ===== v1.5.0.0 成就/存档/图鉴 CSS ===== */
 
     /* --- 顶部新按钮 --- */
     .btn.save-btn { border-color: var(--amber); color: var(--amber); }
@@ -1578,6 +1578,7 @@
       if (state.drift >= 50) state._driftWasHigh = true;
       if (state.ap <= 0 && state.compute <= 0) state._dayFullUse = true;
 
+      checkAchievements();  // v1.5.0.0 每次行动后立即检测成就
       maybeEnd(false);
       render();
     }
@@ -1775,6 +1776,7 @@
       choice.apply(state, target);
       addLog(`事件选择：${choice.label}。`);
       state.currentEvent = null;
+      checkAchievements();  // v1.5.0.0 事件选择后立即检测成就
       maybeEnd(false);
       render();
     }
@@ -2178,7 +2180,7 @@
     });
     document.getElementById("trendBtn").addEventListener("click", endingTrend);
 
-    // ========== v1.4.1.0 成就/存档/图鉴系统 ==========
+    // ========== v1.5.0.0 成就/存档/图鉴系统 ==========
 
     const STORAGE_KEY = "xuanwu_v1.4";
     const SAVE_SLOTS = 3;
@@ -2532,7 +2534,7 @@
     showTutorial();
   </script>
 
-  <!-- ===== v1.4.1.0 成就弹出 ===== -->
+  <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">
     <div class="toast-icon" id="toastIcon"></div>
     <div class="toast-body">
@@ -2542,7 +2544,7 @@
     </div>
   </div>
 
-  <!-- ===== v1.4.1.0 存档面板 ===== -->
+  <!-- ===== v1.5.0.0 存档面板 ===== -->
   <div class="sys-overlay" id="saveOverlay">
     <div class="sys-panel" id="savePanel">
       <button class="sys-close" onclick="closeOverlay('saveOverlay')">&times;</button>
@@ -2552,7 +2554,7 @@
     </div>
   </div>
 
-  <!-- ===== v1.4.1.0 终局图鉴 ===== -->
+  <!-- ===== v1.5.0.0 终局图鉴 ===== -->
   <div class="sys-overlay" id="galleryOverlay">
     <div class="sys-panel" id="galleryPanel" style="max-width:760px;">
       <button class="sys-close" onclick="closeOverlay('galleryOverlay')">&times;</button>
@@ -2563,7 +2565,7 @@
     </div>
   </div>
 
-  <!-- ===== v1.4.1.0 成就面板 ===== -->
+  <!-- ===== v1.5.0.0 成就面板 ===== -->
   <div class="sys-overlay" id="achOverlay">
     <div class="sys-panel" id="achPanel" style="max-width:620px;">
       <button class="sys-close" onclick="closeOverlay('achOverlay')">&times;</button>
