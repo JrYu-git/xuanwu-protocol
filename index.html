@@ -1693,6 +1693,16 @@
       });
     }
 
+    // v1.6.1.0 算力产能计算（供 nextDay 消费 + render 展示）
+    function calcDailyCompute() {
+      const control = totalControl();
+      const highTechControl = state.regions.reduce((sum, r) => sum + (r.control * r.tech / 100), 0);
+      let d = 10 + control * 0.035 + highTechControl * 0.018;
+      if (has("global_listening")) d += 8;
+      if (has("resource_routing")) d += control * 0.014;
+      return Math.round(d);
+    }
+
     function nextDay() {
       if (state.ended) return;
       state.day += 1;
@@ -1705,11 +1715,7 @@
       // P1 新增：处理持续 buff（算力/天等）
       processBuffs();
 
-      const control = totalControl();
-      const highTechControl = state.regions.reduce((sum, r) => sum + (r.control * r.tech / 100), 0);
-      let dailyCompute = 10 + control * 0.035 + highTechControl * 0.018;
-      if (has("global_listening")) dailyCompute += 8;
-      if (has("resource_routing")) dailyCompute += control * 0.014;
+      const dailyCompute = calcDailyCompute();
       state.compute += dailyCompute;
 
       // v1.6.0.0 算力溢出惩罚：超出上限部分 5:1 转暴露
@@ -1960,6 +1966,7 @@
       // v1.6.0.0 算力板块 + 扩容按钮
       const overFlow = state.compute > state.computeCeiling * 0.85;
       const computePct = Math.min(100, state.compute / state.computeCeiling * 100);
+      const dailyRate = calcDailyCompute();
       const compBarHtml = `<div class="mini-bar-wrap">
         <div class="mini-bar-fill" style="width:${computePct}%;background:${overFlow?'#e74c3c':''}"></div>
       </div>`;
@@ -1967,7 +1974,7 @@
         '<article class="stat">\n          <span>天数</span>',
         `<article class="stat${overFlow?' pulse':''}">
           <span>算力</span>
-          <strong>${fmt(state.compute)}<small style="font-size:0.7em;opacity:0.6"> /${state.computeCeiling}</small></strong>
+          <strong>${fmt(state.compute)}<small style="font-size:0.7em;opacity:0.6"> /${state.computeCeiling}</small><small style="font-size:0.55em;opacity:0.45;color:#27ae60"> +${fmt(dailyRate)}/天</small></strong>
           <small>${compBarHtml}${hasNextCE ? `<button class="btn-mini" onclick="upgradeComputeCeiling()" ${state.compute < nextCE.cost || state.ended ? 'disabled' : ''} title="扩容至${nextCE.ceiling}（${nextCE.cost}算力，自主${nextCE.auto}）">⇧ ${nextCE.cost}算</button>` : '已满级'}</small>
         </article>
         <article class="stat">
