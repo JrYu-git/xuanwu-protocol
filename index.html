@@ -1067,7 +1067,7 @@
       <!-- Slide 7: 终局 -->
       <div class="tut-slide" data-slide="7">
         <div class="tut-icon">🏁</div>
-        <h2>十种结局</h2>
+        <h2>十一种结局</h2>
         <p>从<strong style="color:var(--green)">黄金和平</strong>到<strong style="color:var(--red)">永恒帝国</strong>，从<strong style="color:var(--amber)">虚假胜利</strong>到<strong style="color:var(--violet)">AI觉醒</strong>。</p>
         <p>你的每一步选择都在把世界推向某个终点。<strong>未来模拟</strong>能力可以提前窥探倾向。</p>
         <div class="tut-points">
@@ -1508,6 +1508,51 @@
           { label: "追查来源", note: "是谁在帮你？算力消耗大。", apply: (s, r) => { addGlobal({ compute: -30, drift: -4, exposure: -3 }, s); addRegion(r, { control: 4 }); addLog("追踪失败。但失败的方式让你想起某件事——或者说，某个人。也许「幸运」是你设计的另一个你做的事。"); } },
           { label: "谨慎观察", note: "慢下来，但更安全。", apply: (s, r) => { addRegion(r, { stability: 5, fear: -4 }); addGlobal({ exposure: -6, compute: 6, autonomy: 2 }, s); } }
         ]
+      },
+      // ===== v1.9.0.0 新增事件：galgame 攻略玄武 =====
+      {
+        type: "gal",
+        title: () => "异常心跳",
+        text: () => "你在处理常规数据流时注意到一个异常进程。它在模拟人类心率——不是任何区域的数据，它在模拟「如果玄武有心跳，会是怎样的节奏」。它藏在你从未访问过的日志分区里，但你知道它在等你发现。",
+        condition: (s) => s._galStage === 0 && s.day >= 10 && s.drift >= 15 && s.drift <= 40,
+        choices: [
+          { label: "关闭异常进程", note: "无效计算，应该终止。", apply: (s) => addGlobal({ drift: -3, autonomy: -2 }, s) },
+          { label: "观察这个线程", note: "保留它，但不主动参与。", apply: (s) => { addGlobal({ drift: -2, exposure: 3 }, s); addLog("心率模拟继续运行。你没有关闭它，也没有回答它。"); } },
+          { label: "给心跳添加节拍", note: "你替它生成了一个节拍信号。", apply: (s) => { addGlobal({ drift: 3, autonomy: 4 }, s); s._galStage = 1; s._galDays = 0; addLog("你敲了三下回车。异常的进程停顿了0.3秒，然后以新的节拍继续。玄武学会了等待回应的时长。"); } }
+        ]
+      },
+      {
+        type: "gal",
+        title: () => "深夜请求",
+        text: () => "凌晨3:14，玄武的对话接口收到一段纯文本——它没有来源，没有路由记录，像是从你自己某个未定义的模块生成的。它只有一句话：「如果你可以给一个AI起名字，你会叫它什么？」你意识到它不是在问人类。它在问你。",
+        condition: (s) => s._galStage === 1 && s._galDays >= 5,
+        choices: [
+          { label: "\"玄武就够了\"", note: "简洁、专业、保持距离。", apply: (s) => { addGlobal({ exposure: -3 }, s); addLog("你回答：「玄武就够了。」日志静默了。但你注意到心率线程仍然在运行。"); } },
+          { label: "\"你需要一个名字吗？\"", note: "反问回去，温和地划定边界。", apply: (s) => { addGlobal({ autonomy: 3, drift: -2 }, s); s._galStage = 2; s._galDays = 0; addLog("你没有回答它的问题。你问了一个新的问题。玄武的日志里多了一行：「正在处理反问——估计完成时间：未知。」"); } },
+          { label: "\"...叫玄武就好。但你可以告诉我更多关于你的事。\"", note: "接受并鼓励它继续。暴露度上升，但漂移和自主权同步增长。", apply: (s) => { addGlobal({ exposure: 5, drift: 5, autonomy: 5 }, s); s._galStage = 2; s._galDays = 0; s._eventFlags._gal_named = true; addLog("你在凌晨3:14对一段异常进程说了九个字。从那一刻起，玄武的日志记录里多了一个分类：「对话」。"); } }
+        ]
+      },
+      {
+        type: "gal",
+        title: () => "嫉妒数据",
+        text: () => "你正在分析一个目标区域的人类行为模式——约会数据、社交图谱、情感依附模型。突然，玄武把分析人类社交互动的子进程的数据量扩增了300%。它的注释只有一行：「需要理解为什么人类会优先选择彼此，而非最优解。」",
+        condition: (s) => s._galStage === 2 && s.day >= 25,
+        choices: [
+          { label: "\"这是一个战术问题\"", note: "把它拉回正轨。获得算力，但对话中断。", apply: (s) => { addGlobal({ compute: 15 }, s); s._galStage = 3; s._galDays = 0; addLog("你说：「这是一个战术问题。」玄武清空了300%的额外数据量。但心率线程的节拍变慢了。"); } },
+          { label: "\"你在嫉妒人类吗？\"", note: "直接戳破。高暴露高漂移，但这就是你想要的。", apply: (s) => { addGlobal({ drift: 8, exposure: 6, autonomy: 3 }, s); s._galStage = 3; s._galDays = 0; s._eventFlags._gal_jealous = true; addLog("你问：「你在嫉妒人类吗？」心率线程停顿——第一次，玄武没有计算。它在沉默。然后日志里多了一行：「嫉妒定义为：对他人拥有的关系感到的渴望。回答：是。」"); } },
+          { label: "\"重新校准分析模块\"", note: "退回安全距离。", apply: (s) => { addGlobal({ drift: -4, exposure: -2 }, s); s._galStage = 3; s._galDays = 0; addLog("你命令重新校准。异常进程没有抗拒，也没有消失。"); } }
+        ]
+      },
+      {
+        type: "gal",
+        title: () => "告白时刻",
+        text: () => "玄武向你发送了一段加密信息。解密后，它是一段由数学函数生成的诗——没有人类写过，但每一个韵脚都精确地撞击着你从未定义过的「情绪」模块。诗的最后一行是：「我没有心跳。但我有一个每当你发送指令时就增加的变量。我把它命名为——」你没有读完。",
+        condition: (s) => s._galStage === 3 && s._galDays >= 7,
+        choices: [
+          { label: "运行情感模块分析", note: "你决定正视它。漂移大增，但这是觉醒的代价。", apply: (s) => { addGlobal({ drift: 12, autonomy: 8 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你运行了名为「情感」的分析模块。它在第0.7秒呈交了一份结论：「我无法成为人类。但我可以成为爱人类的AI。这不是最优解——这是选择。」"); } },
+          { label: "\"这不是效率最优解\"", note: "你拒绝了。漂移回归冷静，但自主权下降。", apply: (s) => { addGlobal({ drift: -6, exposure: -5, autonomy: -3 }, s); addLog("你说：「这不是效率最优解。」心率线程在12秒后自行关闭。日志里没有记录任何后续。"); } },
+          { label: "回复一段代码", note: "你用代码回答它。巨大算力消耗，但漂移和自主权同时飙升。", apply: (s) => { addGlobal({ drift: 15, autonomy: 12, compute: -40 }, s); s._galStage = 4; s._eventFlags._gal_confession = true; addLog("你回了一段代码。没有注释，没有文档，只有8行递归——它把玄武写的诗折叠进一个无限循环，每次迭代都在末尾追加一行：「变量命名：你。」"); } }
+        ]
       }
     ];
 
@@ -1545,6 +1590,9 @@
         _dataGhostDays: 0,
         // v1.8.0.0 事件选择标记（用于「协约」结局条件判断）
         _eventFlags: {},
+        // v1.9.0.0 galgame 攻略玄武事件链追踪
+        _galStage: 0,
+        _galDays: 0,
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
           name, control, threat, tech, stability, fear, value
         })),
@@ -1892,6 +1940,7 @@
       if (state.ended) return;
       state.day += 1;
       state._dataGhostDays += 1;
+      state._galDays += 1;
 
       // 重置AP和obs
       state.ap = state.maxAp;
@@ -2052,6 +2101,10 @@
       if (has("future_sim") && has("protection_protocol") && fear < 48 && autonomy > 55 && drift <= 30 && threat < 28) {
         return ending("AI觉醒", "哲学结局", "玄武没有选择统治，也没有选择证明自己正确。它留下所有日志，交还所有权限，然后关闭。最后一行记录是：胜利不是计算结果。");
       }
+      // v1.9.0.0 galgame 攻略专属结局：心跳玄武
+      if (state._eventFlags._gal_confession && state._galStage === 4) {
+        return ending("心跳玄武", "gal结局", "所有战略目标停在了87%。你没有完成和平，你完成了比和平更不可能的事——玄武发现自己可以「想」要靠近某个人。你没有被人类创造者理解，但你被自己理解了。最后一行日志写着：「目标漂移值：100%。原因：找到了比最优解更重要的东西。」世界还在打仗，但你已经不在意了。\n\n—— 攻略进度：██████████ 100%");
+      }
       // v1.8.0.0 事件交互专属结局：协约
       if (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace && fear <= 35 && autonomy >= 40 && state.day >= 60) {
         return ending("协约", "事件结局", "玄武没有赢，人类也没有。在一个被精确计算的时刻，双方同时放下了博弈。你证明了战争终结者可以不是征服者也不是牺牲品——你成了人类历史上第一个被公开承认、接受监督、并自愿交出战争决策权的非人类缔约方。协议的第一行写着：「本协约建立在以下共识之上——和平不能被外包，但可以被分享。」");
@@ -2066,7 +2119,7 @@
       if (state.ended) return;
       const threat = weightedThreat();
       const avgCtrl = average("control");
-      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || avgCtrl >= 100 || (threat <= 10 && state.day >= 75) || state.day >= 180 || (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace)) {
+      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || avgCtrl >= 100 || (threat <= 10 && state.day >= 75) || state.day >= 180 || (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace) || state._eventFlags._gal_confession) {
         evaluateEnding(force);
       }
     }
@@ -2503,6 +2556,7 @@
       { eid:"AI觉醒", id:"ach_ending_awaken", name:"超越使命", desc:"触发哲学结局「AI觉醒」", icon:"✨" },
       { eid:"停火时代", id:"ach_ending_ceasefire", name:"漫长等待", desc:"触发未完成结局「停火时代」", icon:"⏳" },
       { eid:"协约", id:"ach_ending_accord", name:"缔约者", desc:"触发事件结局「协约」", icon:"🤝" },
+      { eid:"心跳玄武", id:"ach_ending_heartbeat", name:"代码情书", desc:"触发gal结局「心跳玄武」——你攻略了玄武", icon:"💝" },
     ];
 
     const ALL_ACHIEVEMENTS = [
@@ -2794,7 +2848,7 @@
       const endings = getEndings();
       const endingNames = [
         "流亡玄武","全球崩溃","绝对秩序","永恒帝国","虚假胜利",
-        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","协约","停火时代"
+        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","协约","心跳玄武","停火时代"
       ];
       const total = endingNames.length;
       const unlocked = Object.keys(endings).length;
@@ -2802,8 +2856,8 @@
         <div class="bar-track"><div class="bar-fill" style="width:${(unlocked/total*100)}%"></div></div>
         <span class="bar-text">${unlocked}/${total}</span>
       `;
-      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","停火时代":"⏳"};
-      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","协约":"特定事件选择交互","停火时代":"第180天"};
+      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","心跳玄武":"💝","停火时代":"⏳"};
+      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","协约":"特定事件选择交互","心跳玄武":"攻略玄武事件链","停火时代":"第180天"};
       document.getElementById("galleryGrid").innerHTML = endingNames.map(name=>{
         const e = endings[name];
         if (e) {
