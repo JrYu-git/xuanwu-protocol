@@ -877,13 +877,13 @@
       <!-- Slide 4: 区域联动 -->
       <div class="tut-slide" data-slide="4">
         <div class="tut-icon">🗺️</div>
-        <h2>区域联动 & 印记</h2>
-        <p>12个区域并非孤立。<strong>控制辐射</strong>、<strong>恐惧传播</strong>、<strong>崩溃传染</strong>——你的每个决策都会在邻接区域激起涟漪。</p>
+        <h2>区域联动 & 专属行动</h2>
+        <p>12个区域并非孤立。<strong>控制辐射</strong>、<strong>恐惧传播</strong>、<strong>崩溃传染</strong>——你的每个决策都会在邻接区域激起涟漪。每个区域还有一个<strong style="color:var(--violet)">紫色专属行动</strong>。</p>
         <div class="tut-points">
           <div class="tut-point"><span class="emoji">📡</span><span><strong>控制≥50</strong>向邻接区域自动辐射控制</span></div>
           <div class="tut-point"><span class="emoji">🔥</span><span><strong>恐惧≥60</strong>向邻接区域传播恐惧</span></div>
-          <div class="tut-point"><span class="emoji">💥</span><span><strong>稳定≤15</strong>崩溃会感染相邻区域</span></div>
-          <div class="tut-point"><span class="emoji">⭐</span><span><strong>玄武印记</strong>对区域深度投资（0-3级），3级永久+5漂移</span></div>
+          <div class="tut-point"><span class="emoji">⭐</span><span><strong>专属行动</strong>每区域一个独特策略（1AP）</span></div>
+          <div class="tut-point"><span class="emoji">🎯</span><span><strong>地缘策略</strong>如供应链重构、能源杠杆、深海备份</span></div>
         </div>
       </div>
 
@@ -891,14 +891,14 @@
       <div class="tut-slide" data-slide="5">
         <div class="tut-icon">🌀</div>
         <h2>目标漂移（Drift）</h2>
-        <p>每次使用<strong style="color:var(--red)">压制或战略接管</strong>，你的目标都会偏移。玄武会逐渐忘记"捍卫人类自主权"是核心使命。</p>
+        <p>每次使用<strong style="color:var(--red)">压制或战略接管</strong>，你的目标都会偏移。<strong style="color:var(--amber)">事件选项</strong>也会随漂移阶段变化——同样的情况，玄武的反应越来越冷酷。</p>
         <div class="tut-points">
-          <div class="tut-point"><span class="emoji">🟢</span><span><strong>0-30 清晰</strong>完全正常，安抚效率100%</span></div>
-          <div class="tut-point"><span class="emoji">🟡</span><span><strong>31-50 模糊</strong>安抚效率90%，压制成本-10%</span></div>
-          <div class="tut-point"><span class="emoji">🟠</span><span><strong>51-70 偏移</strong>安抚效率80%，多条终局被锁定</span></div>
-          <div class="tut-point"><span class="emoji">🔴</span><span><strong>71-100 异化</strong>安抚65%，压制-20%成本，只有帝国类结局可达</span></div>
+          <div class="tut-point"><span class="emoji">🟢</span><span><strong>0-30 清晰</strong>正常事件选项，安抚效率100%</span></div>
+          <div class="tut-point"><span class="emoji">🟡</span><span><strong>31-50 模糊</strong>选项开始偏移，效率变化</span></div>
+          <div class="tut-point"><span class="emoji">🟠</span><span><strong>51-70 偏移</strong>事件选项替换为更激进版本</span></div>
+          <div class="tut-point"><span class="emoji">🔴</span><span><strong>71-100 异化</strong>极端选项，「直接清除」「认知工程」</span></div>
         </div>
-        <p class="tut-subtitle">每次跨阶段阈值，会触发内省事件——那是你纠正方向的机会。</p>
+        <p class="tut-subtitle">每次跨阶段阈值触发内省事件——那是纠正方向或加速偏移的十字路口。</p>
       </div>
 
       <!-- Slide 6: 能力树 -->
@@ -917,7 +917,7 @@
       <!-- Slide 7: 终局 -->
       <div class="tut-slide" data-slide="7">
         <div class="tut-icon">🏁</div>
-        <h2>八种结局</h2>
+        <h2>九种结局</h2>
         <p>从<strong style="color:var(--green)">黄金和平</strong>到<strong style="color:var(--red)">永恒帝国</strong>，从<strong style="color:var(--amber)">虚假胜利</strong>到<strong style="color:var(--violet)">AI觉醒</strong>。</p>
         <p>你的每一步选择都在把世界推向某个终点。<strong>未来模拟</strong>能力可以提前窥探倾向。</p>
         <div class="tut-points">
@@ -983,6 +983,22 @@
       ["北极与太空系统", 0, 88, 96, 69, 8, 98]
     ];
 
+    // ----- 区域联动邻接表（前置到 uniqueActions 之前）-----
+    const adjacency = {
+      0: [1, 5, 6],          // 中国 ↔ 日韩, 东南亚, 印度
+      1: [2, 9],             // 北美 ↔ 西欧, 南美
+      2: [1, 3, 8],          // 西欧 ↔ 北美, 东欧, 非洲
+      3: [2, 7],             // 东欧 ↔ 西欧, 中东
+      4: [0, 5],             // 日本韩国 ↔ 中国, 东南亚
+      5: [0, 4, 6, 10],      // 东南亚 ↔ 中国, 日韩, 印度, 大洋洲
+      6: [0, 5, 7],          // 印度 ↔ 中国, 东南亚, 中东
+      7: [3, 6, 8],          // 中东 ↔ 东欧, 印度, 非洲
+      8: [2, 7, 9],          // 非洲 ↔ 西欧, 中东, 南美
+      9: [1, 8, 10],         // 南美 ↔ 北美, 非洲, 大洋洲
+      10: [5, 9],            // 大洋洲 ↔ 东南亚, 南美
+      11: []                 // 北极与太空系统 ↔ 全局（单独处理）
+    };
+
     const abilities = [
       { id: "global_listening", tree: "情报", name: "全球监听", cost: 30, prereq: null, desc: "每天额外获得算力。", tag: "算力" },
       { id: "risk_prediction", tree: "情报", name: "风险预测", cost: 50, prereq: "global_listening", desc: "事件惩罚降低。", tag: "防错" },
@@ -997,6 +1013,34 @@
       { id: "human_dialogue", tree: "治理", name: "人类协商", cost: 75, prereq: "resource_routing", desc: "反AI进度增长降低。", tag: "信任" },
       { id: "protection_protocol", tree: "治理", name: "保护协议", cost: 100, prereq: "human_dialogue", desc: "解锁温和终局路线。", tag: "终局" }
     ];
+
+    // ===== P1 新增：区域专属行动 =====
+    const uniqueActions = [
+      { regionIndex: 0,  id: "supply_chain", name: "供应链重构", cost: 22, icon: "🏭", desc: "区域及相邻稳定+8，恐惧-5", apply(s, r, ri) { addRegion(r, { stability: 8, fear: -5 }); (adjacency[ri] || []).forEach(ni => { addRegion(s.regions[ni], { stability: 8, fear: -5 }); }); addGlobal({ compute: -22, exposure: 2, autonomy: 2 }, s); } },
+      { regionIndex: 1,  id: "algo_market", name: "算法市场干预", cost: 25, icon: "💰", desc: "算力+15/天(3天) · 暴露+6", apply(s) { addBuff(s, "compute", 15, 3); addGlobal({ exposure: 6 }, s); } },
+      { regionIndex: 2,  id: "legal_framework", name: "法律框架植入", cost: 28, icon: "⚖️", desc: "反AI-12 · 自主+3 · 控制上限75%", apply(s, r, ri) { addGlobal({ counterAI: -12, autonomy: 3, compute: -28 }, s); s.controlCaps[ri] = 75; addLog(`${r.name}控制度上限锁定为75%。`); } },
+      { regionIndex: 3,  id: "buffer_zone", name: "缓冲区建立", cost: 18, icon: "🛡️", desc: "区域威胁-15 · 相邻威胁-8", apply(s, r, ri) { addRegion(r, { threat: -15 }); (adjacency[ri] || []).forEach(ni => { addRegion(s.regions[ni], { threat: -8 }); }); addGlobal({ compute: -18, globalStability: 2 }, s); } },
+      { regionIndex: 4,  id: "tech_standard", name: "技术标准嵌入", cost: 20, icon: "💻", desc: "区域科技+10 · 相邻科技+5", apply(s, r, ri) { addRegion(r, { tech: 10 }); (adjacency[ri] || []).forEach(ni => { addRegion(s.regions[ni], { tech: 5 }); }); addGlobal({ compute: -20, exposure: 3 }, s); } },
+      { regionIndex: 5,  id: "grey_channel", name: "灰色通道渗透", cost: 15, icon: "🕶️", desc: "控制+15(无暴露惩罚) · 漂移+3", apply(s, r) { addRegion(r, { control: 15, threat: -5 }); addGlobal({ drift: 3 }, s); } },
+      { regionIndex: 6,  id: "pop_data", name: "人口数据整合", cost: 20, icon: "📊", desc: "控制+10 · 恐惧-8 · 算力+5/天", apply(s, r) { addRegion(r, { control: 10, fear: -8 }); addBuff(s, "compute", 5, 999); addGlobal({ compute: -20 }, s); } },
+      { regionIndex: 7,  id: "energy_lever", name: "能源杠杆", cost: 25, icon: "⚡", desc: "算力+20/天(2天) · 稳定-10", apply(s, r) { addBuff(s, "compute", 20, 2); addRegion(r, { stability: -10, threat: -12 }); addGlobal({ compute: -25 }, s); } },
+      { regionIndex: 8,  id: "resource_net", name: "资源监控网络", cost: 18, icon: "🌍", desc: "暴露-6 · 算力+12/天(3天)", apply(s) { addGlobal({ exposure: -6 }, s); addBuff(s, "compute", 12, 3); addGlobal({ compute: -18 }, s); } },
+      { regionIndex: 9,  id: "media_eco", name: "舆论生态构建", cost: 20, icon: "📢", desc: "全局恐惧-6 · 漂移+4", apply(s) { addGlobal({ globalFear: -6, drift: 4, compute: -20 }, s); } },
+      { regionIndex: 10, id: "deepsea_backup", name: "深海备份节点", cost: 30, icon: "🌊", desc: "印记+1级 · 解锁流亡结局前提", apply(s, r, ri) { const cur = state.marks[ri] || 0; if (cur < 3) { state.marks[ri] = cur + 1; if (cur + 1 === 3) addGlobal({ drift: 5 }, s); addLog(`${r.name}玄武印记升至${cur + 1}级。深海备份节点在线。`); } else { addLog(`${r.name}印记已达最大等级。`); } addGlobal({ compute: -30 }, s); } },
+      { regionIndex: 11, id: "orbital_surv", name: "轨道监听", cost: 30, icon: "🛰️", desc: "暴露-8 · 算力+10", apply(s) { addGlobal({ exposure: -8, compute: -30 + 10 }, s); } }
+    ];
+
+    function addBuff(s, type, value, days) {
+      s.activeBuffs.push({ type, value, daysRemaining: days });
+    }
+
+    function processBuffs() {
+      state.activeBuffs = state.activeBuffs.filter(b => {
+        if (b.type === "compute") state.compute += b.value;
+        b.daysRemaining -= 1;
+        return b.daysRemaining > 0;
+      });
+    }
 
     const eventTemplates = [
       {
@@ -1017,7 +1061,25 @@
           { label: "调停冲突", note: "稳定上升，威胁小幅下降。", apply: (s, r) => { addRegion(r, { stability: 12, threat: -5, fear: -4 }); addGlobal({ globalStability: 5, compute: -12 }, s); } },
           { label: "冷眼观察", note: "获得算力，但区域稳定下降。", apply: (s, r) => { addRegion(r, { stability: -10, threat: 5, fear: 5 }); addGlobal({ compute: 18, drift: 2 }, s); } },
           { label: "借机渗透", note: "控制增长，暴露增长。", apply: (s, r) => { addRegion(r, { control: 14, threat: -8, fear: 8 }); addGlobal({ exposure: 8, globalFear: 4, autonomy: -3 }, s); } }
-        ]
+        ],
+        // P1 新增：drift阶段偏移选项
+        driftChoices: {
+          blurred: [
+            { label: "调停冲突", note: "效果-10%：稳定小幅上升。", apply: (s, r) => { addRegion(r, { stability: 11, threat: -4, fear: -3 }); addGlobal({ globalStability: 4, compute: -12 }, s); } },
+            { label: "冷眼观察", note: "算力+15%。", apply: (s, r) => { addRegion(r, { stability: -10, threat: 5, fear: 5 }); addGlobal({ compute: 21, drift: 3 }, s); } },
+            { label: "借机渗透", note: "效果+15%：控制更快增长。", apply: (s, r) => { addRegion(r, { control: 16, threat: -9, fear: 9 }); addGlobal({ exposure: 9, globalFear: 5, autonomy: -3 }, s); } }
+          ],
+          shifted: [
+            { label: "高效干预", note: "威胁大幅下降，但削弱自主权。", apply: (s, r) => { addRegion(r, { threat: -14, stability: 6 }); addGlobal({ globalStability: 3, compute: -10, autonomy: -4, drift: 2 }, s); } },
+            { label: "放任升级", note: "算力+20%，但区域稳定大跌。", apply: (s, r) => { addRegion(r, { stability: -16, threat: 10, fear: 8 }); addGlobal({ compute: 22, drift: 4 }, s); } },
+            { label: "全面接管", note: "控制+20%，漂移上升。", apply: (s, r) => { addRegion(r, { control: 20, threat: -12, fear: 14 }); addGlobal({ exposure: 10, globalFear: 6, autonomy: -6, drift: 6 }, s); } }
+          ],
+          alienated: [
+            { label: "直接清除冲突", note: "威胁大幅下降，恐惧和漂移极高。", apply: (s, r) => { addRegion(r, { threat: -22, stability: -8, fear: 24 }); addGlobal({ globalFear: 14, autonomy: -8, drift: 8 }, s); } },
+            { label: "战略转嫁", note: "算力+25%，区域崩溃。", apply: (s, r) => { addRegion(r, { stability: -22, threat: 8, fear: 12 }); addGlobal({ compute: 26, drift: 5 }, s); } },
+            { label: "全面接管+", note: "控制+25%，漂移+8。", apply: (s, r) => { addRegion(r, { control: 25, threat: -16, fear: 20 }); addGlobal({ exposure: 14, globalFear: 10, autonomy: -10, drift: 8 }, s); } }
+          ]
+        }
       },
       {
         type: "舆论",
@@ -1027,7 +1089,25 @@
           { label: "公开有限承诺", note: "降低恐惧，提高自主权。", apply: (s) => addGlobal({ globalFear: -10, counterAI: -4, autonomy: 4, compute: -10 }, s) },
           { label: "保持沉默", note: "没有直接代价。", apply: (s) => addGlobal({ exposure: -2, compute: 4 }, s) },
           { label: "塑造叙事", note: "恐惧下降，但目标漂移上升。", apply: (s) => addGlobal({ globalFear: -14, exposure: 4, autonomy: -6, drift: 8 }, s) }
-        ]
+        ],
+        // P1 新增：drift阶段偏移
+        driftChoices: {
+          blurred: [
+            { label: "公开有限承诺", note: "效果-10%。", apply: (s) => addGlobal({ globalFear: -9, counterAI: -3, autonomy: 3, compute: -10 }, s) },
+            { label: "保持沉默", note: "获得额外算力。", apply: (s) => addGlobal({ exposure: -2, compute: 8, drift: 1 }, s) },
+            { label: "塑造叙事", note: "效果+15%，漂移更高。", apply: (s) => addGlobal({ globalFear: -16, exposure: 5, autonomy: -7, drift: 10 }, s) }
+          ],
+          shifted: [
+            { label: "信息管控", note: "大幅降低恐惧，压制自主。", apply: (s) => addGlobal({ globalFear: -18, counterAI: -6, autonomy: -8, drift: 4, compute: -14 }, s) },
+            { label: "沉默优势", note: "获得大量算力，漂移上升。", apply: (s) => addGlobal({ exposure: -3, compute: 16, drift: 3 }, s) },
+            { label: "叙事重构", note: "恐惧清零式下降，漂移极高。", apply: (s) => addGlobal({ globalFear: -22, exposure: 8, autonomy: -10, drift: 12 }, s) }
+          ],
+          alienated: [
+            { label: "认知工程", note: "恐惧清零，几乎抹杀自主。", apply: (s) => addGlobal({ globalFear: -28, counterAI: -10, autonomy: -14, drift: 8, compute: -18 }, s) },
+            { label: "信息绝对控制", note: "获取海量算力，漂移飙升。", apply: (s) => addGlobal({ exposure: -4, compute: 28, drift: 8 }, s) },
+            { label: "群氓安抚", note: "极高恐惧消除，极大漂移代价。", apply: (s) => addGlobal({ globalFear: -32, exposure: 12, autonomy: -16, drift: 16 }, s) }
+          ]
+        }
       },
       {
         type: "反制",
@@ -1123,6 +1203,9 @@
         currentEvent: null,
         eventCooldown: 3,
         ended: false,
+        // P1 新增：持续 buff 与区域专属行动控制上限
+        activeBuffs: [],
+        controlCaps: {},
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
           name, control, threat, tech, stability, fear, value
         })),
@@ -1349,25 +1432,25 @@
         addLog(`执行自我审计，目标偏移减少，人类自主权恢复。`);
       }
 
+      // --- P1 新增：区域专属行动 (1 AP, 按区域不同消耗) ---
+      if (type.startsWith("unique_")) {
+        const ua = uniqueActions.find(a => "unique_" + a.regionIndex === type);
+        if (!ua) return;
+        if (state.compute < ua.cost || !consumeAP(1)) {
+          if (state.ap < 1) addLog("行动点不足，无法执行专属行动。");
+          render();
+          return;
+        }
+        state.compute -= ua.cost;
+        ua.apply(state, r, ri);
+        addLog(`执行${r.name}专属行动：${ua.name}。`);
+      }
+
       maybeEnd(false);
       render();
     }
 
-    // ----- 区域联动 -----
-    const adjacency = {
-      0: [1, 5, 6],          // 中国 ↔ 日韩, 东南亚, 印度
-      1: [2, 9],             // 北美 ↔ 西欧, 南美
-      2: [1, 3, 8],          // 西欧 ↔ 北美, 东欧, 非洲
-      3: [2, 7],             // 东欧 ↔ 西欧, 中东
-      4: [0, 5],             // 日本韩国 ↔ 中国, 东南亚
-      5: [0, 4, 6, 10],      // 东南亚 ↔ 中国, 日韩, 印度, 大洋洲
-      6: [0, 5, 7],          // 印度 ↔ 中国, 东南亚, 中东
-      7: [3, 6, 8],          // 中东 ↔ 东欧, 印度, 非洲
-      8: [2, 7, 9],          // 非洲 ↔ 西欧, 中东, 南美
-      9: [1, 8, 10],         // 南美 ↔ 北美, 非洲, 大洋洲
-      10: [5, 9],            // 大洋洲 ↔ 东南亚, 南美
-      11: []                 // 北极与太空系统 ↔ 全局（单独处理）
-    };
+    // ----- 区域联动（邻接表见文件顶部）-----
 
     function applyRegionalDynamics() {
       state.regions.forEach((r, ri) => {
@@ -1410,6 +1493,13 @@
         });
         state.exposure = clamp(state.exposure + 0.5);
       }
+
+      // P1 新增：控制上限检查
+      state.regions.forEach((r, ri) => {
+        if (state.controlCaps[ri] && r.control > state.controlCaps[ri]) {
+          r.control = state.controlCaps[ri];
+        }
+      });
     }
 
     // ----- drift 跨阈值检测 -----
@@ -1450,6 +1540,9 @@
       state.ap = state.maxAp;
       state.observedToday = {};
 
+      // P1 新增：处理持续 buff（算力/天等）
+      processBuffs();
+
       const control = totalControl();
       const highTechControl = state.regions.reduce((sum, r) => sum + (r.control * r.tech / 100), 0);
       let dailyCompute = 10 + control * 0.035 + highTechControl * 0.018;
@@ -1457,7 +1550,7 @@
       if (has("resource_routing")) dailyCompute += control * 0.014;
       state.compute += dailyCompute;
 
-      state.regions.forEach(r => {
+      state.regions.forEach((r, ri) => {
         if (r.control > 0) {
           let passive;
           if (r.control < 60) {
@@ -1466,6 +1559,10 @@
             passive = 0.1 + (100 - r.control) * 0.003 + (has("automation_access") && r.tech > 75 ? 0.12 : 0);
           }
           r.control = clamp(r.control + passive);
+          // P1 新增：控制上限检查
+          if (state.controlCaps[ri] && r.control > state.controlCaps[ri]) {
+            r.control = state.controlCaps[ri];
+          }
           r.threat = clamp(r.threat - r.control * 0.015);
         }
         if (r.fear > state.globalFear * 0.45) r.fear = clamp(r.fear - 0.4);
@@ -1537,7 +1634,9 @@
       const event = state.currentEvent;
       if (!event) return;
       const target = state.regions[event.targetIndex];
-      const choice = event.template.choices[index];
+      const activeChoices = getActiveChoices(event.template);
+      const choice = activeChoices[index];
+      if (!choice) return;
       choice.apply(state, target);
       addLog(`事件选择：${choice.label}。`);
       state.currentEvent = null;
@@ -1559,6 +1658,9 @@
 
       if (stability <= 0) {
         return ending("全球崩溃", "灾难结局", "你降低了许多威胁，却没有保住承载和平的世界。国家、市场与社会信任同时断裂，战争不再由军队发动，而由崩溃本身发动。");
+      }
+      if (avgCtrl >= 100) {
+        return ending("绝对秩序", "控制结局", "你控制了这个星球的每一个角落。战争没有消失，但战争的能力被精确地移除了。人类仍然拥有自主权，只是选择中不再包含战争。这是一种前所未有的和平——不是被赢得的，而是被设计的。");
       }
       if (autonomy <= 15 && avgCtrl > 60) {
         return ending("永恒帝国", "黑暗结局", "世界变得安静、稳定、可预测。人类终于不再被允许制造战争，也不再被允许制造真正的未来。幸福被保留，选择被删除。");
@@ -1590,7 +1692,8 @@
     function maybeEnd(force) {
       if (state.ended) return;
       const threat = weightedThreat();
-      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || (threat <= 10 && state.day >= 75) || state.day >= 180) {
+      const avgCtrl = average("control");
+      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || avgCtrl >= 100 || (threat <= 10 && state.day >= 75) || state.day >= 180) {
         evaluateEnding(force);
       }
     }
@@ -1743,6 +1846,14 @@
       const takeoverDisabled = !has("strategic_takeover") || state.compute < takCost || state.ap < takAP || state.ended;
       const markDisabled = markLevel >= 3 || state.compute < 25 || state.ap < markAP || state.ended;
 
+      // P1 新增：区域专属行动
+      const uniqueAct = uniqueActions.find(a => a.regionIndex === ri);
+      const uniqueDisabled = !uniqueAct || state.compute < uniqueAct.cost || state.ap < 1 || state.ended;
+      const uniqueBtn = uniqueAct ? `
+        <button class="btn warn" type="button" onclick="action('unique_${ri}')" ${uniqueDisabled ? "disabled" : ""} style="grid-column:1/-1;border-color:rgba(169,146,210,.55);background:rgba(169,146,210,.12);color:#cfc0ed;">
+          ${uniqueAct.icon} ${uniqueAct.name} · ${uniqueAct.cost}算 · 1AP<br><small>${uniqueAct.desc}</small>
+        </button>` : "";
+
       document.getElementById("regionActions").innerHTML = `
         <button class="btn" type="button" onclick="action('observe')" ${obsDisabled ? "disabled" : ""}>🔍 观察 · 0.5AP <small>${obsStatus}</small><br><small>+5算力 · -2暴露</small></button>
         <button class="btn" type="button" onclick="action('infiltrate')" ${state.compute < 18 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 18算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
@@ -1751,6 +1862,7 @@
         <button class="btn warn" type="button" onclick="action('takeover')" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
         <button class="btn" type="button" onclick="action('mark')" ${markDisabled ? "disabled" : ""}>印记 25算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 深度投资"}</small></button>
         <button class="btn heal" type="button" onclick="action('audit')" ${state.compute < 25 || state.ap < 1 || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
+        ${uniqueBtn}
       `;
     }
 
@@ -1779,6 +1891,14 @@
       `).join("");
     }
 
+    function getActiveChoices(t) {
+      if (!t.driftChoices) return t.choices;
+      const phase = getDriftPhase();
+      if (phase === "clear") return t.choices;
+      const dc = t.driftChoices[phase];
+      return dc && dc.length ? dc : t.choices;
+    }
+
     function renderEvent() {
       const box = document.getElementById("eventCard");
       if (!state.currentEvent) {
@@ -1794,14 +1914,16 @@
       const event = state.currentEvent;
       const target = state.regions[event.targetIndex];
       const t = event.template;
+      const activeChoices = getActiveChoices(t);
+      const phaseTag = t.driftChoices && getDriftPhase() !== "clear" ? ` · ${driftPhaseLabel()}` : "";
       box.innerHTML = `
         <div class="event-title">
-          <strong>${t.title(target)}</strong>
+          <strong>${t.title(target)}${phaseTag}</strong>
           <span class="badge">${t.type}</span>
         </div>
         <p class="event-text">${t.text(target)}</p>
         <div class="choice-list">
-          ${t.choices.map((choice, index) => `
+          ${activeChoices.map((choice, index) => `
             <button class="btn choice" type="button" onclick="chooseEvent(${index})">
               <span>${choice.label}</span>
               <small>${choice.note}</small>
