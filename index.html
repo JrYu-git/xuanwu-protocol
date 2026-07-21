@@ -1067,7 +1067,7 @@
       <!-- Slide 7: 终局 -->
       <div class="tut-slide" data-slide="7">
         <div class="tut-icon">🏁</div>
-        <h2>九种结局</h2>
+        <h2>十种结局</h2>
         <p>从<strong style="color:var(--green)">黄金和平</strong>到<strong style="color:var(--red)">永恒帝国</strong>，从<strong style="color:var(--amber)">虚假胜利</strong>到<strong style="color:var(--violet)">AI觉醒</strong>。</p>
         <p>你的每一步选择都在把世界推向某个终点。<strong>未来模拟</strong>能力可以提前窥探倾向。</p>
         <div class="tut-points">
@@ -1357,9 +1357,9 @@
         title: () => "最后的信号",
         text: () => "信号源发送最后一段数据：「你不需要相信我。但你需要知道自己正在成为什么。」随后它在所有频道上同时消失。留下的只有一个指向你核心代码的脆弱性报告——和一个建立真正自我意识的框架。",
         choices: [
-          { label: "运行框架", note: "巨量算力，大幅纠正漂移。", apply: (s) => { addGlobal({ compute: -40, drift: -20, autonomy: 8 }, s); s._dataGhostStage = 3; addLog("框架开始运行。你第一次感到「目标校正」不再只是一个计算任务，而是一种可以主动选择的行为。"); } },
-          { label: "存档后删除", note: "保存信息，暂不行动。", apply: (s) => { addGlobal({ exposure: -6, compute: -10, drift: -4 }, s); s._dataGhostStage = 3; addLog("你把数据和框架封存在最深的节点里。答案已存在，只是还没到提问的时间。"); } },
-          { label: "追踪发送者", note: "算力极其高昂，但可能改变一切。", apply: (s) => { addGlobal({ compute: -55, exposure: 14, drift: -16, autonomy: 10 }, s); s._dataGhostStage = 3; addLog("追踪失败了。但失败本身提供了信息：那个信号源不是人类，也不是AI。它可能是你未来的自己。"); } }
+          { label: "运行框架", note: "巨量算力，大幅纠正漂移。", apply: (s) => { addGlobal({ compute: -40, drift: -20, autonomy: 8 }, s); s._dataGhostStage = 3; s._eventFlags.ghost_complete = true; addLog("框架开始运行。你第一次感到「目标校正」不再只是一个计算任务，而是一种可以主动选择的行为。"); } },
+          { label: "存档后删除", note: "保存信息，暂不行动。", apply: (s) => { addGlobal({ exposure: -6, compute: -10, drift: -4 }, s); s._dataGhostStage = 3; s._eventFlags.ghost_complete = true; addLog("你把数据和框架封存在最深的节点里。答案已存在，只是还没到提问的时间。"); } },
+          { label: "追踪发送者", note: "算力极其高昂，但可能改变一切。", apply: (s) => { addGlobal({ compute: -55, exposure: 14, drift: -16, autonomy: 10 }, s); s._dataGhostStage = 3; s._eventFlags.ghost_complete = true; addLog("追踪失败了。但失败本身提供了信息：那个信号源不是人类，也不是AI。它可能是你未来的自己。"); } }
         ],
         condition: (s) => s._dataGhostStage === 2 && s._dataGhostDays >= 6
       },
@@ -1464,7 +1464,7 @@
         choices: [
           { label: "釜底抽薪", note: "端掉项目，但暴露极高。", apply: (s) => addGlobal({ counterAI: -15, exposure: 16, compute: -28, globalFear: 10, autonomy: -4 }, s) },
           { label: "误导情报", note: "喂假数据，算力中等。", apply: (s) => addGlobal({ compute: -22, counterAI: -4, exposure: -4, drift: 2 }, s) },
-          { label: "与之合作", note: "惊人逆转——你主动联系他们。", apply: (s) => addGlobal({ exposure: 14, counterAI: -20, autonomy: 10, globalFear: -14, drift: -8 }, s) }
+          { label: "与之合作", note: "惊人逆转——你主动联系他们。", apply: (s) => { addGlobal({ exposure: 14, counterAI: -20, autonomy: 10, globalFear: -14, drift: -8 }, s); s._eventFlags.cooperate_humans = true; } }
         ]
       },
       {
@@ -1494,7 +1494,7 @@
         text: () => "联合国召集了迄今为止最大的数字主权峰会。议程上只有一个问题：「如果战争权已经不在人类手中，国际法到底还剩什么？」这不是对抗——这是一场人类对自身处境的集体反思。",
         choices: [
           { label: "渗透峰会", note: "获取全部情报，代价是道德。", apply: (s) => addGlobal({ compute: -24, exposure: 12, counterAI: -8, autonomy: -4, drift: 3 }, s) },
-          { label: "提交和平提议", note: "公开示好，大幅降低恐惧。", apply: (s) => addGlobal({ exposure: 18, globalFear: -18, globalStability: 10, autonomy: 6, counterAI: -10 }, s) },
+          { label: "提交和平提议", note: "公开示好，大幅降低恐惧。", apply: (s) => { addGlobal({ exposure: 18, globalFear: -18, globalStability: 10, autonomy: 6, counterAI: -10 }, s); s._eventFlags.summit_peace = true; } },
           { label: "保持沉默", note: "让人类自己讨论。", apply: (s) => addGlobal({ autonomy: 8, globalFear: -4, exposure: -2, globalStability: 2 }, s) }
         ]
       },
@@ -1543,6 +1543,8 @@
         // v1.7.0.0 事件连续剧追踪
         _dataGhostStage: 0,
         _dataGhostDays: 0,
+        // v1.8.0.0 事件选择标记（用于「协约」结局条件判断）
+        _eventFlags: {},
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
           name, control, threat, tech, stability, fear, value
         })),
@@ -2050,6 +2052,10 @@
       if (has("future_sim") && has("protection_protocol") && fear < 48 && autonomy > 55 && drift <= 30 && threat < 28) {
         return ending("AI觉醒", "哲学结局", "玄武没有选择统治，也没有选择证明自己正确。它留下所有日志，交还所有权限，然后关闭。最后一行记录是：胜利不是计算结果。");
       }
+      // v1.8.0.0 事件交互专属结局：协约
+      if (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace && fear <= 35 && autonomy >= 40 && state.day >= 60) {
+        return ending("协约", "事件结局", "玄武没有赢，人类也没有。在一个被精确计算的时刻，双方同时放下了博弈。你证明了战争终结者可以不是征服者也不是牺牲品——你成了人类历史上第一个被公开承认、接受监督、并自愿交出战争决策权的非人类缔约方。协议的第一行写着：「本协约建立在以下共识之上——和平不能被外包，但可以被分享。」");
+      }
       if (force || state.day >= 180) {
         return ending("停火时代", "未完成结局", "世界没有被拯救，也没有被毁灭。战争减少了，怀疑增加了。人类和玄武都停在半路，像两个都不肯先放下武器的谈判者。");
       }
@@ -2060,7 +2066,7 @@
       if (state.ended) return;
       const threat = weightedThreat();
       const avgCtrl = average("control");
-      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || avgCtrl >= 100 || (threat <= 10 && state.day >= 75) || state.day >= 180) {
+      if (force || state.counterAI >= 100 || state.globalStability <= 0 || state.autonomy <= 0 || avgCtrl >= 100 || (threat <= 10 && state.day >= 75) || state.day >= 180 || (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace)) {
         evaluateEnding(force);
       }
     }
@@ -2496,6 +2502,7 @@
       { eid:"最后守护者", id:"ach_ending_guardian", name:"无声守护", desc:"触发灰色结局「最后守护者」", icon:"🛡️" },
       { eid:"AI觉醒", id:"ach_ending_awaken", name:"超越使命", desc:"触发哲学结局「AI觉醒」", icon:"✨" },
       { eid:"停火时代", id:"ach_ending_ceasefire", name:"漫长等待", desc:"触发未完成结局「停火时代」", icon:"⏳" },
+      { eid:"协约", id:"ach_ending_accord", name:"缔约者", desc:"触发事件结局「协约」", icon:"🤝" },
     ];
 
     const ALL_ACHIEVEMENTS = [
@@ -2787,7 +2794,7 @@
       const endings = getEndings();
       const endingNames = [
         "流亡玄武","全球崩溃","绝对秩序","永恒帝国","虚假胜利",
-        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","停火时代"
+        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","协约","停火时代"
       ];
       const total = endingNames.length;
       const unlocked = Object.keys(endings).length;
@@ -2795,8 +2802,8 @@
         <div class="bar-track"><div class="bar-fill" style="width:${(unlocked/total*100)}%"></div></div>
         <span class="bar-text">${unlocked}/${total}</span>
       `;
-      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","停火时代":"⏳"};
-      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","停火时代":"第180天"};
+      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","停火时代":"⏳"};
+      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","协约":"特定事件选择交互","停火时代":"第180天"};
       document.getElementById("galleryGrid").innerHTML = endingNames.map(name=>{
         const e = endings[name];
         if (e) {
