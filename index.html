@@ -4120,6 +4120,25 @@
       render(); showConFeedback("fbAllAch");
     }
 
+    function conAllGallery() {
+      const p = loadPersist();
+      if (!p.endings) p.endings = {};
+      const allEndings = [
+        "流亡玄武","全球崩溃","绝对秩序","永恒帝国","虚假胜利",
+        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","协约","和平，朱雀，余生","停火时代"
+      ];
+      let added = 0;
+      for (const name of allEndings) {
+        if (!p.endings[name]) {
+          p.endings[name] = new Date().toISOString();
+          added++;
+        }
+      }
+      savePersist(p);
+      addLog(`[控制台] 图鉴全解锁完成，新增${added}个结局。`);
+      render(); showConFeedback("fbGalleryAll");
+    }
+
     function conSetDay(days) {
       days = Math.max(1, Math.min(days, 365));
       state.day = days;
@@ -4155,7 +4174,7 @@
       if (section === "quick") {
         el.innerHTML = `
           <h3>⚡ 快捷操作</h3>
-          <p class="con-desc">一键修改游戏核心状态。<span class="con-feedback" id="fbTechAll">✓ 完成</span><span class="con-feedback" id="fbApMax">✓ 完成</span><span class="con-feedback" id="fbCeMax">✓ 完成</span><span class="con-feedback" id="fbAllMarks">✓ 完成</span><span class="con-feedback" id="fbAllAch">✓ 完成</span><span class="con-feedback" id="fbForceEnd">✓ 完成</span><span class="con-feedback" id="fbForceEvent">✓ 完成</span><span class="con-feedback" id="fbForceCrisis">✓ 完成</span><span class="con-feedback" id="fbSkipDays">✓ 完成</span><span class="con-feedback" id="fbSetDay">✓ 完成</span><span class="con-feedback" id="fbCopyState">✓ 完成</span></p>
+          <p class="con-desc">一键修改游戏核心状态。<span class="con-feedback" id="fbTechAll">✓ 完成</span><span class="con-feedback" id="fbApMax">✓ 完成</span><span class="con-feedback" id="fbCeMax">✓ 完成</span><span class="con-feedback" id="fbAllMarks">✓ 完成</span><span class="con-feedback" id="fbAllAch">✓ 完成</span><span class="con-feedback" id="fbGalleryAll">✓ 完成</span><span class="con-feedback" id="fbForceEnd">✓ 完成</span><span class="con-feedback" id="fbForceEvent">✓ 完成</span><span class="con-feedback" id="fbForceCrisis">✓ 完成</span><span class="con-feedback" id="fbSkipDays">✓ 完成</span><span class="con-feedback" id="fbSetDay">✓ 完成</span><span class="con-feedback" id="fbCopyState">✓ 完成</span></p>
 
           <div class="con-btn-row">
             <button class="con-btn" onclick="conTechAll()">🧠 科技全解锁</button>
@@ -4163,6 +4182,7 @@
             <button class="con-btn" onclick="conCeMax()">⇧ 算力池满级</button>
             <button class="con-btn" onclick="conAllMarks()">⭐ 印记全满级</button>
             <button class="con-btn warn" onclick="conAllAchievements()">🏆 成就全解锁</button>
+            <button class="con-btn warn" onclick="conAllGallery()">📖 图鉴全解锁</button>
           </div>
 
           <div class="con-btn-row">
@@ -4358,6 +4378,7 @@
     window.conForceCrisis = conForceCrisis;
     window.conAllMarks = conAllMarks;
     window.conAllAchievements = conAllAchievements;
+    window.conAllGallery = conAllGallery;
     window.conSetDay = conSetDay;
     window.conToggleGodMode = conToggleGodMode;
     window.conCopyState = conCopyState;
