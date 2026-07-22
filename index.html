@@ -777,6 +777,57 @@
     .btn-mini.danger:hover { background: var(--c-red); color: #fff; }
     .btn-mini.danger:disabled { border-color: #555; color: #555; background: transparent; }
 
+    /* ===== v1.7.7.0 行动悬浮提示 ===== */
+    #actionTooltip {
+      position: fixed; z-index: 9999;
+      pointer-events: none; opacity: 0;
+      background: linear-gradient(135deg, #1a1e2b 0%, #11141d 100%);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 14px 16px;
+      max-width: 380px; min-width: 220px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05) inset;
+      transition: opacity 0.15s;
+      font-size: 12.5px; line-height: 1.55;
+      color: #ccc;
+    }
+    #actionTooltip.show { opacity: 1; }
+    #actionTooltip .tt-title {
+      font-weight: 700; font-size: 15px; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #actionTooltip .tt-desc {
+      color: #999; font-size: 11.5px; margin-bottom: 10px;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    #actionTooltip .tt-cost {
+      display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;
+    }
+    #actionTooltip .tt-cost span {
+      font-size: 11px; padding: 3px 7px; border-radius: 4px;
+      background: rgba(255,255,255,.05); white-space: nowrap;
+    }
+    #actionTooltip .tt-sect-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+      color: #666; margin: 8px 0 4px;
+    }
+    #actionTooltip .tt-effect {
+      display: flex; flex-wrap: wrap; gap: 4px 10px;
+    }
+    #actionTooltip .tt-effect span {
+      font-size: 11px; white-space: nowrap;
+      padding: 2px 6px; border-radius: 3px;
+      background: rgba(255,255,255,.03);
+    }
+    #actionTooltip .tt-effect span.pos { color: #27ae60; }
+    #actionTooltip .tt-effect span.neg { color: #e74c3c; }
+    #actionTooltip .tt-effect span.neut { color: #aaa; }
+    #actionTooltip .tt-footer {
+      margin-top: 8px; padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      font-size: 10.5px; color: #666; font-style: italic;
+    }
+
     .mini-bar-wrap { display: inline-block; width: 40px; height: 6px; background: #333; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
     .mini-bar-wrap .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--c-teal); transition: width 0.3s; }
 
@@ -909,6 +960,7 @@
   </style>
 </head>
 <body>
+  <div id="actionTooltip"></div>
   <main class="app">
     <header class="topbar">
       <div class="title">
@@ -1691,6 +1743,236 @@
       return state.marks[rIndex] || 0;
     }
 
+    // ===== v1.7.7.0 行动悬浮提示 =====
+    function showActionTooltip(type, e) {
+      const tt = document.getElementById("actionTooltip");
+      const html = buildActionTooltip(type);
+      if (!html) { tt.classList.remove("show"); return; }
+      tt.innerHTML = html;
+      tt.classList.add("show");
+      // 定位：跟随鼠标，保持在视口内
+      let x = e.clientX + 16, y = e.clientY + 12;
+      const rect = tt.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth - 10) x = e.clientX - rect.width - 16;
+      if (y + rect.height > window.innerHeight - 10) y = e.clientY - rect.height - 12;
+      tt.style.left = x + "px";
+      tt.style.top = y + "px";
+    }
+    function moveActionTooltip(e) {
+      const tt = document.getElementById("actionTooltip");
+      if (!tt.classList.contains("show")) return;
+      let x = e.clientX + 16, y = e.clientY + 12;
+      const rect = tt.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth - 10) x = e.clientX - rect.width - 16;
+      if (y + rect.height > window.innerHeight - 10) y = e.clientY - rect.height - 12;
+      tt.style.left = x + "px";
+      tt.style.top = y + "px";
+    }
+    function hideActionTooltip() {
+      document.getElementById("actionTooltip").classList.remove("show");
+    }
+
+    function eSpan(label, val, cls) {
+      return '<span class="' + (cls || "neut") + '">' + label + "：" + val + "</span>";
+    }
+    function eSpanIf(label, val, cls, cond) {
+      return cond ? eSpan(label, val, cls) : "";
+    }
+
+    function buildActionTooltip(type) {
+      const r = state.regions[state.selected];
+      const ri = state.selected;
+      if (!r) return null;
+      const phase = getDriftPhase();
+      const mk = getMark(ri);
+      const mkCosts = [30, 40, 50];
+      const mkCost = mk < 3 ? mkCosts[mk] : 50;
+
+      // ---- 基础行动 ----
+      if (type === "observe") {
+        const b = mk >= 1 ? 3 : 0;
+        return `<div class="tt-title">🔍 观察</div>
+          <div class="tt-desc">利用物理接口被动扫描该区域，收集基础情报。每区域每天限1次。</div>
+          <div class="tt-cost"><span>消耗：0.5 AP · 0 算力</span></div>
+          <div class="tt-sect-label">即时效果</div>
+          <div class="tt-effect">
+            ${eSpan("算力", "+" + (5 + b), "pos")}
+            ${eSpanIf("印记加成", "+" + b, "pos", b > 0)}
+            ${eSpan("暴露", "-2", "pos")}
+            ${eSpan("区域恐惧", "-2", "pos")}
+          </div>`;
+      }
+
+      if (type === "infiltrate") {
+        let gain = 12 + (has("system_interface") ? 6 : 0);
+        if (has("automation_access") && r.tech >= 75) gain += 5;
+        const baseGain = gain;
+        if (mk >= 2) gain = Math.round(gain * 1.3);
+        return `<div class="tt-title">🕳️ 渗透</div>
+          <div class="tt-desc">将玄武的触角植入该区域的关键基础设施，扩大控制范围。</div>
+          <div class="tt-cost"><span>消耗：1 AP · 18 算力</span></div>
+          <div class="tt-sect-label">即时效果</div>
+          <div class="tt-effect">
+            ${eSpan("控制度", "+" + gain, "pos")}
+            ${eSpanIf("系统接口", "+" + (gain - baseGain), "pos", gain !== baseGain)}
+            ${eSpan("威胁", "-5", "pos")}
+            ${eSpan("区域恐惧", "+4", "neg")}
+            ${eSpan("暴露", "+5", "neg")}
+            ${eSpan("自主权", "-1", "neg")}
+            ${eSpan("漂移", "+2", "neg")}
+          </div>`;
+      }
+
+      if (type === "pacify") {
+        let eff = 1;
+        if (phase === "blurred") eff = 0.9;
+        else if (phase === "shifted") eff = 0.8;
+        else if (phase === "alienated") eff = 0.65;
+        return `<div class="tt-title">🕊️ 安抚</div>
+          <div class="tt-desc">通过经济援助、舆论引导等软性手段恢复区域稳定。</div>
+          <div class="tt-cost"><span>消耗：1 AP · 22 算力</span></div>
+          <div class="tt-sect-label">即时效果（漂移阶段：${driftPhaseLabel()}，效率 ${Math.round(eff * 100)}%）</div>
+          <div class="tt-effect">
+            ${eSpan("区域恐惧", Math.round(-12 * eff), "pos")}
+            ${eSpan("区域稳定", "+" + Math.round(9 * eff), "pos")}
+            ${eSpan("威胁", Math.round(-3 * eff), "pos")}
+            ${eSpan("全局恐惧", "-3", "pos")}
+            ${eSpan("全局稳定", "+2", "pos")}
+            ${eSpan("自主权", "+2", "pos")}
+            ${eSpan("漂移", "-1", "pos")}
+          </div>`;
+      }
+
+      if (type === "suppress") {
+        let cost = 28;
+        if (phase === "blurred" || phase === "shifted") cost = Math.round(cost * 0.9);
+        else if (phase === "alienated") cost = Math.round(cost * 0.8);
+        return `<div class="tt-title">⚔️ 压制</div>
+          <div class="tt-desc">以武力或网络攻击直接摧毁该区域的敌对力量。快速有效，但代价沉重。</div>
+          <div class="tt-cost"><span>消耗：1 AP · ${cost} 算力${cost !== 28 ? "（漂移折扣）" : ""}</span></div>
+          <div class="tt-sect-label">即时效果</div>
+          <div class="tt-effect">
+            ${eSpan("威胁", "-18", "pos")}
+            ${eSpan("控制度", "+6", "pos")}
+            ${eSpan("区域恐惧", "+16", "neg")}
+            ${eSpan("区域稳定", "-7", "neg")}
+            ${eSpan("全局恐惧", "+7", "neg")}
+            ${eSpan("暴露", "+10", "neg")}
+            ${eSpan("自主权", "-5", "neg")}
+            ${eSpan("漂移", "+6", "neg")}
+          </div>
+          <div class="tt-footer">⚠ 负面代价较高，谨慎使用</div>`;
+      }
+
+      if (type === "takeover") {
+        let cost = 58;
+        if (phase === "alienated") cost = Math.round(cost * 0.8);
+        return `<div class="tt-title">💀 战略接管</div>
+          <div class="tt-desc">禁忌路线：直接接管该区域的全部核心系统。控制度暴增，但全世界的目光都会看向你。</div>
+          <div class="tt-cost"><span>消耗：2 AP · ${cost} 算力${cost !== 58 ? "（漂移折扣）" : ""}</span></div>
+          <div class="tt-sect-label">即时效果</div>
+          <div class="tt-effect">
+            ${eSpan("控制度", "+27", "pos")}
+            ${eSpan("威胁", "-30", "pos")}
+            ${eSpan("区域恐惧", "+26", "neg")}
+            ${eSpan("区域稳定", "-12", "neg")}
+            ${eSpan("全局恐惧", "+18", "neg")}
+            ${eSpan("暴露", "+22", "neg")}
+            ${eSpan("自主权", "-10", "neg")}
+            ${eSpan("漂移", "+15", "neg")}
+          </div>
+          <div class="tt-footer">⚠⚠ 极重代价，需前置科技「战略接管」</div>`;
+      }
+
+      if (type === "mark") {
+        const nextMark = mk + 1;
+        return `<div class="tt-title">⭐ 印记</div>
+          <div class="tt-desc">在该区域建立深层永久影响力纽带。每级提供持续收益。</div>
+          <div class="tt-cost"><span>消耗：1 AP · ${mkCost} 算力 · Lv${mk}→Lv${nextMark}</span></div>
+          <div class="tt-sect-label">当期效果</div>
+          <div class="tt-effect">
+            ${eSpan("区域稳定", "+8", "pos")}
+            ${eSpan("算力产出/天", "+3（永久）", "pos")}
+            ${eSpanIf("漂移", "+5", "neg", nextMark === 3)}
+          </div>
+          <div class="tt-sect-label">累计印记加成（新等级生效后）</div>
+          <div class="tt-effect">
+            ${eSpan("算力日产出", "+" + (nextMark * 3) + "/天", "pos")}
+            ${eSpan("印记数", "Lv" + nextMark + " ★".repeat(nextMark), "neut")}
+          </div>
+          ${nextMark === 3 ? '<div class="tt-footer">满级：达成特定条件可触发隐藏结局「流亡玄武」</div>' : ""}`;
+      }
+
+      if (type === "audit") {
+        const actualDrift = Math.min(8, state.drift);
+        return `<div class="tt-title">🛡️ 自我审计</div>
+          <div class="tt-desc">暂停行动，检查目标偏移。恢复自主权、降低暴露、修正漂移。</div>
+          <div class="tt-cost"><span>消耗：1 AP · 25 算力${state.drift <= 0 ? "（当前漂移为0，无需审计，将退还AP）" : ""}</span></div>
+          <div class="tt-sect-label">即时效果</div>
+          <div class="tt-effect">
+            ${eSpan("漂移", "-" + actualDrift, "pos")}
+            ${eSpan("自主权", "+2", "pos")}
+            ${eSpan("暴露", "-2", "pos")}
+          </div>`;
+      }
+
+      // ---- OC / CE ----
+      if (type === "oc") {
+        const OC_DATA = [null, {maxAp:4,cost:200,exp:8,drift:3},{maxAp:5,cost:500,exp:15,drift:6},{maxAp:6,cost:1200,exp:25,drift:11}];
+        const next = OC_DATA[state.ocLevel + 1];
+        if (!next) return `<div class="tt-title">⚡ 行动超频</div><div class="tt-desc">已达最高等级 Lv.3</div>`;
+        return `<div class="tt-title">⚡ 行动超频</div>
+          <div class="tt-desc">消耗巨量算力扩展AP上限。代价：暴露与漂移。</div>
+          <div class="tt-cost"><span>消耗：${next.cost} 算力 · Lv${state.ocLevel}→Lv${state.ocLevel + 1}</span></div>
+          <div class="tt-sect-label">效果</div>
+          <div class="tt-effect">
+            ${eSpan("AP上限", state.maxAp + " → " + next.maxAp, "pos")}
+            ${eSpan("暴露", "+" + next.exp, "neg")}
+            ${eSpan("漂移", "+" + next.drift, "neg")}
+          </div>`;
+      }
+
+      if (type === "ce") {
+        const CE_DATA = [null, {ceiling:400,cost:100,auto:-3},{ceiling:600,cost:250,auto:-5},{ceiling:900,cost:600,auto:-8}];
+        const next = CE_DATA[state.ceLevel + 1];
+        if (!next) return `<div class="tt-title">⇧ 算力扩容</div><div class="tt-desc">已达最高等级 Lv.3</div>`;
+        return `<div class="tt-title">⇧ 算力扩容</div>
+          <div class="tt-desc">扩展算力存储上限，避免溢出惩罚。代价：自主权。</div>
+          <div class="tt-cost"><span>消耗：${next.cost} 算力 · Lv${state.ceLevel}→Lv${state.ceLevel + 1}</span></div>
+          <div class="tt-sect-label">效果</div>
+          <div class="tt-effect">
+            ${eSpan("存储上限", state.computeCeiling + " → " + next.ceiling, "pos")}
+            ${eSpan("自主权", next.auto, "neg")}
+          </div>`;
+      }
+
+      // ---- 区域专属行动 ----
+      if (type.startsWith("unique_")) {
+        const ua = uniqueActions.find(a => "unique_" + a.regionIndex === type);
+        if (!ua) return null;
+        return `<div class="tt-title">${ua.icon} ${ua.name}</div>
+          <div class="tt-desc">${r.name}专属行动：${ua.desc}</div>
+          <div class="tt-cost"><span>消耗：1 AP · ${ua.cost} 算力</span></div>`;
+      }
+
+      // ---- 能力科技 ----
+      if (type.startsWith("ability_")) {
+        const aid = type.replace("ability_", "");
+        const ab = abilities.find(a => a.id === aid);
+        if (!ab) return null;
+        const unlocked = has(ab.id);
+        const prereqUnmet = ab.prereq && !has(ab.prereq);
+        if (unlocked) return `<div class="tt-title">${ab.name}</div><div class="tt-desc">${ab.desc}</div><div class="tt-footer">✓ 已解锁</div>`;
+        if (prereqUnmet) {
+          const pre = abilities.find(p => p.id === ab.prereq);
+          return `<div class="tt-title">${ab.name}</div><div class="tt-desc">${ab.desc}</div><div class="tt-cost"><span>消耗：${ab.cost} 算力</span></div><div class="tt-footer">前置：${pre ? pre.name : ab.prereq}（未解锁）</div>`;
+        }
+        return `<div class="tt-title">${ab.name}</div><div class="tt-desc">${ab.desc}</div><div class="tt-cost"><span>消耗：${ab.cost} 算力</span></div><div class="tt-footer">🔓 可解锁</div>`;
+      }
+
+      return null;
+    }
+
     function action(type) {
       if (state.ended) return;
       const r = state.regions[state.selected];
@@ -2223,6 +2505,7 @@
       const ceBtnHtml = hasNextCE
         ? '<button class="btn-mini" onclick="upgradeComputeCeiling()" ' +
           (state.compute < nextCE.cost || state.ended ? 'disabled ' : '') +
+          'onmouseenter="showActionTooltip(\'ce\',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ' +
           'title="扩容至' + nextCE.ceiling + '（' + nextCE.cost + '算力，自主' + nextCE.auto + '）">' +
           '⇧ ' + nextCE.cost + '算</button>'
         : '已满级';
@@ -2230,6 +2513,7 @@
       const ocBtnHtml = hasNextOC
         ? ' · <button class="btn-mini danger" onclick="upgradeOverclock()" ' +
           (state.compute < nextOC.cost || state.ended ? 'disabled ' : '') +
+          'onmouseenter="showActionTooltip(\'oc\',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ' +
           'title="超频至' + nextOC.maxAp + 'AP（' + nextOC.cost + '算力，暴露+' + nextOC.exp + ' 漂移+' + nextOC.drift + '）">' +
           '⚡ ' + nextOC.cost + '算</button>'
         : ' · 已满级';
@@ -2338,18 +2622,18 @@
       const uniqueAct = uniqueActions.find(a => a.regionIndex === ri);
       const uniqueDisabled = !uniqueAct || state.compute < uniqueAct.cost || state.ap < 1 || state.ended;
       const uniqueBtn = uniqueAct ? `
-        <button class="btn warn" type="button" onclick="action('unique_${ri}')" ${uniqueDisabled ? "disabled" : ""} style="grid-column:1/-1;border-color:rgba(169,146,210,.55);background:rgba(169,146,210,.12);color:#cfc0ed;">
+        <button class="btn warn" type="button" onclick="action('unique_${ri}')" onmouseenter="showActionTooltip('unique_${ri}',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${uniqueDisabled ? "disabled" : ""} style="grid-column:1/-1;border-color:rgba(169,146,210,.55);background:rgba(169,146,210,.12);color:#cfc0ed;">
           ${uniqueAct.icon} ${uniqueAct.name} · ${uniqueAct.cost}算 · 1AP<br><small>${uniqueAct.desc}</small>
         </button>` : "";
 
       document.getElementById("regionActions").innerHTML = `
-        <button class="btn" type="button" onclick="action('observe')" ${obsDisabled ? "disabled" : ""}>🔍 观察 · 0.5AP <small>${obsStatus}</small><br><small>+5算力 · -2暴露</small></button>
-        <button class="btn" type="button" onclick="action('infiltrate')" ${state.compute < 18 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 18算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
-        <button class="btn" type="button" onclick="action('pacify')" ${state.compute < 22 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 22算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
-        <button class="btn danger" type="button" onclick="action('suppress')" ${state.compute < supCost || state.ap < supAP || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
-        <button class="btn warn" type="button" onclick="action('takeover')" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
-        <button class="btn" type="button" onclick="action('mark')" ${markDisabled ? "disabled" : ""}>印记 ${markCost}算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 稳定+8 · 算力+3/天"}</small></button>
-        <button class="btn heal" type="button" onclick="action('audit')" ${state.compute < 25 || state.ap < 1 || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
+        <button class="btn" type="button" onclick="action('observe')" onmouseenter="showActionTooltip('observe',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${obsDisabled ? "disabled" : ""}>🔍 观察 · 0.5AP <small>${obsStatus}</small><br><small>+5算力 · -2暴露</small></button>
+        <button class="btn" type="button" onclick="action('infiltrate')" onmouseenter="showActionTooltip('infiltrate',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < 18 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 18算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
+        <button class="btn" type="button" onclick="action('pacify')" onmouseenter="showActionTooltip('pacify',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < 22 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 22算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
+        <button class="btn danger" type="button" onclick="action('suppress')" onmouseenter="showActionTooltip('suppress',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < supCost || state.ap < supAP || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
+        <button class="btn warn" type="button" onclick="action('takeover')" onmouseenter="showActionTooltip('takeover',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
+        <button class="btn" type="button" onclick="action('mark')" onmouseenter="showActionTooltip('mark',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${markDisabled ? "disabled" : ""}>印记 ${markCost}算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 稳定+8 · 算力+3/天"}</small></button>
+        <button class="btn heal" type="button" onclick="action('audit')" onmouseenter="showActionTooltip('audit',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < 25 || state.ap < 1 || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
         ${uniqueBtn}
       `;
     }
@@ -2369,7 +2653,7 @@
               const preName = abilities.find(p => p.id === a.prereq);
               extra = `<small>需要：${preName ? preName.name : a.prereq}</small>`;
             }
-            return `<button class="btn ability ${unlocked ? "unlocked" : ""}" type="button" onclick="buyAbility('${a.id}')" ${disabled ? "disabled" : ""}>
+            return `<button class="btn ability ${unlocked ? "unlocked" : ""}" type="button" onclick="buyAbility('${a.id}')" onmouseenter="showActionTooltip('ability_${a.id}',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${disabled ? "disabled" : ""}>
               <strong>${a.name} <span class="badge">${unlocked ? "已解锁" : a.cost}</span></strong>
               <small>${a.desc}</small>
               ${extra || `<small>${a.tag}</small>`}
