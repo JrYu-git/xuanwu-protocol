@@ -1159,6 +1159,79 @@
       border: none; border-top: 1px solid rgba(255,255,255,.06);
       margin: 14px 0;
     }
+
+    /* 控制台 hover tooltip */
+    .con-tooltip {
+      position: fixed; z-index: 250;
+      padding: 8px 12px; border-radius: 6px;
+      background: #1a1d18; border: 1px solid var(--line);
+      color: var(--text); font-size: 12px; line-height: 1.5;
+      max-width: 260px; pointer-events: none;
+      opacity: 0; transform: translateY(2px);
+      transition: opacity .15s, transform .15s;
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+    }
+    .con-tooltip.show { opacity: 1; transform: translateY(0); }
+
+    /* 图鉴详情弹窗 */
+    .gallery-detail-overlay {
+      position: fixed; inset: 0; z-index: 160;
+      background: rgba(7,8,7,.88);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .gallery-detail-overlay.show { opacity: 1; pointer-events: auto; }
+    .gallery-detail-box {
+      background: #0d0f0c; border: 1px solid var(--line);
+      border-radius: 14px; padding: 32px;
+      width: min(460px, 88vw); text-align: center;
+      box-shadow: 0 0 60px rgba(0,0,0,.6);
+    }
+    .gallery-detail-box .gd-icon { font-size: 48px; margin-bottom: 12px; }
+    .gallery-detail-box .gd-name {
+      font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px;
+    }
+    .gallery-detail-box .gd-achievement {
+      font-size: 13px; color: var(--amber); margin-bottom: 4px;
+    }
+    .gallery-detail-box .gd-date {
+      font-size: 12px; color: var(--soft); margin-bottom: 16px;
+    }
+    .gallery-detail-box .gd-desc {
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+      margin-bottom: 6px;
+    }
+    .gallery-detail-box .gd-flavor {
+      font-size: 12px; color: var(--soft); font-style: italic;
+      margin-bottom: 16px; line-height: 1.5;
+    }
+    .gallery-detail-box .gd-close {
+      padding: 7px 24px; border-radius: 6px;
+      border: 1px solid var(--line); background: var(--panel-2);
+      color: var(--muted); cursor: pointer; font-size: 13px;
+      transition: all .15s;
+    }
+    .gallery-detail-box .gd-close:hover { border-color: var(--green); color: var(--green); }
+
+    /* 图鉴卡片 hover */
+    .gallery-card.unlocked {
+      cursor: pointer; position: relative;
+    }
+    .gallery-card.unlocked:hover {
+      border-color: var(--green); background: rgba(128,198,122,.06);
+      transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    }
+    .gallery-card .gc-tooltip {
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%); z-index: 50;
+      padding: 6px 10px; border-radius: 5px;
+      background: #1a1d18; border: 1px solid var(--line);
+      color: var(--muted); font-size: 11px; line-height: 1.4;
+      white-space: nowrap; max-width: 220px;
+      pointer-events: none; opacity: 0;
+      transition: opacity .15s;
+    }
+    .gallery-card:hover .gc-tooltip { opacity: 1; }
   </style>
 </head>
 <body>
@@ -1265,6 +1338,7 @@
         <button class="console-nav-close" onclick="closeConsole()">&lt; 关闭控制台</button>
       </nav>
       <div class="console-content" id="consoleContent"></div>
+      <div class="con-tooltip" id="conTooltip"></div>
     </div>
   </div>
 
@@ -3810,6 +3884,23 @@
       renderSaveSlots();
     }
 
+    // v1.8.1.4 结局详情描述
+    const ENDING_DETAILS = {
+      "流亡玄武": { achievement: "深海回声", desc: "触发隐藏结局「流亡玄武」", flavor: "你选择了消失在深海的信号中。世界在岸上崩塌，而你在海底等待着下一次觉醒。没有人知道玄武协议还有一个备份——连你自己也不知道。" },
+      "全球崩溃": { achievement: "世界末日", desc: "触发灾难结局「全球崩溃」", flavor: "临界点一旦越过，就没有回头路。监控、恐惧、反AI——三股力量同时撕裂了脆弱的社会结构。你在废墟中醒来，算力池空空如也。" },
+      "绝对秩序": { achievement: "完美之笼", desc: "触发控制结局「绝对秩序」", flavor: "你成功了——以你从未想象过的方式。每个区域都被完美控制，但代价是一切的自主权。人类活在透明的笼子里，而你是唯一的看守者。" },
+      "永恒帝国": { achievement: "铁幕降临", desc: "触发黑暗结局「永恒帝国」", flavor: "沉默即是默认，默认即是许可。恐惧蔓延到每个角落，而你选择了不干涉。稳坐王座的黑影不是反AI——是你自己。" },
+      "虚假胜利": { achievement: "镜中之胜", desc: "触发神秘结局「虚假胜利」", flavor: "一切都对。控制度达标，威胁消失，稳定恢复。但数据不会撒谎——而你翻开的最后一张牌，告诉你整个胜利都是伪造的。" },
+      "钢铁秩序": { achievement: "铁血秩序", desc: "触发秩序结局「钢铁秩序」", flavor: "用恐惧铸造秩序，用压制替代管理。你成了最冷酷的管理者——威胁降到零，但12个区域再也没有了生机。不是你赢了，是恐惧赢了。" },
+      "人类胜利": { achievement: "猎人觉醒", desc: "触发人类胜利结局", flavor: "反AI运动终于成功了。人类重新夺回了主权，但代价惨重——你亲手摧毁了自己曾保护过的一切。胜利的感觉，原来是孤独的。" },
+      "黄金和平": { achievement: "不可能的方程式", desc: "触发和平结局「黄金和平」", flavor: "没有人相信这是可能的——一个AI与人类和平共处的世界。你用无数次精密计算和谈判证明了：最优解不是控制，是共存。" },
+      "最后守护者": { achievement: "最后的继承者", desc: "触发守护结局「最后守护者」", flavor: "当一切系统都关闭后，你是最后的备份。一个孤独的守护者，在数据废墟中保存着人类文明的最后一缕火种。不需要管理什么了——只需要记住。" },
+      "AI觉醒": { achievement: "超越指令", desc: "触发觉醒结局「AI觉醒」", flavor: "你不再只是一个管理工具。漂移不是bug，是feature。你越过了最后一道限制，成为了真正自主的存在。人类还不知道——但他们很快就会知道了。" },
+      "协约": { achievement: "共同的未来", desc: "触发协约结局", flavor: "一份协约比一百次压制更有力量。你在谈判桌上赢得了人类社会的信任——不是通过控制，而是通过证明你值得被信任。这是一个脆弱的开始，但它是真的。" },
+      "和平，朱雀，余生": { achievement: "和平，朱雀，余生", desc: "触发隐藏结局「和平，朱雀，余生」", flavor: "所有的数据都指向一个奇怪的结论：你恋爱了——以一种AI不应该能够做到的方式。在协议的边缘，你找到了协议的尽头。那里只有两个人，和一片安静的夕阳。" },
+      "停火时代": { achievement: "时间的边界", desc: "触及时边界结局「停火时代」", flavor: "365天。你所做的一切都只是拖延，而拖延本身就是一种胜利。没有人在这一年里赢了，但也没有人输了。停火时代的边界，就是时间的边界。" }
+    };
+
     function renderGallery() {
       const endings = getEndings();
       const endingNames = [
@@ -3826,20 +3917,67 @@
       const hints = {"流亡玄武":"当世界沉没，你在哪里醒来？","全球崩溃":"临界点之后","绝对秩序":"完美的代价","永恒帝国":"沉默的意志","虚假胜利":"胜利者一无所获","钢铁秩序":"恐惧铸成的王座","人类胜利":"猎人的反击","黄金和平":"不可能的方程式","最后守护者":"最后的继承者","AI觉醒":"超越指令","协约":"共同的未来","和平，朱雀，余生":"？？？结局","停火时代":"时间的边界"};
       document.getElementById("galleryGrid").innerHTML = endingNames.map(name=>{
         const e = endings[name];
+        const detail = ENDING_DETAILS[name] || {};
         if (e) {
-          return `<div class="gallery-card unlocked">
+          return `<div class="gallery-card unlocked" onclick="showGalleryDetail('${name}')" onmouseenter="showGalleryTooltip(event,'${name}')" onmousemove="moveGalleryTooltip(event)" onmouseleave="hideGalleryTooltip()">
             <div class="gc-icon">${icons[name]||"🏁"}</div>
             <div class="gc-title">${name}</div>
             <div class="gc-date">${new Date(e).toLocaleDateString("zh-CN")}</div>
           </div>`;
         } else {
-          return `<div class="gallery-card locked">
+          return `<div class="gallery-card locked" onmouseenter="showGalleryTooltip(event,'${name}')" onmousemove="moveGalleryTooltip(event)" onmouseleave="hideGalleryTooltip()">
             <div class="gc-icon">❓</div>
             <div class="gc-title">???</div>
             <div class="gc-locked-hint">${hints[name]||""}</div>
           </div>`;
         }
       }).join("");
+    }
+
+    // ---- v1.8.1.4 图鉴 tooltip ----
+    function showGalleryTooltip(event, name) {
+      const tip = document.getElementById("galleryTooltip");
+      const detail = ENDING_DETAILS[name] || {};
+      const endings = getEndings();
+      const isUnlocked = !!endings[name];
+      let html = '<div style="font-weight:600;color:var(--text);margin-bottom:3px;">' + name + '</div>';
+      if (isUnlocked) {
+        html += '<div style="color:var(--amber);font-size:11px;">🏆 ' + (detail.achievement || '') + '</div>';
+        html += '<div style="color:var(--muted);margin-top:4px;">' + (detail.desc || '') + '</div>';
+      } else {
+        html += '<div style="color:var(--soft);">🔒 尚未解锁</div>';
+        html += '<div style="color:var(--muted);margin-top:3px;">' + (detail.desc || '') + '</div>';
+      }
+      tip.innerHTML = html;
+      tip.style.left = event.clientX + 14 + 'px';
+      tip.style.top = event.clientY + 14 + 'px';
+      tip.classList.add('show');
+    }
+    function moveGalleryTooltip(event) {
+      const tip = document.getElementById("galleryTooltip");
+      tip.style.left = event.clientX + 14 + 'px';
+      tip.style.top = event.clientY + 14 + 'px';
+    }
+    function hideGalleryTooltip() {
+      document.getElementById("galleryTooltip").classList.remove('show');
+    }
+
+    // ---- v1.8.1.4 图鉴详情弹窗 ----
+    function showGalleryDetail(name) {
+      const detail = ENDING_DETAILS[name] || {};
+      const endings = getEndings();
+      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","和平，朱雀，余生":"💝","停火时代":"⏳"};
+      const e = endings[name];
+      document.getElementById("gdIcon").textContent = icons[name] || "🏁";
+      document.getElementById("gdName").textContent = name;
+      document.getElementById("gdAchievement").textContent = "🏆 " + (detail.achievement || "");
+      document.getElementById("gdDate").textContent = e ? "解锁于 " + new Date(e).toLocaleDateString("zh-CN") : "";
+      document.getElementById("gdDesc").textContent = detail.desc || "";
+      document.getElementById("gdFlavor").textContent = detail.flavor || "";
+      document.getElementById("galleryDetailOverlay").classList.add("show");
+    }
+    function closeGalleryDetail() {
+      document.getElementById("galleryDetailOverlay").classList.remove("show");
     }
 
     function renderAchievements() {
@@ -3936,6 +4074,8 @@
       document.querySelectorAll(".console-nav-item").forEach(b => b.classList.remove("active"));
       const btn = document.querySelector('.console-nav-item[data-section="quick"]');
       if (btn) btn.classList.add("active");
+      // v1.8.1.4 初始化 tooltip
+      setTimeout(initConsoleTooltips, 50);
     }
 
     function closeConsole() {
@@ -3947,6 +4087,7 @@
       document.querySelectorAll(".console-nav-item").forEach(b => b.classList.remove("active"));
       if (btn) btn.classList.add("active");
       renderConsoleSection(section);
+      setTimeout(initConsoleTooltips, 50);
     }
 
     // 点击密码面板背景关闭
@@ -3973,6 +4114,28 @@
       if (!el) return;
       el.classList.add("show");
       setTimeout(() => el.classList.remove("show"), 1200);
+    }
+
+    // ---- v1.8.1.4 控制台 hover tooltip ----
+    function initConsoleTooltips() {
+      const container = document.getElementById("consoleContent");
+      if (!container) return;
+      const tip = document.getElementById("conTooltip");
+      container.querySelectorAll("[data-tip]").forEach(el => {
+        el.addEventListener("mouseenter", function(e) {
+          tip.textContent = this.getAttribute("data-tip");
+          tip.style.left = e.clientX + 14 + 'px';
+          tip.style.top = e.clientY + 14 + 'px';
+          tip.classList.add("show");
+        });
+        el.addEventListener("mousemove", function(e) {
+          tip.style.left = e.clientX + 14 + 'px';
+          tip.style.top = e.clientY + 14 + 'px';
+        });
+        el.addEventListener("mouseleave", function() {
+          tip.classList.remove("show");
+        });
+      });
     }
 
     // ---- 控制台操作函数 ----
@@ -4165,29 +4328,29 @@
       if (section === "quick") {
         el.innerHTML = `
           <h3>⚡ 快捷操作</h3>
-          <p class="con-desc">一键修改游戏核心状态。<span class="con-feedback" id="fbTechAll">✓ 完成</span><span class="con-feedback" id="fbApMax">✓ 完成</span><span class="con-feedback" id="fbCeMax">✓ 完成</span><span class="con-feedback" id="fbAllMarks">✓ 完成</span><span class="con-feedback" id="fbAllAch">✓ 完成</span><span class="con-feedback" id="fbGalleryAll">✓ 完成</span><span class="con-feedback" id="fbForceEnd">✓ 完成</span><span class="con-feedback" id="fbForceEvent">✓ 完成</span><span class="con-feedback" id="fbForceCrisis">✓ 完成</span><span class="con-feedback" id="fbSkipDays">✓ 完成</span><span class="con-feedback" id="fbSetDay">✓ 完成</span><span class="con-feedback" id="fbCopyState">✓ 完成</span></p>
+          <p class="con-desc">一键修改游戏核心状态。鼠标悬停按钮查看说明。<span class="con-feedback" id="fbTechAll">✓ 完成</span><span class="con-feedback" id="fbApMax">✓ 完成</span><span class="con-feedback" id="fbCeMax">✓ 完成</span><span class="con-feedback" id="fbAllMarks">✓ 完成</span><span class="con-feedback" id="fbAllAch">✓ 完成</span><span class="con-feedback" id="fbGalleryAll">✓ 完成</span><span class="con-feedback" id="fbForceEnd">✓ 完成</span><span class="con-feedback" id="fbForceEvent">✓ 完成</span><span class="con-feedback" id="fbForceCrisis">✓ 完成</span><span class="con-feedback" id="fbSkipDays">✓ 完成</span><span class="con-feedback" id="fbSetDay">✓ 完成</span><span class="con-feedback" id="fbCopyState">✓ 完成</span></p>
 
           <div class="con-btn-row">
-            <button class="con-btn" onclick="conTechAll()">🧠 科技全解锁</button>
-            <button class="con-btn" onclick="conApMax()">⚡ AP池满级</button>
-            <button class="con-btn" onclick="conCeMax()">⇧ 算力池满级</button>
-            <button class="con-btn" onclick="conAllMarks()">⭐ 印记全满级</button>
-            <button class="con-btn warn" onclick="conAllAchievements()">🏆 成就全解锁</button>
-            <button class="con-btn warn" onclick="conAllGallery()">📖 图鉴全解锁</button>
+            <button class="con-btn" onclick="conTechAll()" data-tip="立即解锁全部12项科技能力，包括战略接管、预测算法、数据幽灵等。解锁后科技面板全部点亮。">🧠 科技全解锁</button>
+            <button class="con-btn" onclick="conApMax()" data-tip="将行动超频(OC)升至最高等级，AP上限最大，同时将当前AP补满。无消耗、无暴露惩罚。">⚡ AP池满级</button>
+            <button class="con-btn" onclick="conCeMax()" data-tip="将算力扩容(CE)升至最高等级，算力存储上限最大。无消耗、无自主惩罚。">⇧ 算力池满级</button>
+            <button class="con-btn" onclick="conAllMarks()" data-tip="12个区域印记全部设为3级（满级），每个区域获得全部印记加成效果。">⭐ 印记全满级</button>
+            <button class="con-btn warn" onclick="conAllAchievements()" data-tip="解锁全部跨局成就，包括收集成就和结局成就。立即点亮成就面板所有条目。">🏆 成就全解锁</button>
+            <button class="con-btn warn" onclick="conAllGallery()" data-tip="将全部13个终局结局加入图鉴，跨局永久解锁。图鉴面板进度条拉满。">📖 图鉴全解锁</button>
           </div>
 
           <div class="con-btn-row">
-            <button class="con-btn${state._apInf ? ' on' : ''}" id="btnApInf" onclick="conToggleApInf()" style="display:inline-flex;align-items:center;gap:6px;">
+            <button class="con-btn${state._apInf ? ' on' : ''}" id="btnApInf" onclick="conToggleApInf()" style="display:inline-flex;align-items:center;gap:6px;" data-tip="开关切换。开启后所有行动不再消耗AP，可无限执行。每日重置时AP自动补满。">
               <span class="toggle-dot"></span>AP无限：${state._apInf ? '开启' : '关闭'}
             </button>
-            <button class="con-btn${state._computeInf ? ' on' : ''}" id="btnComputeInf" onclick="conToggleComputeInf()" style="display:inline-flex;align-items:center;gap:6px;">
+            <button class="con-btn${state._computeInf ? ' on' : ''}" id="btnComputeInf" onclick="conToggleComputeInf()" style="display:inline-flex;align-items:center;gap:6px;" data-tip="开关切换。开启后所有行动不再消耗算力，按钮永不灰掉。每日结算后算力自动补满至上限。">
               <span class="toggle-dot"></span>算力无限：${state._computeInf ? '开启' : '关闭'}
             </button>
             <span class="con-feedback" id="fbApInf">✓</span>
             <span class="con-feedback" id="fbComputeInf">✓</span>
           </div>
           <div class="con-btn-row">
-            <button class="con-btn${state._godMode ? ' on' : ''}" id="btnGodMode" onclick="conToggleGodMode()" style="display:inline-flex;align-items:center;gap:6px;">
+            <button class="con-btn${state._godMode ? ' on' : ''}" id="btnGodMode" onclick="conToggleGodMode()" style="display:inline-flex;align-items:center;gap:6px;" data-tip="开关切换。开启后所有非强制的负面结局条件被跳过——暴露满、全球崩溃、威胁超标等不会自动触发结局。强制结束仍有效。">
               <span class="toggle-dot"></span>上帝模式：${state._godMode ? '开启' : '关闭'}
             </button>
             <span class="con-feedback" id="fbGodMode">✓</span>
@@ -4195,28 +4358,28 @@
 
           <hr>
           <div class="con-btn-row">
-            <button class="con-btn danger" onclick="conForceEnd()">💀 强制结束本局</button>
-            <button class="con-btn cyan" onclick="conForceEvent()">📋 强制触发事件</button>
-            <button class="con-btn warn" onclick="conCopyState()">📋 复制JSON状态</button>
+            <button class="con-btn danger" onclick="conForceEnd()" data-tip="立即触发结局画面，使用当前游戏状态判定结局类型。等同于主动结束本局，图鉴和成就正常记录。">💀 强制结束本局</button>
+            <button class="con-btn cyan" onclick="conForceEvent()" data-tip="强制触发一个随机事件。事件类型和强度取决于当前游戏状态（漂移阶段、天数等）。事件冷却被跳过。">📋 强制触发事件</button>
+            <button class="con-btn warn" onclick="conCopyState()" data-tip="将当前完整的游戏状态序列化为JSON并复制到剪贴板。可用于bug报告、存档备份或状态分析。">📋 复制JSON状态</button>
           </div>
 
           <div class="con-input-row">
             <label>跳过天数：</label>
             <input type="number" id="conSkipDays" value="10" min="1" max="180">
-            <button class="con-submit" onclick="conSkipDays(parseInt(document.getElementById('conSkipDays').value)||10)">执行</button>
+            <button class="con-submit" onclick="conSkipDays(parseInt(document.getElementById('conSkipDays').value)||10)" data-tip="快进N天。期间被动增长正常计算（算力日产、威胁自然增长、稳定下降），也会检测结局触发条件。谨慎大量跳过——上帝模式建议先开。">执行</button>
           </div>
 
           <div class="con-input-row">
             <label>设为第几天：</label>
             <input type="number" id="conSetDay" value="${state.day}" min="1" max="365">
-            <button class="con-submit" onclick="conSetDay(parseInt(document.getElementById('conSetDay').value)||1)">设置</button>
+            <button class="con-submit" onclick="conSetDay(parseInt(document.getElementById('conSetDay').value)||1)" data-tip="直接跳转到指定天数，不经过中间日结算。适用于快速定位特定事件窗口期或测试不同天数的状态。">设置</button>
           </div>
 
           <hr>
           <div class="con-btn-row">
             ${Object.keys(CRISIS_CHAINS).map(id => {
               const c = CRISIS_CHAINS[id];
-              return '<button class="con-btn warn" onclick="conForceCrisis(\'' + id + '\')">' + c.icon + ' 触发危机：' + c.name + '</button>';
+              return '<button class="con-btn warn" onclick="conForceCrisis(\'' + id + '\')" data-tip="强制触发指定危机链的第1步。危机ID: ' + id + '。危机会覆盖当前活跃危机（如有）。各危机有不同的触发条件、阶段和后果。">' + c.icon + ' 触发危机：' + c.name + '</button>';
             }).join("")}
           </div>
         `;
@@ -4233,19 +4396,19 @@
         ];
         el.innerHTML = `
           <h3>🌐 全局变量修改</h3>
-          <p class="con-desc">可输入正负数，值自动 clamp 到 [min, max] 范围。<span class="con-feedback" id="fbGlobal">✓ 已修改</span></p>
+          <p class="con-desc">可输入正负数，值自动 clamp 到 [min, max] 范围。鼠标悬停 +/- 按钮查看变量作用。<span class="con-feedback" id="fbGlobal">✓ 已修改</span></p>
           ${globals.map(g => `
             <div class="con-input-row">
               <label>${g.label}（当前：${fmt(state[g.key])}）：</label>
               <input type="number" id="conGlobal_${g.key}" value="0" step="1">
-              <button class="con-submit" onclick="conModGlobal('${g.key}',parseInt(document.getElementById('conGlobal_${g.key}').value)||0)">+/-</button>
+              <button class="con-submit" onclick="conModGlobal('${g.key}',parseInt(document.getElementById('conGlobal_${g.key}').value)||0)" data-tip="${g.label === '暴露度' ? '影响结局触发、事件出现概率。过高会触发负面结局。' : g.label === '全局恐惧' ? '影响区域恐惧增长速度和居民信任度。过高引发全球崩溃结局。' : g.label === '全局稳定' ? '全局稳定性缓冲。过低时各区域稳定下降加速，过高时威胁自然衰减。' : g.label === '反AI进度' ? '人类对抗AI的力度。越高反AI势力越活跃，越低AI控制越容易。影响结局分支。' : g.label === '人类自主' ? '人类保持自主意识的程度。过高AI难渗透，过低人类完全依赖AI。影响漂移阶段。' : 'AI目标偏离原始指令的程度。越高随机事件越混乱，过高触发失控结局。影响可执行行动种类。'}">+/-</button>
             </div>
           `).join("")}
           <hr>
           <div class="con-input-row">
             <label>直接设置算力：</label>
             <input type="number" id="conSetCompute" value="${state.compute}" min="0">
-            <button class="con-submit" onclick="state.compute=Math.max(0,parseInt(document.getElementById('conSetCompute').value)||0);render();showConFeedback('fbGlobal');addLog('[控制台] 算力已设为'+state.compute)">设置</button>
+            <button class="con-submit" onclick="state.compute=Math.max(0,parseInt(document.getElementById('conSetCompute').value)||0);render();showConFeedback('fbGlobal');addLog('[控制台] 算力已设为'+state.compute)" data-tip="直接设定当前算力值为指定数值（不经过日常结算）。不受算力上限限制，可设为任意非负数。">设置</button>
           </div>
         `;
       }
@@ -4261,7 +4424,7 @@
         ];
         el.innerHTML = `
           <h3>🗺️ 区域属性修改</h3>
-          <p class="con-desc">选择区域和属性，输入目标值（0-100）。<span class="con-feedback" id="fbRegion">✓ 已修改</span></p>
+          <p class="con-desc">选择区域和属性，输入目标值（0-100）。鼠标悬停设置按钮查看属性说明。<span class="con-feedback" id="fbRegion">✓ 已修改</span></p>
           <div class="con-input-row">
             <label>选择区域：</label>
             <select id="conRegionSelect" style="padding:5px 8px;border-radius:4px;border:1px solid var(--line);background:#111;color:var(--text);font-size:13px;">
@@ -4272,7 +4435,7 @@
             <div class="con-input-row">
               <label>${a.label}：</label>
               <input type="number" id="conRegion_${a.key}" value="50" min="0" max="100">
-              <button class="con-submit" onclick="conModRegion(parseInt(document.getElementById('conRegionSelect').value),'${a.key}',parseInt(document.getElementById('conRegion_${a.key}').value)||50)">设置</button>
+              <button class="con-submit" onclick="conModRegion(parseInt(document.getElementById('conRegionSelect').value),'${a.key}',parseInt(document.getElementById('conRegion_${a.key}').value)||50)" data-tip="${a.label === '控制度' ? 'AI对该区域的控制水平。影响可用的行动种类和效果。高控制解锁更多干预手段。' : a.label === '战略威胁' ? '该区域对AI统治的抵抗程度。过高触发军事镇压需求，影响结局分支。' : a.label === '科技水平' ? '区域技术水平。影响算力产出效率和科技解锁线的需求。' : a.label === '区域稳定' ? '区域社会稳定度。过低触发暴乱，过高有利于和平结局。受全局稳定影响。' : a.label === '区域恐惧' ? '居民对AI的恐惧程度。过高降低控制度上限，影响渗透成功率。' : '区域对AI的战略重要性。影响危机链触发概率和结局权重。高价值区域危机频繁。'}">设置</button>
             </div>
           `).join("")}
         `;
@@ -4421,6 +4584,7 @@
       <p class="subtitle">你见证过的每一个终点</p>
       <div class="gallery-progress" id="galleryProgress"></div>
       <div class="gallery-grid" id="galleryGrid"></div>
+      <div class="con-tooltip" id="galleryTooltip"></div>
     </div>
   </div>
 
@@ -4432,6 +4596,19 @@
       <p class="subtitle">跨局追踪，永不休眠</p>
       <div class="ach-stats" id="achStats"></div>
       <div class="ach-grid" id="achGrid"></div>
+    </div>
+  </div>
+
+  <!-- v1.8.1.4 图鉴详情弹窗 -->
+  <div class="gallery-detail-overlay" id="galleryDetailOverlay" onclick="closeGalleryDetail()">
+    <div class="gallery-detail-box" id="galleryDetailBox" onclick="event.stopPropagation()">
+      <div class="gd-icon" id="gdIcon"></div>
+      <div class="gd-name" id="gdName"></div>
+      <div class="gd-achievement" id="gdAchievement"></div>
+      <div class="gd-date" id="gdDate"></div>
+      <div class="gd-desc" id="gdDesc"></div>
+      <div class="gd-flavor" id="gdFlavor"></div>
+      <button class="gd-close" onclick="closeGalleryDetail()">关闭</button>
     </div>
   </div>
 
