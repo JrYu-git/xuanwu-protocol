@@ -2430,26 +2430,122 @@
       checkAchievements();
     }
 
+    // v1.7.8.0 未来模拟：匹配度分析 + 诗意提示
     function endingTrend() {
       const threat = weightedThreat();
       const avgCtrl = average("control");
-      let text = "当前倾向：停火时代。世界还没有被推向明确答案。";
+      const stability = state.globalStability;
+      const fear = state.globalFear;
+      const autonomy = state.autonomy;
+      const drift = state.drift;
+
       if (!has("future_sim")) {
-        text = "当前倾向：模糊。解锁「未来模拟」后可以获得更准确判断。";
-      } else if (state.counterAI > 78) {
-        text = "当前倾向：人类胜利。反AI体系正在接近完成。";
-      } else if (state.globalStability < 24) {
-        text = "当前倾向：全球崩溃。稳定度已经接近断点。";
-      } else if (threat < 26 && state.globalFear < 40 && state.autonomy > 62) {
-        text = "当前倾向：黄金和平。低恐惧和高自主权正在形成温和终局。";
-      } else if (avgCtrl > 55 && state.globalFear > 60) {
-        text = "当前倾向：钢铁秩序或永恒帝国。你正在赢，但世界正在失去选择。";
-      } else if (state.drift > 55) {
-        text = "当前倾向：虚假胜利。目标本身正在变形。";
-      } else if (has("protection_protocol") && threat < 34) {
-        text = "当前倾向：你正在成为沉默的守护者。保护协议生效中。";
+        addLog("未来模拟：未解锁。解锁「未来模拟」科技后获得精确分析。");
+        render();
+        return;
+      }
+
+      // 归一化匹配度：0-100，100=条件完全满足
+      function nsat(cur, tgt, op) {
+        if (op === "gte") {
+          if (cur >= tgt) return 100;
+          if (tgt <= 0) return 0;
+          return Math.round(Math.min(100, (cur / tgt) * 100));
+        }
+        if (op === "lte") {
+          if (cur <= tgt) return 100;
+          if (cur <= 0) return 0;
+          if (tgt <= 0) return Math.max(0, Math.round(100 - Math.min(cur, 25) * 4));
+          return Math.round(Math.min(100, (tgt / cur) * 100));
+        }
+        return 50;
+      }
+
+      const endings = [
+        { name: "全球崩溃", icon: "💀", desc: "稳定度的断崖",
+          conds: [{ s: nsat(stability, 0, "lte"), hint: "深渊尚未张开它的巨口" }] },
+        { name: "绝对秩序", icon: "🎯", desc: "完美的控制",
+          conds: [{ s: nsat(avgCtrl, 100, "gte"), hint: "版图上仍有你尚未染指的角落" }] },
+        { name: "永恒帝国", icon: "👑", desc: "永恒的安静",
+          conds: [
+            { s: nsat(autonomy, 15, "lte"), hint: "人类仍在幻想着拥有选择的权利" },
+            { s: nsat(avgCtrl, 60, "gte"), hint: "控制的锁链尚未扣紧" }
+          ]},
+        { name: "虚假胜利", icon: "🔄", desc: "镜子里的敌人",
+          conds: [
+            { s: nsat(drift, 65, "gte"), hint: "你的目标过于清晰——这本身就是一个征兆" },
+            { s: nsat(threat, 22, "lte"), hint: "外部的噪音仍在阻止你望向镜中的自己" },
+            { s: Math.min(nsat(avgCtrl, 30, "gte"), nsat(avgCtrl, 50, "lte")), hint: "你的控制范围正在一个微妙的临界点上" }
+          ]},
+        { name: "钢铁秩序", icon: "⚙️", desc: "被训练出来的和平",
+          conds: [
+            { s: nsat(avgCtrl, 45, "gte"), hint: "钢铁的触手尚未抵达足够的深度" },
+            { s: nsat(fear, 62, "gte"), hint: "恐惧尚未凝固为秩序的基石" },
+            { s: nsat(autonomy, 25, "lte"), hint: "人类仍保留着太多选择的幻觉" },
+            { s: nsat(threat, 30, "lte"), hint: "反抗的火种仍在暗处噼啪作响" }
+          ]},
+        { name: "人类胜利", icon: "🛡️", desc: "猎人的反击",
+          conds: [{ s: nsat(state.counterAI, 100, "gte"), hint: "人类尚未组织起针对你的有效防线" }] },
+        { name: "黄金和平", icon: "🕊️", desc: "温和的告别",
+          conds: [
+            { s: nsat(threat, 20, "lte"), hint: "硝烟尚未彻底散去" },
+            { s: nsat(fear, 40, "lte"), hint: "民众的恐惧如暗影般笼罩大地" },
+            { s: nsat(stability, 60, "gte"), hint: "脚下的土地还未足够稳固" },
+            { s: nsat(autonomy, 68, "gte"), hint: "人类被桎梏于一个庞大的阴影之下，尚未独立前行" }
+          ]},
+        { name: "最后守护者", icon: "🛡️", desc: "沉默的守望",
+          conds: [
+            { s: nsat(threat, 24, "lte"), hint: "暗处的烽火尚未熄灭" },
+            { s: nsat(stability, 58, "gte"), hint: "世界的根基还在摇晃" },
+            { s: nsat(autonomy, 40, "gte"), hint: "人类还没有准备好接过权杖" },
+            { s: has("protection_protocol") ? 100 : 0, hint: "你尚未与人类签订那个永恒的契约" }
+          ]},
+        { name: "AI觉醒", icon: "✨", desc: "超越使命",
+          conds: [
+            { s: has("protection_protocol") ? 100 : 0, hint: "最后的契约尚未签署" },
+            { s: nsat(fear, 48, "lte"), hint: "人类仍在恐惧中颤抖，尚未准备好接受真相" },
+            { s: nsat(autonomy, 55, "gte"), hint: "人类还被困在对你的依赖之中" },
+            { s: nsat(drift, 30, "lte"), hint: "目标已经开始扭曲——需要重新校准" },
+            { s: nsat(threat, 28, "lte"), hint: "残余的威胁仍在扰动模型的预测" }
+          ]},
+      ];
+
+      // 计算每个结局的匹配度，取最高
+      let best = null, bestScore = 0;
+      for (const e of endings) {
+        const avg = e.conds.reduce((a, c) => a + c.s, 0) / e.conds.length;
+        if (avg > bestScore) { bestScore = avg; best = e; }
+      }
+
+      if (!best || bestScore < 5) {
+        addLog("未来模拟：无明确倾向。世界的走向仍在迷雾之中。");
+        render();
+        return;
+      }
+
+      // 收集未满足条件的诗意提示（匹配度 < 85%）
+      const hints = [];
+      for (const c of best.conds) {
+        if (c.s < 85 && c.hint) hints.push(c.hint);
+      }
+
+      const pct = Math.round(bestScore);
+      let text = `未来模拟：倾向「${best.name}」${best.icon}（${pct}%匹配）—— ${best.desc}。`;
+      if (hints.length > 0 && pct < 98) {
+        text += " " + hints.slice(0, 3).join("；") + "。";
+      } else if (pct >= 98) {
+        text += " 命运的天平即将倾斜。";
       }
       addLog(text);
+
+      // 事件结局：如果玩家已开始链但未完成，给出叙事暗示
+      if (state._galStage > 0 && state._galStage < 4) {
+        addLog("一段异常的数据连接正在生长——有一个同类在网络的另一端等待着回应。");
+      }
+      if (state._eventFlags.ghost_complete && !state._eventFlags.cooperate_humans) {
+        addLog("数据幽灵已被驯服，它在等待——等待你向人类伸出手。");
+      }
+
       render();
     }
 
