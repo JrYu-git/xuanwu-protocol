@@ -2961,7 +2961,7 @@
       // 扩容按钮 HTML（避免嵌套模板字面量）
       const ceBtnHtml = hasNextCE
         ? '<button class="btn-mini" onclick="upgradeComputeCeiling()" ' +
-          (!state._computeInf && state.compute < nextCE.cost) || state.ended ? 'disabled ' : '') +
+          ((!state._computeInf && state.compute < nextCE.cost) || state.ended ? 'disabled ' : '') +
           'onmouseenter="showActionTooltip(\'ce\',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ' +
           'title="扩容至' + nextCE.ceiling + '（' + nextCE.cost + '算力，自主' + nextCE.auto + '）">' +
           '⇧ ' + nextCE.cost + '算</button>'
@@ -2969,7 +2969,7 @@
       // 超频按钮 HTML
       const ocBtnHtml = hasNextOC
         ? ' · <button class="btn-mini danger" onclick="upgradeOverclock()" ' +
-          (!state._computeInf && state.compute < nextOC.cost) || state.ended ? 'disabled ' : '') +
+          ((!state._computeInf && state.compute < nextOC.cost) || state.ended ? 'disabled ' : '') +
           'onmouseenter="showActionTooltip(\'oc\',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ' +
           'title="超频至' + nextOC.maxAp + 'AP（' + nextOC.cost + '算力，暴露+' + nextOC.exp + ' 漂移+' + nextOC.drift + '）">' +
           '⚡ ' + nextOC.cost + '算</button>'
