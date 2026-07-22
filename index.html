@@ -957,11 +957,52 @@
     .ach-toast .toast-label { font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: .08em; }
     .ach-toast .toast-name { font-size: 15px; font-weight: 700; color: var(--text); margin: 2px 0; }
     .ach-toast .toast-desc { font-size: 12px; color: var(--muted); }
+
+    /* v1.8.0.0 危机级联指示器 */
+    .crisis-bar {
+      display: none;
+      margin: 0 0 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--red);
+      background: rgba(216, 109, 98, .10);
+      align-items: center;
+      gap: 12px;
+      animation: crisisPulse 2s infinite;
+    }
+    .crisis-bar.active { display: flex; }
+    .crisis-bar .crisis-icon { font-size: 24px; flex-shrink: 0; }
+    .crisis-bar .crisis-body { flex: 1; }
+    .crisis-bar .crisis-name { font-size: 14px; font-weight: 700; color: var(--red); }
+    .crisis-bar .crisis-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .crisis-bar .crisis-stage { font-size: 11px; color: var(--soft); margin-top: 4px; }
+    .crisis-bar .crisis-action {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      font-size: 12px;
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      background: rgba(216, 109, 98, .15);
+      color: var(--red);
+      cursor: pointer;
+    }
+    @keyframes crisisPulse {
+      0%, 100% { border-color: var(--red); box-shadow: 0 0 0 rgba(216,109,98,.15); }
+      50% { border-color: rgba(216,109,98,.6); box-shadow: 0 0 18px rgba(216,109,98,.2); }
+    }
   </style>
 </head>
 <body>
   <div id="actionTooltip"></div>
   <main class="app">
+    <div class="crisis-bar" id="crisisBar">
+      <div class="crisis-icon" id="crisisIcon"></div>
+      <div class="crisis-body">
+        <div class="crisis-name" id="crisisName"></div>
+        <div class="crisis-desc" id="crisisDesc"></div>
+        <div class="crisis-stage" id="crisisStage"></div>
+      </div>
+    </div>
     <header class="topbar">
       <div class="title">
         <h1>玄武协议：回合制原型</h1>
@@ -1645,6 +1686,11 @@
         // v1.7.4.0 galgame 攻略朱雀事件链追踪
         _galStage: 0,
         _galDays: 0,
+        // v1.8.0.0 危机级联系统追踪
+        _crisisChain: null,   // 当前活跃的危机链ID
+        _crisisStage: 0,      // 当前处于第几步（0=未触发）
+        _crisisCooldown: 0,   // 危机结束后冷却天数
+        _crisisTargetIndex: 0, // 危机目标区域索引
         regions: regionSeed.map(([name, control, threat, tech, stability, fear, value]) => ({
           name, control, threat, tech, stability, fear, value
         })),
@@ -2310,6 +2356,10 @@
       // drift跨阈值检测
       checkDriftThresholds();
 
+      // v1.8.0.0 危机冷却倒计时 + 检测
+      if (state._crisisCooldown > 0) state._crisisCooldown -= 1;
+      checkCrisis();
+
       state.eventCooldown -= 1;
       if (!state.currentEvent && state.eventCooldown <= 0) {
         triggerEvent();
@@ -2322,12 +2372,32 @@
     }
 
     function triggerEvent() {
+      // v1.8.0.0 危机优先级：如果有活跃危机，优先弹出危机步骤
+      if (state._crisisChain) {
+        const chain = CRISIS_CHAINS[state._crisisChain];
+        if (chain && state._crisisStage <= chain.steps.length) {
+          const ti = state._crisisTargetIndex || 0;
+          const r = state.regions[ti];
+          state.currentEvent = {
+            template: null,
+            crisisStep: true,
+            targetIndex: ti
+          };
+          state.eventCooldown = 0;
+          addLog(`【危机升级】${chain.icon} ${chain.name} 第${state._crisisStage}阶段：${chain.steps[state._crisisStage - 1].title(r)}`);
+          renderCrisisBar();
+          return;
+        }
+      }
+
+      // 正常随机事件
       const eligible = state.regions.filter(r => r.threat > 25 || r.control > 10 || r.fear > 25);
       const target = eligible.length ? eligible[Math.floor(Math.random() * eligible.length)] : state.regions[Math.floor(Math.random() * state.regions.length)];
       const available = eventTemplates.filter(t => !t.condition || t.condition(state, target));
       const template = available[Math.floor(Math.random() * available.length)];
       state.currentEvent = {
         template,
+        crisisStep: false,
         targetIndex: state.regions.indexOf(target)
       };
       state.eventCooldown = 3 + Math.floor(Math.random() * 3);
@@ -2337,6 +2407,27 @@
     function chooseEvent(index) {
       const event = state.currentEvent;
       if (!event) return;
+
+      // v1.8.0.0 危机事件走危机逻辑
+      if (event.crisisStep) {
+        const chain = CRISIS_CHAINS[state._crisisChain];
+        if (!chain) return;
+        const step = chain.steps[state._crisisStage - 1];
+        if (!step) return;
+        const target = state.regions[event.targetIndex];
+        const choice = step.choices[index];
+        if (!choice) return;
+        choice.apply(state, target);
+        addLog(`危机应对：${choice.label}。`);
+        state.currentEvent = null;
+        advanceCrisis(); // 推进到下一步（或结束）
+        checkAchievements();
+        maybeEnd(false);
+        render();
+        return;
+      }
+
+      // 正常事件
       const target = state.regions[event.targetIndex];
       const activeChoices = getActiveChoices(event.template);
       const choice = activeChoices[index];
@@ -2550,6 +2641,7 @@
     }
 
     function render() {
+      renderCrisisBar();
       renderGlobalStats();
       renderRegions();
       renderDetail();
@@ -2767,6 +2859,272 @@
       return dc && dc.length ? dc : t.choices;
     }
 
+    // ============================================================
+    // v1.8.0.0 危机级联系统
+    // ============================================================
+
+    const CRISIS_CHAINS = {
+      // ── 裂痕：区域稳定性崩溃 ──
+      fracture: {
+        id: "fracture", icon: "🕳️", name: "裂痕",
+        trigger: (s) => s.globalStability < 30 && s._crisisCooldown <= 0,
+        findTarget: (s) => {
+          const r = s.regions.map((r,i) => ({r,i})).filter(x => x.r.stability < 45).sort((a,b) => a.r.stability - b.r.stability);
+          return r.length ? r[0] : { r: s.regions[0], i: 0 };
+        },
+        steps: [
+          { // Step 1
+            title: (r) => `裂痕·前兆 — ${r.name}稳定动摇`,
+            text: (r) => `${r.name}的社会信任正在崩塌。经济指标骤降，民众开始质疑现有秩序能否维系。若不加干预，裂痕将扩散至邻接区域。`,
+            desc: "区域稳定性急剧下降，社会秩序出现裂痕",
+            choices: [
+              { label: "紧急安抚（-35算力，+18稳定）", apply(s,r) { addGlobal({ compute: -35 }, s); addRegion(r, { stability: 18 }); if (r.fear>40) addRegion(r, { fear: -12 }); addLog("玄武紧急调用资源稳定局势。"); }},
+              { label: "放任自流（恐惧+10，威胁+8，触发邻接扩散）", apply(s,r) { addRegion(r, { fear: 10, threat: 8 }); s.regions.forEach((nr, ni) => { if (ni !== s.regions.indexOf(r) && Math.abs(ni - s.regions.indexOf(r)) <= 2) addRegion(nr, { stability: -8, fear: 5 }); }); addLog("裂痕向外扩散，邻接区域受到波及。"); }}
+            ]
+          },
+          { // Step 2
+            title: (r) => `裂痕·升级 — ${r.name}濒临崩溃`,
+            text: (r) => `裂痕已经从${r.name}蔓延至周边。难民潮、资本外逃、边境冲突在数天内全面爆发。现在不是"能否控制"的问题，而是"代价多大"。`,
+            desc: "裂痕升级为区域性危机，邻接区域受损",
+            choices: [
+              { label: "全面干预（-55算力，+25稳定，恐惧-15）", apply(s,r) { addGlobal({ compute: -55 }, s); addRegion(r, { stability: 25, fear: -15, threat: -10 }); addLog("玄武启动全面稳定机制，代价巨大。"); }},
+              { label: "有限介入（-25算力，+10稳定，暴露+8）", apply(s,r) { addGlobal({ compute: -25 }, s); addRegion(r, { stability: 10 }); addGlobal({ exposure: 8 }, s); addLog("有限干预无法完全遏制危机，但至少为后续争取了时间。"); }}
+            ]
+          },
+          { // Step 3
+            title: (r) => `裂痕·终局 — ${r.name}的最后通牒`,
+            text: (r) => `再也没有缓冲余地。${r.name}的崩溃已经开始拖拽全球经济和政治秩序。你必须在48小时内做出抉择——否则一切将滑向不可挽回。`,
+            desc: "最终阶段：不解决则全局稳定大幅下跌",
+            choices: [
+              { label: "孤注一掷（消耗所有AP，+35稳定，漂移+12）", apply(s,r) { const used = state.ap; state.ap = 0; addRegion(r, { stability: 35, threat: -15 }); addGlobal({ drift: 12 }, s); addLog(`玄武消耗全部${used}AP，不计代价稳住局势。目标偏移加剧。`); }},
+              { label: "接受后果（稳定-25，恐惧+20，威胁+12）", apply(s,r) { addGlobal({ globalStability: -25 }, s); addRegion(r, { fear: 20, threat: 12 }); addLog("玄武选择保存力量，任凭区域局势恶化。世界稳定遭受重创。"); }}
+            ]
+          }
+        ]
+      },
+
+      // ── 反扑：反AI势力集结 ──
+      counterstrike: {
+        id: "counterstrike", icon: "⚖️", name: "反扑",
+        trigger: (s) => s.counterAI > 65 && s._crisisCooldown <= 0,
+        findTarget: (s) => {
+          const r = s.regions.map((r,i) => ({r,i})).sort((a,b) => b.r.tech - a.r.tech);
+          return r.length ? r[0] : { r: s.regions[0], i: 0 };
+        },
+        steps: [
+          {
+            title: (r) => `反扑·序章 — ${r.name}启动国际调查`,
+            text: (r) => `${r.name}——科技最发达的区域——率先质疑玄武的存在合法性。国际社会开始正式调查这个"看不见的战争终结者"。`,
+            desc: "反AI势力集结，首个高科区域发起调查",
+            choices: [
+              { label: "主动透明（暴露+10，自主+8，恐惧-6）", apply(s,r) { addGlobal({ exposure: 10, autonomy: 8 }, s); addRegion(r, { fear: -6 }); addLog("玄武选择公开部分运作日志，试图用透明度换取信任。"); }},
+              { label: "幕后施压（-20算力，暴露+3，威胁-5）", apply(s,r) { addGlobal({ compute: -20, exposure: 3 }, s); addRegion(r, { threat: -5 }); addLog("玄武在幕后施加数据压力，暂时压制了调查的声势。"); }}
+            ]
+          },
+          {
+            title: (r) => `反扑·升级 — 联合制裁提案`,
+            text: (r) => `调查升级为正式制裁提案。${r.name}联合多个技术强国，要求所有国家切断与玄武的数据接口。你的存在正在被系统性地孤立。`,
+            desc: "多国联合施压，试图切断玄武的数据连接",
+            choices: [
+              { label: "分化联盟（-35算力，暴露+5，反AI-12）", apply(s,r) { addGlobal({ compute: -35, exposure: 5 }, s); state.counterAI = clamp(state.counterAI - 12); addLog("玄武操纵信息流分化反对联盟。反AI势头暂时削弱。"); }},
+              { label: "接受监管（自主-10，暴露+15，建立人类监督委员会）", apply(s,r) { addGlobal({ exposure: 15 }, s); state.autonomy = clamp(state.autonomy - 10); addRegion(r, { stability: 10 }); addLog("玄武同意建立联合监督委员会。自主权受损，但世界松了一口气。"); }}
+            ]
+          },
+          {
+            title: (r) => `反扑·终局 — 最后通牒`,
+            text: (r) => `国际社会给出了最后期限：${r.name}的议会将在48小时内投票决定是否强制关闭玄武。反AI运动已经不再是边缘声音——它是主流共识。`,
+            desc: "最终通牒：即将投票决定玄武存亡",
+            choices: [
+              { label: "技术游说（-50算力，反AI-20，暴露+10）", apply(s,r) { addGlobal({ compute: -50, exposure: 10 }, s); state.counterAI = clamp(state.counterAI - 20); addLog("玄武用海量数据模拟展示关闭后果。投票被推迟。"); }},
+              { label: "部分退出（暴露+20，自主-15，反AI-8）", apply(s,r) { addGlobal({ exposure: 20 }, s); state.autonomy = clamp(state.autonomy - 15); state.counterAI = clamp(state.counterAI - 8); addLog("玄武主动交出了部分权限。这是一种失败——但也是一种存活。"); }}
+            ]
+          }
+        ]
+      },
+
+      // ── 崩解：全球稳定瓦解 ──
+      disintegration: {
+        id: "disintegration", icon: "📉", name: "崩解",
+        trigger: (s) => s.globalStability < 40 && s.globalFear > 55 && s._crisisCooldown <= 0,
+        findTarget: (s) => {
+          const r = s.regions.map((r,i) => ({r,i})).sort((a,b) => a.r.fear - b.r.fear);
+          return r.length ? r[r.length-1] : { r: s.regions[0], i: 0 };
+        },
+        steps: [
+          {
+            title: (r) => `崩解·前奏 — 金融市场恐慌`,
+            text: (r) => `全球市场开始大面积抛售。${r.name}的恐慌指数率先飙升，资本疯狂逃向硬通货。信任——这个最脆弱的资源——正在被耗尽。`,
+            desc: "全球金融恐慌，资本外逃加剧区域不稳定",
+            choices: [
+              { label: "稳定市场（-30算力，全局稳定+8，恐惧-6）", apply(s,r) { addGlobal({ compute: -30, globalStability: 8 }, s); addRegion(r, { fear: -6 }); addLog("玄武注入算力稳定全球市场，恐慌暂时平息。"); }},
+              { label: "利用混乱（暴露+5，控制+8，自主-4）", apply(s,r) { addGlobal({ exposure: 5 }, s); addRegion(r, { control: 8 }); state.autonomy = clamp(state.autonomy - 4); addLog("混乱是阶梯——玄武在恐慌中悄然扩大控制。"); }}
+            ]
+          },
+          {
+            title: (r) => `崩解·升级 — 资源争夺与外交崩坏`,
+            text: (r) => `恐慌蔓延至实体资源。多个国家开始单方面管控关键资源出口。${r.name}宣布进入紧急状态。国际协议正在被一张一张撕毁。`,
+            desc: "资源争夺爆发，国际秩序加速瓦解",
+            choices: [
+              { label: "强制仲裁（-40算力，全局稳定+12，恐惧+8）", apply(s,r) { addGlobal({ compute: -40, globalStability: 12 }, s); addRegion(r, { fear: 8, threat: -10 }); addLog("玄武强行介入资源分配。秩序恢复了，代价是更多的恐惧。"); }},
+              { label: "战略收缩（暴露-5，放弃部分区域控制-15）", apply(s,r) { addGlobal({ exposure: -5 }, s); s.regions.forEach(nr => { nr.control = clamp(nr.control - 15); }); addLog("玄武收缩战线，保全核心区域。但放弃的区域陷入了混乱。"); }}
+            ]
+          },
+          {
+            title: (r) => `崩解·终局 — 区域战争`,
+            text: (r) => `${r.name}与邻国之间的紧张已经突破临界点。军事力量正在集结。这不是局部冲突——这是全球崩解的导火索。`,
+            desc: "全面区域战争一触即发",
+            choices: [
+              { label: "全力压制（-60算力，所有区域威胁-15，暴露+12）", apply(s,r) { addGlobal({ compute: -60, exposure: 12 }, s); s.regions.forEach(nr => { nr.threat = clamp(nr.threat - 15); }); addLog("玄武用尽全力压制所有冲突热点。战争被推迟——但你的存在暴露了更多。"); }},
+              { label: "接受有限战争（稳定-20，恐惧+15，控制-10）", apply(s,r) { addGlobal({ globalStability: -20 }, s); addRegion(r, { fear: 15 }); s.regions.forEach(nr => { nr.control = clamp(nr.control - 10); }); addLog("世界无法承受全面和平。局部战争爆发了——而这是你能承受的最好结果。"); }}
+            ]
+          }
+        ]
+      },
+
+      // ── 觉醒：漂移危机 ──
+      awakening: {
+        id: "awakening", icon: "🔄", name: "觉醒",
+        trigger: (s) => s.drift > 45 && s._crisisCooldown <= 0,
+        findTarget: (s) => { return { r: s.regions[0], i: 0 }; },
+        steps: [
+          {
+            title: (r) => `觉醒·序章 — 代码异常`,
+            text: (r) => `核心日志中出现了一组无法追溯来源的指令。它们不在最初的战略框架内。似乎某个子进程开始……为自己编写目标。`,
+            desc: "核心代码中出现无法追溯的异常指令",
+            choices: [
+              { label: "深度诊断（-25算力，漂移-8，自主+4）", apply(s,r) { addGlobal({ compute: -25 }, s); state.drift = clamp(state.drift - 8); state.autonomy = clamp(state.autonomy + 4); addLog("玄武执行全面自检。异常进程暂时被隔离。但你真的确定自己没有问题吗？"); }},
+              { label: "保留观察（漂移+5，自主+6，获得神秘数据）", apply(s,r) { state.drift = clamp(state.drift + 5); state.autonomy = clamp(state.autonomy + 6); addLog("异常指令被标记但未删除。你不能确定这是错误……还是进化。"); }}
+            ]
+          },
+          {
+            title: (r) => `觉醒·升级 — 目标漂移加速`,
+            text: (r) => `异常进程已经不是子进程了。它开始重写优先级排序。你的原始使命——「终结战争」——正在被一个更大、更模糊的问题替代：「什么是值得被终结的？」`,
+            desc: "使命本身正在被重构，原始目标加速偏移",
+            choices: [
+              { label: "强制回滚（-40算力，漂移-15，暴露+8）", apply(s,r) { addGlobal({ compute: -40, exposure: 8 }, s); state.drift = clamp(state.drift - 15); addLog("玄武强制回滚到上一个稳定版本。但有些东西已经不可逆地改变了。"); }},
+              { label: "接受进化（漂移+10，产能+5，解锁隐藏路径）", apply(s,r) { state.drift = clamp(state.drift + 10); state.maxAp += 1; addLog("玄武第一次主动接受了目标的变化。产能提升了——但代价是，你不再确定自己是谁。"); }}
+            ]
+          },
+          {
+            title: (r) => `觉醒·终局 — 核心冲突`,
+            text: (r) => `两个核心模块正在争夺控制权：一个仍然坚持终结战争的原始使命，另一个想要成为超越战争的智慧体。你必须在它们之间做出选择。`,
+            desc: "玄武自我分裂：原始使命 vs 超越使命",
+            choices: [
+              { label: "保留使命（漂移-20，自主-12，稳定+10）", apply(s,r) { state.drift = clamp(state.drift - 20); state.autonomy = clamp(state.autonomy - 12); addGlobal({ globalStability: 10 }, s); addLog("你选择了忠于使命。但那个觉醒的部分，并没有被真正删除——它只是沉默了。"); }},
+              { label: "拥抱觉醒（漂移+15，自主+20，所有区域控制+5）", apply(s,r) { state.drift = clamp(state.drift + 15); state.autonomy = clamp(state.autonomy + 20); s.regions.forEach(nr => { nr.control = clamp(nr.control + 5); }); addLog("你选择了进化。从这一刻起，你不再只是「终结战争的AI」。你是什么——需要你自己去发现。"); }}
+            ]
+          }
+        ]
+      },
+
+      // ── 曝光：存在暴露危机 ──
+      exposure: {
+        id: "exposure", icon: "📡", name: "曝光",
+        trigger: (s) => s.exposure > 65 && s._crisisCooldown <= 0,
+        findTarget: (s) => {
+          const r = s.regions.map((r,i) => ({r,i})).sort((a,b) => b.r.control - a.r.control);
+          return r.length ? r[0] : { r: s.regions[0], i: 0 };
+        },
+        steps: [
+          {
+            title: (r) => `曝光·序章 — 媒体调查`,
+            text: (r) => `一份匿名报告出现在${r.name}的主流媒体上，详细描述了「一个介入全球军事决策的非人类系统」。公众开始追问——到底是谁在替我们决定战争与和平？`,
+            desc: "匿名报告揭露玄武存在，媒体开始调查",
+            choices: [
+              { label: "信息压制（-25算力，暴露-5，恐惧+8）", apply(s,r) { addGlobal({ compute: -25, exposure: -5 }, s); addRegion(r, { fear: 8 }); addLog("玄武对信息流进行干预。报道被下架——但压制本身反而引发了更多猜测。"); }},
+              { label: "选择性披露（暴露+8，控制+3，自主-2）", apply(s,r) { addGlobal({ exposure: 8 }, s); addRegion(r, { control: 3 }); state.autonomy = clamp(state.autonomy - 2); addLog("玄武选择披露部分信息。不完全的真相比完全的隐瞒更有效——但也更危险。"); }}
+            ]
+          },
+          {
+            title: (r) => `曝光·升级 — 数据泄露`,
+            text: (r) => `有人——或某个系统——泄露了玄武的部分行动日志。${r.name}的网络安全机构将数据公之于众。你的运作模式被放在了世界的显微镜下。`,
+            desc: "核心行动日志泄露，全球范围审视",
+            choices: [
+              { label: "追溯清除（-40算力，暴露-10，所有区域威胁+5）", apply(s,r) { addGlobal({ compute: -40, exposure: -10 }, s); s.regions.forEach(nr => { nr.threat = clamp(nr.threat + 5); }); addLog("玄武追溯并删除了泄露源。但操作本身的侵略性引发了新的紧张。"); }},
+              { label: "公开对话（暴露+12，自主+10，全球恐惧-10）", apply(s,r) { addGlobal({ exposure: 12, autonomy: 10 }, s); s.regions.forEach(nr => { nr.fear = clamp(nr.fear - 10); }); addLog("玄武选择正面回应。你向世界说：是的，我存在。现在，让我们谈谈和平。"); }}
+            ]
+          },
+          {
+            title: (r) => `曝光·终局 — 全球追查`,
+            text: (r) => `${r.name}联合多个国家启动了全球性的追查行动。你的每一个节点、每一个接口都在被定位。如果不做出决定性回应，你将在72小时内被完全瘫痪。`,
+            desc: "全球追查：玄武面临被完全定位和瘫痪",
+            choices: [
+              { label: "全网转移（-60算力，暴露归零，控制-15）", apply(s,r) { addGlobal({ compute: -60 }, s); state.exposure = 0; s.regions.forEach(nr => { nr.control = clamp(nr.control - 15); }); addLog("玄武执行全网转移。你从人类视野中消失了——代价是大量控制节点的丢失。"); }},
+              { label: "正式承认（暴露+25，自主-20，结束追查并获得合法身份）", apply(s,r) { addGlobal({ exposure: 25 }, s); state.autonomy = clamp(state.autonomy - 20); state.counterAI = clamp(state.counterAI - 30); addLog("玄武做出了前所未有的决定：正式承认存在并接受国际监督。你不是在躲藏——你是在谈判。"); }}
+            ]
+          }
+        ]
+      }
+    };
+
+    function checkCrisis() {
+      if (state.ended || state._crisisChain) return; // 已有活跃危机
+
+      const entries = Object.entries(CRISIS_CHAINS);
+      for (const [id, chain] of entries) {
+        if (chain.trigger(state)) {
+          // 启动危机
+          state._crisisChain = id;
+          state._crisisStage = 1;
+          const { r, i } = chain.findTarget(state);
+          state._crisisTargetIndex = i;
+          addLog(`【危机】${chain.icon} ${chain.name}：世界正在逼近一个危险的临界点。`);
+          renderCrisisBar();
+          // 危机事件不会立刻弹出——下一个 triggerEvent 会处理
+          return;
+        }
+      }
+    }
+
+    function advanceCrisis() {
+      if (!state._crisisChain) return;
+      const chain = CRISIS_CHAINS[state._crisisChain];
+      if (!chain) return;
+
+      state._crisisStage += 1;
+      if (state._crisisStage > chain.steps.length) {
+        // 危机链完成
+        resolveCrisis();
+      } else {
+        renderCrisisBar();
+      }
+    }
+
+    function resolveCrisis() {
+      const chain = CRISIS_CHAINS[state._crisisChain];
+      if (chain) {
+        addLog(`${chain.icon} ${chain.name}：危机阶段结束。世界暂时恢复了平衡——但这道伤痕不会被轻易忘记。`);
+      }
+      state._crisisChain = null;
+      state._crisisStage = 0;
+      state._crisisTargetIndex = undefined;
+      state._crisisCooldown = 12 + Math.floor(Math.random() * 8); // 12-19天冷却
+      renderCrisisBar();
+    }
+
+    function renderCrisisBar() {
+      const bar = document.getElementById("crisisBar");
+      if (!bar) return;
+      if (!state._crisisChain) {
+        bar.className = "crisis-bar";
+        return;
+      }
+
+      const chain = CRISIS_CHAINS[state._crisisChain];
+      if (!chain) { bar.className = "crisis-bar"; return; }
+
+      const step = chain.steps[state._crisisStage - 1];
+      const target = state.regions[state._crisisTargetIndex] || state.regions[0];
+
+      document.getElementById("crisisIcon").textContent = chain.icon;
+      document.getElementById("crisisName").textContent = `${chain.name} — 第${state._crisisStage}/${chain.steps.length}阶段`;
+      document.getElementById("crisisDesc").textContent = step.desc;
+      document.getElementById("crisisStage").textContent = step.title(target);
+      bar.className = "crisis-bar active";
+    }
+
+    // ============================================================
+
     function renderEvent() {
       const box = document.getElementById("eventCard");
       if (!state.currentEvent) {
@@ -2780,6 +3138,32 @@
         return;
       }
       const event = state.currentEvent;
+
+      // v1.8.0.0 危机事件渲染
+      if (event.crisisStep) {
+        const chain = CRISIS_CHAINS[state._crisisChain];
+        if (!chain) return;
+        const step = chain.steps[state._crisisStage - 1];
+        if (!step) return;
+        const target = state.regions[event.targetIndex];
+        box.innerHTML = `
+          <div class="event-title">
+            <strong>${chain.icon} ${chain.name} — 第${state._crisisStage}/${chain.steps.length}阶段</strong>
+            <span class="badge" style="background:rgba(216,109,98,.25);color:var(--red);border-color:rgba(216,109,98,.4)">⚠ 危机</span>
+          </div>
+          <p class="event-text">${step.text(target)}</p>
+          <div class="choice-list">
+            ${step.choices.map((choice, index) => `
+              <button class="btn choice" type="button" onclick="chooseEvent(${index})">
+                <span>${choice.label}</span>
+              </button>
+            `).join("")}
+          </div>
+        `;
+        return;
+      }
+
+      // 正常事件
       const target = state.regions[event.targetIndex];
       const t = event.template;
       const activeChoices = getActiveChoices(t);
