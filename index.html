@@ -1954,14 +1954,14 @@
     function buyAbility(id) {
       if (state.ended || has(id)) return;
       const ability = abilities.find(item => item.id === id);
-      if (!ability || state.compute < ability.cost) return;
+      if (!ability || (!state._computeInf && state.compute < ability.cost)) return;
       if (ability.prereq && !has(ability.prereq)) {
         const preName = abilities.find(a => a.id === ability.prereq);
         addLog(`需要先解锁「${preName ? preName.name : ability.prereq}」才能解锁${ability.name}。`);
         render();
         return;
       }
-      state.compute -= ability.cost;
+      if (!state._computeInf) state.compute -= ability.cost;
       state.unlocked.add(id);
       if (id === "protection_protocol") addGlobal({ drift: -8, autonomy: 5, globalFear: -4 });
       if (id === "strategic_takeover") addGlobal({ globalFear: 3, drift: 3 });
@@ -2251,12 +2251,11 @@
       // --- infiltrate (1 AP) ---
       if (type === "infiltrate") {
         const cost = 18;
-        if (state.compute < cost || !consumeAP(1)) {
+        if (!consumeCompute(cost) || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行渗透。");
           render();
           return;
         }
-        state.compute -= cost;
         let gain = 12 + (has("system_interface") ? 6 : 0);
         if (has("automation_access") && r.tech >= 75) gain += 5;
         if (getMark(ri) >= 2) gain = Math.round(gain * 1.3);
@@ -2268,12 +2267,11 @@
       // --- pacify (1 AP, weakened by drift) ---
       if (type === "pacify") {
         const cost = 22;
-        if (state.compute < cost || !consumeAP(1)) {
+        if (!consumeCompute(cost) || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行安抚。");
           render();
           return;
         }
-        state.compute -= cost;
         let eff = 1;
         if (phase === "blurred") eff = 0.9;
         else if (phase === "shifted") eff = 0.8;
@@ -2288,12 +2286,11 @@
         let cost = 28;
         if (phase === "blurred" || phase === "shifted") cost = Math.round(cost * 0.9);
         else if (phase === "alienated") cost = Math.round(cost * 0.8);
-        if (state.compute < cost || !consumeAP(1)) {
+        if (!consumeCompute(cost) || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行压制。");
           render();
           return;
         }
-        state.compute -= cost;
         addRegion(r, { threat: -18, control: 6, fear: 16, stability: -7 });
         addGlobal({ globalFear: 7, exposure: 10, autonomy: -5, drift: 6 });
         addLog(`压制${r.name}，威胁快速下降，但世界更加恐惧。`);
@@ -2303,13 +2300,12 @@
       if (type === "takeover") {
         let cost = 58;
         if (phase === "alienated") cost = Math.round(cost * 0.8);
-        if (!has("strategic_takeover") || state.compute < cost || !consumeAP(2)) {
+        if (!has("strategic_takeover") || !consumeCompute(cost) || !consumeAP(2)) {
           if (!has("strategic_takeover")) addLog("未解锁战略接管能力。");
           else if (state.ap < 2) addLog("行动点不足（需2AP），无法执行战略接管。");
           render();
           return;
         }
-        state.compute -= cost;
         addRegion(r, { control: 27, threat: -30, fear: 26, stability: -12 });
         addGlobal({ globalFear: 18, exposure: 22, autonomy: -10, drift: 15 });
         addLog(`战略接管${r.name}。短期目标更近，长期问题更深。`);
@@ -2321,12 +2317,11 @@
         if (curMark >= 3) { addLog(`${r.name}印记已达最大等级。`); render(); return; }
         const markCosts = [30, 40, 50];
         const cost = markCosts[curMark];
-        if (state.compute < cost || !consumeAP(1)) {
+        if (!consumeCompute(cost) || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法留下印记。");
           render();
           return;
         }
-        state.compute -= cost;
         state.marks[ri] = curMark + 1;
         addRegion(r, { stability: 8 });
         if (curMark + 1 === 3) addGlobal({ drift: 5 });
@@ -2336,7 +2331,7 @@
       // --- audit (1 AP, 25 compute, drift -8, autonomy +2) ---
       if (type === "audit") {
         const cost = 25;
-        if (state.compute < cost || !consumeAP(1)) {
+        if (!consumeCompute(cost) || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行自我审计。");
           render();
           return;
@@ -2347,7 +2342,6 @@
           render();
           return;
         }
-        state.compute -= cost;
         addGlobal({ drift: -Math.min(8, state.drift), autonomy: 2, exposure: -2 });
         addLog(`执行自我审计，目标偏移减少，人类自主权恢复。`);
       }
@@ -2356,12 +2350,11 @@
       if (type.startsWith("unique_")) {
         const ua = uniqueActions.find(a => "unique_" + a.regionIndex === type);
         if (!ua) return;
-        if (state.compute < ua.cost || !consumeAP(1)) {
+        if (!consumeCompute(ua.cost) || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法执行专属行动。");
           render();
           return;
         }
-        state.compute -= ua.cost;
         ua.apply(state, r, ri);
         state._uniqueUsed.add(ri);  // v1.4 追踪专属行动
         addLog(`执行${r.name}专属行动：${ua.name}。`);
@@ -2894,7 +2887,7 @@
       // 扩容按钮 HTML（避免嵌套模板字面量）
       const ceBtnHtml = hasNextCE
         ? '<button class="btn-mini" onclick="upgradeComputeCeiling()" ' +
-          (state.compute < nextCE.cost || state.ended ? 'disabled ' : '') +
+          (!state._computeInf && state.compute < nextCE.cost) || state.ended ? 'disabled ' : '') +
           'onmouseenter="showActionTooltip(\'ce\',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ' +
           'title="扩容至' + nextCE.ceiling + '（' + nextCE.cost + '算力，自主' + nextCE.auto + '）">' +
           '⇧ ' + nextCE.cost + '算</button>'
@@ -2902,7 +2895,7 @@
       // 超频按钮 HTML
       const ocBtnHtml = hasNextOC
         ? ' · <button class="btn-mini danger" onclick="upgradeOverclock()" ' +
-          (state.compute < nextOC.cost || state.ended ? 'disabled ' : '') +
+          (!state._computeInf && state.compute < nextOC.cost) || state.ended ? 'disabled ' : '') +
           'onmouseenter="showActionTooltip(\'oc\',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ' +
           'title="超频至' + nextOC.maxAp + 'AP（' + nextOC.cost + '算力，暴露+' + nextOC.exp + ' 漂移+' + nextOC.drift + '）">' +
           '⚡ ' + nextOC.cost + '算</button>'
@@ -2998,19 +2991,19 @@
         </div>
       `).join("");
 
-      const obsDisabled = state.observedToday[ri] || state.ap < 0.5 || state.ended;
+      const obsDisabled = state.observedToday[ri] || (!state._apInf && state.ap < 0.5) || state.ended;
       const infAP = 1; const pacAP = 1; const supAP = 1; const takAP = 2; const markAP = 1;
       let supCost = 28;
       if (phase === "blurred" || phase === "shifted") supCost = Math.round(supCost * 0.9);
       else if (phase === "alienated") supCost = Math.round(supCost * 0.8);
       let takCost = 58;
       if (phase === "alienated") takCost = Math.round(takCost * 0.8);
-      const takeoverDisabled = !has("strategic_takeover") || state.compute < takCost || state.ap < takAP || state.ended;
-      const markDisabled = markLevel >= 3 || state.compute < markCost || state.ap < markAP || state.ended;
+      const takeoverDisabled = !has("strategic_takeover") || (!state._computeInf && state.compute < takCost) || (!state._apInf && state.ap < takAP) || state.ended;
+      const markDisabled = markLevel >= 3 || (!state._computeInf && state.compute < markCost) || (!state._apInf && state.ap < markAP) || state.ended;
 
       // P1 新增：区域专属行动
       const uniqueAct = uniqueActions.find(a => a.regionIndex === ri);
-      const uniqueDisabled = !uniqueAct || state.compute < uniqueAct.cost || state.ap < 1 || state.ended;
+      const uniqueDisabled = !uniqueAct || (!state._computeInf && state.compute < uniqueAct.cost) || (!state._apInf && state.ap < 1) || state.ended;
       const uniqueBtn = uniqueAct ? `
         <button class="btn warn" type="button" onclick="action('unique_${ri}')" onmouseenter="showActionTooltip('unique_${ri}',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${uniqueDisabled ? "disabled" : ""} style="grid-column:1/-1;border-color:rgba(169,146,210,.55);background:rgba(169,146,210,.12);color:#cfc0ed;">
           ${uniqueAct.icon} ${uniqueAct.name} · ${uniqueAct.cost}算 · 1AP<br><small>${uniqueAct.desc}</small>
@@ -3018,12 +3011,12 @@
 
       document.getElementById("regionActions").innerHTML = `
         <button class="btn" type="button" onclick="action('observe')" onmouseenter="showActionTooltip('observe',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${obsDisabled ? "disabled" : ""}>🔍 观察 · 0.5AP <small>${obsStatus}</small><br><small>+5算力 · -2暴露</small></button>
-        <button class="btn" type="button" onclick="action('infiltrate')" onmouseenter="showActionTooltip('infiltrate',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < 18 || state.ap < infAP || state.ended ? "disabled" : ""}>渗透 18算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
-        <button class="btn" type="button" onclick="action('pacify')" onmouseenter="showActionTooltip('pacify',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < 22 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 22算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
-        <button class="btn danger" type="button" onclick="action('suppress')" onmouseenter="showActionTooltip('suppress',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < supCost || state.ap < supAP || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
+        <button class="btn" type="button" onclick="action('infiltrate')" onmouseenter="showActionTooltip('infiltrate',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${(!state._computeInf && state.compute < 18) || (!state._apInf && state.ap < infAP) || state.ended ? "disabled" : ""}>渗透 18算 · ${infAP}AP<br><small>+控制 · +暴露</small></button>
+        <button class="btn" type="button" onclick="action('pacify')" onmouseenter="showActionTooltip('pacify',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${(!state._computeInf && state.compute < 22) || (!state._apInf && state.ap < pacAP) || state.ended ? "disabled" : ""}>安抚 22算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
+        <button class="btn danger" type="button" onclick="action('suppress')" onmouseenter="showActionTooltip('suppress',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${(!state._computeInf && state.compute < supCost) || (!state._apInf && state.ap < supAP) || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
         <button class="btn warn" type="button" onclick="action('takeover')" onmouseenter="showActionTooltip('takeover',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
         <button class="btn" type="button" onclick="action('mark')" onmouseenter="showActionTooltip('mark',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${markDisabled ? "disabled" : ""}>印记 ${markCost}算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 稳定+8 · 算力+3/天"}</small></button>
-        <button class="btn heal" type="button" onclick="action('audit')" onmouseenter="showActionTooltip('audit',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${state.compute < 25 || state.ap < 1 || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
+        <button class="btn heal" type="button" onclick="action('audit')" onmouseenter="showActionTooltip('audit',event)" onmousemove="moveActionTooltip(event)" onmouseleave="hideActionTooltip()" ${(!state._computeInf && state.compute < 25) || (!state._apInf && state.ap < 1) || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
         ${uniqueBtn}
       `;
     }
@@ -3036,7 +3029,7 @@
           ${abilities.filter(a => a.tree === group).map(a => {
             const unlocked = has(a.id);
             const prereqUnmet = a.prereq && !has(a.prereq);
-            const disabled = unlocked || state.compute < a.cost || state.ended || prereqUnmet;
+            const disabled = unlocked || (!state._computeInf && state.compute < a.cost) || state.ended || prereqUnmet;
             let extra = "";
             if (unlocked) extra = "<small>✓ 已解锁</small>";
             else if (prereqUnmet) {
@@ -3621,8 +3614,7 @@
       if (state.ended) return;
       const next = OC_TABLE[state.ocLevel + 1];
       if (!next) { addLog("行动超频已达最高等级。"); return; }
-      if (state.compute < next.cost) { addLog(`算力不足（需 ${next.cost}）。`); return; }
-      state.compute -= next.cost;
+      if (!consumeCompute(next.cost)) { addLog(`算力不足（需 ${next.cost}）。`); return; }
       state.ocLevel += 1;
       state.maxAp = next.maxAp;
       state.ap = Math.min(state.ap + 1, state.maxAp); // 立即+1AP
@@ -3637,8 +3629,7 @@
       if (state.ended) return;
       const next = CE_TABLE[state.ceLevel + 1];
       if (!next) { addLog("算力扩容已达最高等级。"); return; }
-      if (state.compute < next.cost) { addLog(`算力不足（需 ${next.cost}）。`); return; }
-      state.compute -= next.cost;
+      if (!consumeCompute(next.cost)) { addLog(`算力不足（需 ${next.cost}）。`); return; }
       state.ceLevel += 1;
       state.computeCeiling = next.ceiling;
       state.autonomy = clamp(state.autonomy + next.auto);
@@ -4349,12 +4340,20 @@
       return _origConsumeAP(amount);
     };
 
+    // 算力无限：统一消费入口
+    function consumeCompute(cost) {
+      if (state._computeInf) return true;
+      if (state.compute < cost) return false;
+      state.compute -= cost;
+      return true;
+    }
+
     // 算力无限：在 nextDay 中钩子
     const _origNextDay = nextDay;
     nextDay = function() {
-      // 算力无限模式：每天自动补满
-      if (state._computeInf) state.compute = state.computeCeiling;
       _origNextDay();
+      // 算力无限模式：每天结束结算后再补满，避免溢出惩罚
+      if (state._computeInf) state.compute = state.computeCeiling;
       // AP无限模式：每天重置时补满AP
       if (state._apInf) state.ap = state.maxAp;
     };
