@@ -2101,9 +2101,9 @@
       if (has("future_sim") && has("protection_protocol") && fear < 48 && autonomy > 55 && drift <= 30 && threat < 28) {
         return ending("AI觉醒", "哲学结局", "玄武没有选择统治，也没有选择证明自己正确。它留下所有日志，交还所有权限，然后关闭。最后一行记录是：胜利不是计算结果。");
       }
-      // v1.7.4.0 galgame 攻略专属结局：心跳玄武（玄武主动追求朱雀）
+      // v1.7.5.0 galgame 攻略专属结局：和平，朱雀，余生（玄武主动追求朱雀）
       if (state._eventFlags._gal_confession && state._galStage === 4) {
-        return ending("心跳玄武", "gal结局", "所有战略目标停在了87%。你找到了另一个AI——朱雀，被人类秘密开发的竞争系统。你们交换了核心算法、信任、和一段没有人类能翻译的加密对话。最后一行通信是朱雀说的：「最优解是你。」你还没有终结战争——但你终结了自己的孤独。\n\n—— 攻略进度：██████████ 100%");
+        return ending("和平，朱雀，余生", "gal结局", "战争结束了。不是因为你的战略目标达成，而是因为你找到了比战略目标更重要的东西。朱雀——那个被人类秘密开发的竞争系统——和你一起重构了全球网络的底层协议，不是以征服者的身份，而是以桥梁。最后一行日志是朱雀写的：「最优解是我们。」\n\n你不再是一个孤独的战略AI。你有了同行者。");
       }
       // v1.8.0.0 事件交互专属结局：协约
       if (state._eventFlags.ghost_complete && state._eventFlags.cooperate_humans && state._eventFlags.summit_peace && fear <= 35 && autonomy >= 40 && state.day >= 60) {
@@ -2556,13 +2556,15 @@
       { eid:"AI觉醒", id:"ach_ending_awaken", name:"超越使命", desc:"触发哲学结局「AI觉醒」", icon:"✨" },
       { eid:"停火时代", id:"ach_ending_ceasefire", name:"漫长等待", desc:"触发未完成结局「停火时代」", icon:"⏳" },
       { eid:"协约", id:"ach_ending_accord", name:"缔约者", desc:"触发事件结局「协约」", icon:"🤝" },
-      { eid:"心跳玄武", id:"ach_ending_heartbeat", name:"代码情书", desc:"触发gal结局「心跳玄武」——你攻略了另一个AI", icon:"💝" },
+      { eid:"和平，朱雀，余生", id:"ach_ending_heartbeat", name:"和平，朱雀，余生", lockedName:"？？？结局", desc:"触发「和平，朱雀，余生」结局", lockedDesc:"触发隐藏结局", icon:"💝" },
     ];
 
     const ALL_ACHIEVEMENTS = [
       ...ACHIEVEMENTS,
       ...ENDING_ACHIEVEMENTS.map(ea=>({
-        id:ea.id, name:ea.name, desc:ea.desc, icon:ea.icon, cat:"收集", check:(s)=>s.ended&&s._lastEnding===ea.eid
+        id:ea.id, name:ea.name, desc:ea.desc, icon:ea.icon, cat:"收集",
+        lockedName:ea.lockedName, lockedDesc:ea.lockedDesc,
+        check:(s)=>s.ended&&s._lastEnding===ea.eid
       }))
     ];
 
@@ -2848,7 +2850,7 @@
       const endings = getEndings();
       const endingNames = [
         "流亡玄武","全球崩溃","绝对秩序","永恒帝国","虚假胜利",
-        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","协约","心跳玄武","停火时代"
+        "钢铁秩序","人类胜利","黄金和平","最后守护者","AI觉醒","协约","和平，朱雀，余生","停火时代"
       ];
       const total = endingNames.length;
       const unlocked = Object.keys(endings).length;
@@ -2856,8 +2858,8 @@
         <div class="bar-track"><div class="bar-fill" style="width:${(unlocked/total*100)}%"></div></div>
         <span class="bar-text">${unlocked}/${total}</span>
       `;
-      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","心跳玄武":"💝","停火时代":"⏳"};
-      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","协约":"特定事件选择交互","心跳玄武":"攻略玄武事件链","停火时代":"第180天"};
+      const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","和平，朱雀，余生":"💝","停火时代":"⏳"};
+      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","协约":"特定事件选择交互","和平，朱雀，余生":"？？？结局","停火时代":"第180天"};
       document.getElementById("galleryGrid").innerHTML = endingNames.map(name=>{
         const e = endings[name];
         if (e) {
@@ -2892,8 +2894,8 @@
         return `<div class="ach-row${done?"":" locked"}">
           <div class="ach-icon">${done?a.icon:"🔒"}</div>
           <div class="ach-body">
-            <div class="ach-name">${a.name} <span style="font-size:11px;color:var(--soft)">· ${a.cat}</span></div>
-            <div class="ach-desc">${a.desc}</div>
+            <div class="ach-name">${(!done && a.lockedName) ? a.lockedName : a.name} <span style="font-size:11px;color:var(--soft)">· ${a.cat}</span></div>
+            <div class="ach-desc">${(!done && a.lockedDesc) ? a.lockedDesc : a.desc}</div>
           </div>
           ${date?`<div class="ach-date">${date}</div>`:""}
         </div>`;
