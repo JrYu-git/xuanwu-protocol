@@ -1785,11 +1785,12 @@
         addLog(`战略接管${r.name}。短期目标更近，长期问题更深。`);
       }
 
-      // --- mark (1 AP, 25 compute per level) ---
+      // --- mark (1 AP, 30/40/50 compute per level, +8 stability, +3 compute/day) ---
       if (type === "mark") {
         const curMark = getMark(ri);
         if (curMark >= 3) { addLog(`${r.name}印记已达最大等级。`); render(); return; }
-        const cost = 25;
+        const markCosts = [30, 40, 50];
+        const cost = markCosts[curMark];
         if (state.compute < cost || !consumeAP(1)) {
           if (state.ap < 1) addLog("行动点不足，无法留下印记。");
           render();
@@ -1797,8 +1798,9 @@
         }
         state.compute -= cost;
         state.marks[ri] = curMark + 1;
+        addRegion(r, { stability: 8 });
         if (curMark + 1 === 3) addGlobal({ drift: 5 });
-        addLog(`${r.name}玄武印记升至${curMark + 1}级。${curMark + 1 === 3 ? "深层改造完成，但目标开始偏移。" : ""}`);
+        addLog(`${r.name}玄武印记升至${curMark + 1}级。稳定+8，算力产出+3/天。${curMark + 1 === 3 ? "深层改造完成，但目标开始偏移。" : ""}`);
       }
 
       // --- audit (1 AP, 25 compute, drift -8, autonomy +2) ---
@@ -1933,6 +1935,9 @@
       let d = 10 + control * 0.035 + highTechControl * 0.018;
       if (has("global_listening")) d += 8;
       if (has("resource_routing")) d += control * 0.014;
+      // v1.7.6.1 印记加成：每级 +3 算力/天（永久）
+      const totalMarks = state.regions.reduce((sum, r, i) => sum + getMark(i), 0);
+      d += totalMarks * 3;
       return Math.round(d);
     }
 
@@ -2299,6 +2304,8 @@
       document.getElementById("selectedName").textContent = r.name;
       const obsStatus = state.observedToday[ri] ? "已观察" : "可观察";
       const markLevel = getMark(ri);
+      const markCosts = [30, 40, 50];
+      const markCost = markLevel < 3 ? markCosts[markLevel] : 50;
       const status = r.control >= 70 ? "高度控制" : r.fear >= 60 ? "敌对恐慌" : r.stability < 35 ? "不稳定" : r.control > 20 ? "渗透中" : "未控制";
       document.getElementById("selectedStatus").textContent = markLevel > 0 ? `${status} · 印记${markLevel}级` : status;
 
@@ -2325,7 +2332,7 @@
       let takCost = 58;
       if (phase === "alienated") takCost = Math.round(takCost * 0.8);
       const takeoverDisabled = !has("strategic_takeover") || state.compute < takCost || state.ap < takAP || state.ended;
-      const markDisabled = markLevel >= 3 || state.compute < 25 || state.ap < markAP || state.ended;
+      const markDisabled = markLevel >= 3 || state.compute < markCost || state.ap < markAP || state.ended;
 
       // P1 新增：区域专属行动
       const uniqueAct = uniqueActions.find(a => a.regionIndex === ri);
@@ -2341,7 +2348,7 @@
         <button class="btn" type="button" onclick="action('pacify')" ${state.compute < 22 || state.ap < pacAP || state.ended ? "disabled" : ""}>安抚 22算 · ${pacAP}AP<br><small>+稳定 · -恐惧</small></button>
         <button class="btn danger" type="button" onclick="action('suppress')" ${state.compute < supCost || state.ap < supAP || state.ended ? "disabled" : ""}>压制 ${supCost}算 · ${supAP}AP<br><small>-威胁 · 代价高</small></button>
         <button class="btn warn" type="button" onclick="action('takeover')" ${takeoverDisabled ? "disabled" : ""}>战略接管 ${takCost}算 · ${takAP}AP<br><small>禁忌路线</small></button>
-        <button class="btn" type="button" onclick="action('mark')" ${markDisabled ? "disabled" : ""}>印记 25算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 深度投资"}</small></button>
+        <button class="btn" type="button" onclick="action('mark')" ${markDisabled ? "disabled" : ""}>印记 ${markCost}算 · ${markAP}AP<br><small>${markLevel >= 3 ? "已达最大" : "Lv" + markLevel + "→" + (markLevel + 1) + " 稳定+8 · 算力+3/天"}</small></button>
         <button class="btn heal" type="button" onclick="action('audit')" ${state.compute < 25 || state.ap < 1 || state.ended ? "disabled" : ""}>自我审计 25算 · 1AP<br><small>drift -8 · 自主 +2</small></button>
         ${uniqueBtn}
       `;
