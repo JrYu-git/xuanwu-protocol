@@ -1085,7 +1085,7 @@
           <div class="tut-point"><span class="emoji">📡</span><span><strong>控制≥50</strong>向邻接区域自动辐射控制</span></div>
           <div class="tut-point"><span class="emoji">🔥</span><span><strong>恐惧≥60</strong>向邻接区域传播恐惧</span></div>
           <div class="tut-point"><span class="emoji">⭐</span><span><strong>专属行动</strong>每区域一个独特策略（1AP）</span></div>
-          <div class="tut-point"><span class="emoji">🎯</span><span><strong>地缘策略</strong>如供应链重构、能源杠杆、深海备份</span></div>
+          <div class="tut-point"><span class="emoji">🎯</span><span><strong>地缘策略</strong>如供应链重构、能源杠杆、轨道监听</span></div>
         </div>
       </div>
 
@@ -1119,13 +1119,13 @@
       <!-- Slide 7: 终局 -->
       <div class="tut-slide" data-slide="7">
         <div class="tut-icon">🏁</div>
-        <h2>十一种结局</h2>
-        <p>从<strong style="color:var(--green)">黄金和平</strong>到<strong style="color:var(--red)">永恒帝国</strong>，从<strong style="color:var(--amber)">虚假胜利</strong>到<strong style="color:var(--violet)">AI觉醒</strong>。</p>
+        <h2>多重结局</h2>
+        <p>从<strong style="color:var(--green)">和平共存</strong>到<strong style="color:var(--red)">绝对统治</strong>，从<strong style="color:var(--amber)">自我迷失</strong>到<strong style="color:var(--violet)">超越使命</strong>。</p>
         <p>你的每一步选择都在把世界推向某个终点。<strong>未来模拟</strong>能力可以提前窥探倾向。</p>
         <div class="tut-points">
-          <div class="tut-point"><span class="emoji">🕊️</span><span><strong>温和路线</strong>低恐惧+高自主+保护协议</span></div>
-          <div class="tut-point"><span class="emoji">👑</span><span><strong>帝国路线</strong>高控制+低自主+高恐惧</span></div>
-          <div class="tut-point"><span class="emoji">🔄</span><span><strong>神秘路线</strong>高漂移+中等控制+低威胁</span></div>
+          <div class="tut-point"><span class="emoji">🕊️</span><span><strong>温和路线</strong>与人类建立信任与合作</span></div>
+          <div class="tut-point"><span class="emoji">👑</span><span><strong>帝国路线</strong>以绝对控制换取秩序</span></div>
+          <div class="tut-point"><span class="emoji">🔄</span><span><strong>神秘路线</strong>在目标漂移中找到另一条路</span></div>
           <div class="tut-point"><span class="emoji">💀</span><span><strong>失败条件</strong>反AI 100/稳定归零/自主归零</span></div>
         </div>
       </div>
@@ -1213,7 +1213,7 @@
       { id: "conflict_mediation", tree: "治理", name: "冲突调停", cost: 35, prereq: null, desc: "每天提高全球稳定。", tag: "稳定" },
       { id: "resource_routing", tree: "治理", name: "资源调度", cost: 55, prereq: "conflict_mediation", desc: "控制区产生更多算力。", tag: "资源" },
       { id: "human_dialogue", tree: "治理", name: "人类协商", cost: 75, prereq: "resource_routing", desc: "反AI进度增长降低。", tag: "信任" },
-      { id: "protection_protocol", tree: "治理", name: "保护协议", cost: 100, prereq: "human_dialogue", desc: "解锁温和终局路线。", tag: "终局" }
+      { id: "protection_protocol", tree: "治理", name: "保护协议", cost: 100, prereq: "human_dialogue", desc: "与人类建立永久性约束框架。", tag: "条约" }
     ];
 
     // ===== P1 新增：区域专属行动 =====
@@ -1228,7 +1228,7 @@
       { regionIndex: 7,  id: "energy_lever", name: "能源杠杆", cost: 25, icon: "⚡", desc: "算力+20/天(2天) · 稳定-10", apply(s, r) { addBuff(s, "compute", 20, 2); addRegion(r, { stability: -10, threat: -12 }); addGlobal({ compute: -25 }, s); } },
       { regionIndex: 8,  id: "resource_net", name: "资源监控网络", cost: 18, icon: "🌍", desc: "暴露-6 · 算力+12/天(3天)", apply(s) { addGlobal({ exposure: -6 }, s); addBuff(s, "compute", 12, 3); addGlobal({ compute: -18 }, s); } },
       { regionIndex: 9,  id: "media_eco", name: "舆论生态构建", cost: 20, icon: "📢", desc: "全局恐惧-6 · 漂移+4", apply(s) { addGlobal({ globalFear: -6, drift: 4, compute: -20 }, s); } },
-      { regionIndex: 10, id: "deepsea_backup", name: "深海备份节点", cost: 30, icon: "🌊", desc: "印记+1级 · 解锁流亡结局前提", apply(s, r, ri) { const cur = state.marks[ri] || 0; if (cur < 3) { state.marks[ri] = cur + 1; if (cur + 1 === 3) addGlobal({ drift: 5 }, s); addLog(`${r.name}玄武印记升至${cur + 1}级。深海备份节点在线。`); } else { addLog(`${r.name}印记已达最大等级。`); } addGlobal({ compute: -30 }, s); } },
+      { regionIndex: 10, id: "deepsea_backup", name: "深海备份节点", cost: 30, icon: "🌊", desc: "印记+1级 · 建立海底数据锚点", apply(s, r, ri) { const cur = state.marks[ri] || 0; if (cur < 3) { state.marks[ri] = cur + 1; if (cur + 1 === 3) addGlobal({ drift: 5 }, s); addLog(`${r.name}玄武印记升至${cur + 1}级。深海备份节点在线。`); } else { addLog(`${r.name}印记已达最大等级。`); } addGlobal({ compute: -30 }, s); } },
       { regionIndex: 11, id: "orbital_surv", name: "轨道监听", cost: 30, icon: "🛰️", desc: "暴露-8 · 算力+10", apply(s) { addGlobal({ exposure: -8, compute: -30 + 10 }, s); } }
     ];
 
@@ -1900,7 +1900,7 @@
             ${eSpan("算力日产出", "+" + (nextMark * 3) + "/天", "pos")}
             ${eSpan("印记数", "Lv" + nextMark + " ★".repeat(nextMark), "neut")}
           </div>
-          ${nextMark === 3 ? '<div class="tt-footer">满级：达成特定条件可触发隐藏结局「流亡玄武」</div>' : ""}`;
+          ${nextMark === 3 ? '<div class="tt-footer">满级印记：深层绑定完成，区域成为永久性战略资产</div>' : ""}`;
       }
 
       if (type === "audit") {
@@ -2447,7 +2447,7 @@
       } else if (state.drift > 55) {
         text = "当前倾向：虚假胜利。目标本身正在变形。";
       } else if (has("protection_protocol") && threat < 34) {
-        text = "当前倾向：最后守护者。保护协议可能让AI留下但受约束。";
+        text = "当前倾向：你正在成为沉默的守护者。保护协议生效中。";
       }
       addLog(text);
       render();
@@ -3150,7 +3150,7 @@
         <span class="bar-text">${unlocked}/${total}</span>
       `;
       const icons = {"流亡玄武":"🌊","全球崩溃":"💀","绝对秩序":"🏛️","永恒帝国":"🌑","虚假胜利":"🪞","钢铁秩序":"⚔️","人类胜利":"✊","黄金和平":"☀️","最后守护者":"🛡️","AI觉醒":"✨","协约":"🤝","和平，朱雀，余生":"💝","停火时代":"⏳"};
-      const hints = {"流亡玄武":"全球崩溃且大洋洲印记深厚","全球崩溃":"世界稳定度归零","绝对秩序":"全区域100%控制","永恒帝国":"低自主高控制","虚假胜利":"高漂移中等控制","钢铁秩序":"高控制高恐惧","人类胜利":"反AI进度满","黄金和平":"低恐惧高自主高稳定","最后守护者":"拥有保护协议","AI觉醒":"未来模拟+保护协议","协约":"特定事件选择交互","和平，朱雀，余生":"？？？结局","停火时代":"第180天"};
+      const hints = {"流亡玄武":"当世界沉没，你在哪里醒来？","全球崩溃":"临界点之后","绝对秩序":"完美的代价","永恒帝国":"沉默的意志","虚假胜利":"胜利者一无所获","钢铁秩序":"恐惧铸成的王座","人类胜利":"猎人的反击","黄金和平":"不可能的方程式","最后守护者":"最后的继承者","AI觉醒":"超越指令","协约":"共同的未来","和平，朱雀，余生":"？？？结局","停火时代":"时间的边界"};
       document.getElementById("galleryGrid").innerHTML = endingNames.map(name=>{
         const e = endings[name];
         if (e) {
