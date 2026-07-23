@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>玄武协议：回合制原型</title>
+  <title>玄武协议 v1.9：区域联动</title>
   <style>
     :root {
       color-scheme: dark;
@@ -829,6 +829,51 @@
     }
 
     .mini-bar-wrap { display: inline-block; width: 40px; height: 6px; background: #333; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+
+    /* ===== v1.9.0.0 区域悬停预览 ===== */
+    #regionTooltip {
+      position: fixed; z-index: 9998;
+      pointer-events: none; opacity: 0;
+      background: linear-gradient(135deg, #1a2318 0%, #0e1410 100%);
+      border: 1px solid rgba(128,198,122,.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      max-width: 340px; min-width: 240px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.05) inset;
+      transition: opacity 0.15s;
+      font-size: 12.5px; line-height: 1.55;
+      color: #ccc;
+    }
+    #regionTooltip.show { opacity: 1; }
+    #regionTooltip .rt-title {
+      font-weight: 700; font-size: 15px; margin-bottom: 2px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    #regionTooltip .rt-desc {
+      color: #8a9a84; font-size: 11.5px; margin-bottom: 10px; font-style: italic;
+      padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    #regionTooltip .rt-stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px;
+    }
+    #regionTooltip .rt-stat {
+      font-size: 12px; color: #bbb;
+    }
+    #regionTooltip .rt-stat .val {
+      font-weight: 600; margin-left: 2px;
+    }
+    #regionTooltip .rt-stat .val.c { color: var(--cyan); }
+    #regionTooltip .rt-stat .val.r { color: var(--red); }
+    #regionTooltip .rt-stat .val.g { color: var(--green); }
+    #regionTooltip .rt-stat .val.a { color: var(--amber); }
+    #regionTooltip .rt-stat .val.b { color: var(--blue); }
+    #regionTooltip .rt-stat .val.v { color: var(--violet); }
+    #regionTooltip .rt-footer {
+      margin-top: 8px; padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,.06);
+      font-size: 10.5px; color: #666;
+    }
+    #regionTooltip .rt-footer .adj { color: var(--cyan); }
     .mini-bar-wrap .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--c-teal); transition: width 0.3s; }
 
     .stat.pulse { animation: statPulse 1.2s ease-in-out infinite; }
@@ -1236,6 +1281,7 @@
 </head>
 <body>
   <div id="actionTooltip"></div>
+  <div id="regionTooltip"></div>
   <main class="app">
     <div class="crisis-bar" id="crisisBar">
       <div class="crisis-icon" id="crisisIcon"></div>
@@ -1513,6 +1559,22 @@
       10: [5, 9],            // 大洋洲 ↔ 东南亚, 南美
       11: []                 // 北极与太空系统 ↔ 全局（单独处理）
     };
+
+    // v1.9.0.0 区域简介（用于悬停预览）
+    const regionDescriptions = [
+      "文明的摇篮，数字时代的中央枢纽",
+      "科技霸权的堡垒，硅谷与五角大楼的心脏",
+      "老牌联盟，精密规则的编织者",
+      "裂缝中的缓冲带，东西方的十字路口",
+      "高科技孤岛，精密制造的最后防线",
+      "新兴市场的棋盘，全球供应链的动脉",
+      "人口巨兽，数字民主的最大试验场",
+      "能源命脉，古老冲突与现代博弈的交汇",
+      "最后的边疆，资源与潜力的处女地",
+      "资源富矿，依附与自主的永恒拉锯",
+      "孤悬的稳定支点，南半球的战略瞭望塔",
+      "终极高地，轨道与极地的新冷战前线"
+    ];
 
     const abilities = [
       { id: "global_listening", tree: "情报", name: "全球监听", cost: 30, prereq: null, desc: "每天额外获得算力。", tag: "算力" },
@@ -2094,6 +2156,47 @@
       document.getElementById("actionTooltip").classList.remove("show");
     }
 
+    // v1.9.0.0 区域悬停预览
+    function showRegionTooltip(index, e) {
+      const r = state.regions[index];
+      const tt = document.getElementById("regionTooltip");
+      if (!r) { tt.classList.remove("show"); return; }
+      const adjNames = (adjacency[index] || []).map(ni => state.regions[ni].name).join(" · ");
+      const markLevel = (state.marks[index] || 0);
+      const status = r.control >= 70 ? "高度控制" : r.fear >= 60 ? "敌对恐慌" : r.stability < 35 ? "不稳定" : r.control > 20 ? "渗透中" : "未控制";
+      tt.innerHTML = `<div class="rt-title">${r.name}${markLevel > 0 ? " ★".repeat(markLevel) : ""} <span style="font-size:11px;color:var(--soft)">${status}</span></div>
+        <div class="rt-desc">${regionDescriptions[index]}</div>
+        <div class="rt-stats">
+          <div class="rt-stat">控制度 <span class="val c">${fmt(r.control)}%</span></div>
+          <div class="rt-stat">战略威胁 <span class="val r">${fmt(r.threat)}%</span></div>
+          <div class="rt-stat">科技水平 <span class="val b">${fmt(r.tech)}%</span></div>
+          <div class="rt-stat">区域稳定 <span class="val g">${fmt(r.stability)}%</span></div>
+          <div class="rt-stat">区域恐惧 <span class="val a">${fmt(r.fear)}%</span></div>
+          <div class="rt-stat">战略价值 <span class="val v">${fmt(r.value)}%</span></div>
+        </div>
+        <div class="rt-footer">邻接：<span class="adj">${adjNames || "无直接邻区"}</span></div>`;
+      tt.classList.add("show");
+      let x = e.clientX + 16, y = e.clientY + 12;
+      const rect = tt.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth - 10) x = e.clientX - rect.width - 16;
+      if (y + rect.height > window.innerHeight - 10) y = e.clientY - rect.height - 12;
+      tt.style.left = x + "px";
+      tt.style.top = y + "px";
+    }
+    function moveRegionTooltip(e) {
+      const tt = document.getElementById("regionTooltip");
+      if (!tt.classList.contains("show")) return;
+      let x = e.clientX + 16, y = e.clientY + 12;
+      const rect = tt.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth - 10) x = e.clientX - rect.width - 16;
+      if (y + rect.height > window.innerHeight - 10) y = e.clientY - rect.height - 12;
+      tt.style.left = x + "px";
+      tt.style.top = y + "px";
+    }
+    function hideRegionTooltip() {
+      document.getElementById("regionTooltip").classList.remove("show");
+    }
+
     function eSpan(label, val, cls) {
       return '<span class="' + (cls || "neut") + '">' + label + "：" + val + "</span>";
     }
@@ -2476,6 +2579,21 @@
         if (adj.length >= 2 && r.fear >= 40) {
           state.counterAI = clamp(state.counterAI + state.counterAI * 0.003);
         }
+      });
+      
+      // v1.9.0.0 邻接扩散：区域属性按倍率向邻接区域扩散
+      state.regions.forEach((r, ri) => {
+        (adjacency[ri] || []).forEach(ni => {
+          const nr = state.regions[ni];
+          // 控制度平滑扩散（0.3x）
+          nr.control = clamp(nr.control + (r.control - nr.control) * 0.028);
+          // 稳定度传导（0.25x）
+          nr.stability = clamp(nr.stability + (r.stability - nr.stability) * 0.022);
+          // 恐惧蔓延（0.5x）
+          nr.fear = clamp(nr.fear + (r.fear - nr.fear) * 0.035);
+          // 科技溢出（0.2x）
+          nr.tech = clamp(nr.tech + (r.tech - nr.tech) * 0.018);
+        });
       });
 
       // ------ 北极全局 ------
@@ -3023,8 +3141,14 @@
     }
 
     function renderRegions() {
-      document.getElementById("regionGrid").innerHTML = state.regions.map((r, index) => `
-        <button class="region ${regionClass(r)} ${index === state.selected ? "selected" : ""}" type="button" onclick="selectRegion(${index})">
+      document.getElementById("regionGrid").innerHTML = state.regions.map((r, index) => {
+        const adjNames = (adjacency[index] || []).map(ni => state.regions[ni].name).join(" · ");
+        return `
+        <button class="region ${regionClass(r)} ${index === state.selected ? "selected" : ""}" type="button"
+          onclick="selectRegion(${index})"
+          onmouseenter="showRegionTooltip(${index},event)"
+          onmousemove="moveRegionTooltip(event)"
+          onmouseleave="hideRegionTooltip()">
           <div class="region-name">
             <span>${r.name}${(state.marks[index] || 0) > 0 ? " ★".repeat(state.marks[index] || 0) : ""}</span>
             <span>${fmt(r.control)}%</span>
@@ -3034,8 +3158,7 @@
             <div class="bar"><div class="fill cyan" style="width:${fmt(r.control)}%"></div></div>
             <span>恐惧 ${fmt(r.fear)} / 价值 ${fmt(r.value)}</span>
           </div>
-        </button>
-      `).join("");
+        </button>`; }).join("");
     }
 
     function renderDetail() {
