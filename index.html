@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>玄武协议 v1.12.0.5：区域映射+极地改名+去圈</title>
-  <link rel="stylesheet" href="style_v1.12.0.5.css">
+  <title>玄武协议 v1.12.0.6：切换按钮修复</title>
+  <link rel="stylesheet" href="style_v1.12.0.6.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -47,8 +47,8 @@
             <h2>全球区域</h2>
             <span class="hint">选择区域后执行行动</span>
           </div>
+          <button class="map-toggle" id="mapToggle" type="button" onclick="toggleMapView()">📋 列表</button>
           <div class="world-map-wrap" id="regionGridWrap">
-            <button class="map-toggle" id="mapToggle" type="button" onclick="toggleMapView()">📋 列表</button>
             <svg class="world-map" id="worldMap" viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
@@ -270,6 +270,6 @@
       </div>
     </div>
   </div>
-  <script src="game_v1.12.0.5.js"></script>
+  <script src="game_v1.12.0.6.js"></script>
 </body>
 </html>
