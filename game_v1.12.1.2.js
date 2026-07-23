@@ -45,6 +45,14 @@ const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, value))
 
     // ============ BGM END ============
 
+    // ============ CREDITS ============
+    function toggleCredits() {
+      const overlay = document.getElementById("creditsOverlay");
+      overlay.classList.toggle("show");
+    }
+    const CREDITS_TEXT = "鸣谢：辰星·流云 / 颜沁欢 / 陆崔桉 Luckier/Lonelier / 殷皓晨（一位路过的假面骑士）/ 谭懿宸 YC盐希草 / 叶子望 / 郭思廷 Amily / 叶子望（斩不尽的芜杂）/ 金骁羽 gooddust";
+    // ============ CREDITS END ============
+
     const regionSeed = [
       ["中国", 28, 38, 82, 78, 8, 90],
       ["北美", 0, 92, 94, 76, 14, 96],
@@ -1976,6 +1984,7 @@ const countryData = [
         ["人类自主", state.autonomy],
         ["目标漂移", state.drift]
       ].map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${fmt(value)}</strong><small>终局值</small></div>`).join("");
+      document.getElementById("endingCredits").textContent = CREDITS_TEXT;
       document.getElementById("endingOverlay").classList.add("show");
       // v1.4: 记录结局 + 自动存档 + 成就检测
       recordEnding(title);

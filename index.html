@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>玄武协议 v1.12.1.1：点击穿透+区域修正</title>
-  <link rel="stylesheet" href="style_v1.12.1.1.css">
+  <title>玄武协议 v1.12.1.2：鸣谢名单</title>
+  <link rel="stylesheet" href="style_v1.12.1.2.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -25,6 +25,9 @@
         <p>一天一回合。结束战争的能力越强，世界越会追问代价。
           <button id="bgmBtn" type="button" title="播放/暂停背景音乐" onclick="toggleBGM()">
             <span class="bgm-icon">🔇</span><span class="bgm-label">BGM</span>
+          </button>
+          <button id="creditsBtn" type="button" title="鸣谢名单" onclick="toggleCredits()">
+            <span class="bgm-icon">🙏</span><span class="bgm-label">鸣谢</span>
           </button>
         </p>
       </div>
@@ -267,11 +270,34 @@
       <h2 id="endingTitle"></h2>
       <p id="endingText"></p>
       <div class="ending-stats" id="endingStats"></div>
+      <p class="ending-credits" id="endingCredits"></p>
       <div class="turn-actions">
         <button class="btn primary" id="restartFromEnding" type="button">再开一局</button>
       </div>
     </div>
   </div>
-  <script src="game_v1.12.1.1.js"></script>
+
+  <div class="ending" id="creditsOverlay" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">
+    <div class="ending-box credits-box">
+      <h2 id="creditsTitle">🙏 鸣谢</h2>
+      <p style="color:var(--muted);margin:0 0 16px;">感谢以下朋友对玄武协议的支持与贡献</p>
+      <div class="credits-list">
+        <div class="credit-name">辰星·流云</div>
+        <div class="credit-name">颜沁欢</div>
+        <div class="credit-name">陆崔桉 <span class="credit-alias">Luckier/Lonelier</span></div>
+        <div class="credit-name">殷皓晨 <span class="credit-alias">一位路过的假面骑士</span></div>
+        <div class="credit-name">谭懿宸 <span class="credit-alias">YC盐希草</span></div>
+        <div class="credit-name">叶子望</div>
+        <div class="credit-name">郭思廷 <span class="credit-alias">Amily</span></div>
+        <div class="credit-name">叶子望 <span class="credit-alias">斩不尽的芜杂</span></div>
+        <div class="credit-name">金骁羽 <span class="credit-alias">gooddust</span></div>
+      </div>
+      <div class="turn-actions">
+        <button class="btn primary" type="button" onclick="toggleCredits()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game_v1.12.1.2.js"></script>
 </body>
 </html>

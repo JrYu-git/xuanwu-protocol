@@ -1326,13 +1326,35 @@
     .gallery-card:hover .gc-tooltip { opacity: 1; }
 
     /* —— BGM 按钮 —— */
-    #bgmBtn {
+    #bgmBtn, #creditsBtn {
       display: inline-flex; align-items: center; gap: 5px;
       background: none; border: 1px solid var(--line); color: var(--soft);
       font-size: 13px; cursor: pointer; padding: 3px 8px; border-radius: 4px;
       transition: all .2s; font-family: inherit;
     }
-    #bgmBtn:hover { border-color: var(--cyan); color: var(--cyan); }
+    #bgmBtn:hover, #creditsBtn:hover { border-color: var(--cyan); color: var(--cyan); }
     #bgmBtn.on { border-color: var(--green); color: var(--green); }
-    #bgmBtn .bgm-icon { font-size: 15px; }
-    #bgmBtn .bgm-label { font-size: 11px; }
+    #bgmBtn .bgm-icon, #creditsBtn .bgm-icon { font-size: 15px; }
+    #bgmBtn .bgm-label, #creditsBtn .bgm-label { font-size: 11px; }
+
+    /* ---- 鸣谢 ---- */
+    .credits-box { max-width: 500px; }
+    .credits-list {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-bottom: 4px;
+    }
+    .credit-name {
+      padding: 8px 12px;
+      background: rgba(255,255,255,.04);
+      border-left: 2px solid var(--cyan);
+      border-radius: 0 6px 6px 0;
+      font-size: 15px; color: #dde3d8;
+    }
+    .credit-alias {
+      font-size: 12px; color: var(--muted); margin-left: 8px;
+    }
+    .ending-credits {
+      margin: 4px 0 0; font-size: 12px; color: var(--muted);
+      text-align: center; line-height: 1.6;
+      padding: 8px 0; border-top: 1px solid rgba(255,255,255,.08);
+    }
