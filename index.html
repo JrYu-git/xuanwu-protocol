@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>玄武协议 v1.12.0.4：负坐标修复</title>
-  <link rel="stylesheet" href="style_v1.12.0.4.css">
+  <title>玄武协议 v1.12.0.5：区域映射+极地改名+去圈</title>
+  <link rel="stylesheet" href="style_v1.12.0.5.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -59,12 +59,6 @@
               <g id="mapRegions"></g>
               <!-- 标签 -->
               <g id="mapLabels"></g>
-              <!-- 北极节点 -->
-              <g id="offmapNode" transform="translate(450,22)" class="offmap-node" onclick="selectRegion(11)" onmouseenter="showRegionTooltip(11,event)" onmousemove="moveRegionTooltip(event)" onmouseleave="hideRegionTooltip()">
-                <circle cx="0" cy="0" r="18" fill="rgba(44,49,42,0.9)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                <text x="0" y="-2" class="offmap-label" style="font-size:9px;fill:rgba(255,255,255,0.6)">北极与</text>
-                <text x="0" y="8" class="offmap-label" style="font-size:9px;fill:rgba(255,255,255,0.6)">太空</text>
-              </g>
             </svg>
           </div>
           <div class="map-grid" id="regionGrid" style="display:none"></div>
@@ -276,6 +270,6 @@
       </div>
     </div>
   </div>
-  <script src="game_v1.12.0.4.js"></script>
+  <script src="game_v1.12.0.5.js"></script>
 </body>
 </html>
