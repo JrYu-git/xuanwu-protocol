@@ -3773,7 +3773,7 @@
         ctrlAvg: fmt(average("control")),
         threat: fmt(weightedThreat()),
         ending: endingName,
-        data: JSON.parse(JSON.stringify(state))
+        data: (() => { prepStateForSave(); return JSON.parse(JSON.stringify(state)); })()
       };
       savePersist(p);
     }
