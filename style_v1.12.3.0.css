@@ -1358,3 +1358,231 @@
       text-align: center; line-height: 1.6;
       padding: 8px 0; border-top: 1px solid rgba(255,255,255,.08);
     }
+
+/* ===== v1.12.3.0 移动端适配 ===== */
+
+/* 触摸设备：禁用 hover 行为，改用 active/tap 反馈 */
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover:not(:disabled) { transform: none; }
+  .btn:active:not(:disabled) {
+    transform: scale(0.96);
+    border-color: var(--cyan);
+    background: #2a3129;
+  }
+  .region:hover { border-color: var(--line); }
+  .region:active { border-color: var(--cyan); }
+  .world-map path:hover { stroke: rgba(255,255,255,0.12); stroke-width: 1; filter: none; }
+  .world-map path:active { stroke: var(--cyan); stroke-width: 2.5; filter: brightness(1.2); }
+
+  /* 触摸设备上始终显示操作提示（无 hover） */
+  .hint { opacity: 1; }
+
+  /* 图鉴卡片：触摸时显示 tooltip */
+  .gallery-card .gc-tooltip { display: none; }
+  .gallery-card:active .gc-tooltip { display: block; opacity: 1; }
+}
+
+/* 通用提升 tap 目标大小 */
+@media (max-width: 768px) {
+  .btn, .btn-mini, .con-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  #bgmBtn, #creditsBtn {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+  .btn.primary, .btn.warn, .btn.danger, .btn.heal {
+    font-weight: 600;
+  }
+  .map-toggle {
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  /* 系统面板关闭按钮 */
+  .sys-close {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 26px;
+  }
+}
+
+/* 底部安全区适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .app {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+  .ach-toast {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .sys-overlay .sys-panel {
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 移动端顶部栏 */
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 0 12px;
+  }
+  .title h1 {
+    font-size: 20px;
+  }
+  .title p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .turn-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+  .turn-actions .btn {
+    flex: none;
+    font-size: 12px;
+    padding: 8px 6px;
+    white-space: nowrap;
+    text-align: center;
+  }
+}
+
+/* 小屏手机：两列操作 */
+@media (max-width: 400px) {
+  .turn-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 移动端地图适配 */
+@media (max-width: 768px) {
+  .world-map-wrap {
+    padding: 6px;
+  }
+  .map-toggle {
+    top: 6px;
+    right: 6px;
+  }
+  /* 地图标签自适应 */
+  .map-label { font-size: 7px; }
+  .map-label-val { font-size: 6px; }
+}
+
+@media (max-width: 500px) {
+  .world-map-wrap { padding: 4px; }
+  .map-label { font-size: 6px; }
+  .map-label-val { font-size: 5px; }
+}
+
+/* 移动端 tooltip 自适应定位：防止被屏幕边缘截断 */
+@media (max-width: 768px) {
+  #actionTooltip, #regionTooltip {
+    max-width: min(340px, 85vw);
+    min-width: 180px;
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+  .country-tooltip {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* 移动端面板优化 */
+@media (max-width: 768px) {
+  .sys-panel {
+    padding: 18px;
+    width: min(98vw, 680px);
+    max-height: 90vh;
+  }
+  .sys-panel h2 { font-size: 18px; }
+  .ending-box {
+    padding: 18px;
+  }
+  .ending-box h2 { font-size: clamp(20px, 5vw, 32px); }
+  .tut-slide { padding: 24px 16px; min-height: 300px; }
+  .tut-slide h2 { font-size: 20px; }
+  .tut-points { grid-template-columns: 1fr; }
+  .tut-nav { padding: 10px 14px; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .tut-nav-btns { width: 100%; justify-content: center; }
+  /* 存档面板 */
+  .save-slot { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .save-slot .slot-btns { align-self: flex-end; }
+  /* 控制台 */
+  .console-frame { flex-direction: column; height: min(80vh, 600px); }
+  .console-nav {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    padding: 8px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .console-nav-title { display: none; }
+  .console-nav-item {
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+  }
+  .console-nav-item.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--green);
+  }
+  .console-nav-close { margin-top: 0; margin-left: auto; }
+  .console-content { padding: 14px 16px; overflow-y: auto; }
+}
+
+/* 移动端鸣谢面板 */
+@media (max-width: 500px) {
+  .credits-box { max-width: 100%; }
+  .credit-name { font-size: 13px; padding: 6px 10px; }
+}
+
+/* 移动端成就提示 */
+@media (max-width: 500px) {
+  .ach-toast {
+    left: 16px;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+}
+
+/* 移动端图鉴 */
+@media (max-width: 500px) {
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .gallery-detail-box {
+    padding: 20px;
+  }
+}
+
+/* 移动端事件卡片 */
+@media (max-width: 500px) {
+  .event-card { padding: 10px; }
+  .event-title strong { font-size: 15px; }
+  .choice-list { gap: 6px; }
+}
+
+/* 防止移动端页面意外缩放（双击） */
+@media (max-width: 768px) {
+  .world-map { touch-action: manipulation; }
+  .world-map-wrap { overflow: hidden; }
+}
+
+/* 滚动条美化（移动端隐藏） */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar { width: 0; height: 0; }
+}
