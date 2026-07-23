@@ -894,6 +894,33 @@
       font-size: 10.5px; color: #666;
     }
     #regionTooltip .rt-footer .adj { color: var(--cyan); }
+
+    /* v1.11.1.7 国家悬浮 tooltip */
+    .country-tooltip {
+      position: fixed; z-index: 9999;
+      pointer-events: none; opacity: 0;
+      background: linear-gradient(135deg, #1e2a1c 0%, #111810 100%);
+      border: 1px solid rgba(103,194,188,0.25);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px; color: #d0d8cc;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+      backdrop-filter: blur(6px);
+    }
+    .country-tooltip.show { opacity: 1; }
+    .country-tooltip .ct-name {
+      font-weight: 700; font-size: 14px; color: #fff;
+    }
+    .country-tooltip .ct-en {
+      font-weight: 400; font-size: 11px; color: #6a7a64; margin-left: 4px;
+    }
+    .country-tooltip .ct-region {
+      margin-top: 4px; font-size: 11px; color: #8a9a84;
+    }
+    .country-hit { cursor: default; }
+    .country-hit:hover { cursor: pointer; }
+
     .mini-bar-wrap .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--c-teal); transition: width 0.3s; }
 
     .stat.pulse { animation: statPulse 1.2s ease-in-out infinite; }
