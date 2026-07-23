@@ -50,7 +50,7 @@ const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, value))
       const overlay = document.getElementById("creditsOverlay");
       overlay.classList.toggle("show");
     }
-    const CREDITS_TEXT = "鸣谢：辰星·流云 / 颜沁欢 / 陆崔桉 Luckier/Lonelier / 殷皓晨（一位路过的假面骑士）/ 谭懿宸 YC盐希草 / 叶子望 / 郭思廷 Amily / 叶子望（斩不尽的芜杂）/ 金骁羽 gooddust";
+    const CREDITS_TEXT = "鸣谢：YC盐希草 / 一位路过的假面骑士 / 辰星·流云 / 云殇 / 爱芙洛斯Evrosaw / 蔻实 / L-ier / Amily / 桑多涅的狗 / gooddust / Mega狸猫";
     // ============ CREDITS END ============
 
     const regionSeed = [
@@ -2264,10 +2264,11 @@ const countryData = [
         </button>`; }).join("");
 
       // SVG 地图视图
+      const mapBorders = document.getElementById("mapBorders");
       const mapG = document.getElementById("mapRegions");
       const labelG = document.getElementById("mapLabels");
       if (!mapG) return;
-      let pathsHTML = "", labelsHTML = "";
+      let borderHTML = "", pathsHTML = "", labelsHTML = "";
       for (let i = 0; i < 12; i++) {
         const r = state.regions[i];
         const paths = regionPaths[i];
@@ -2283,6 +2284,8 @@ const countryData = [
         else if (r.control >= 68) finalFill = "rgba(45,75,40,0.8)";
         for (let pi = 0; pi < paths.length; pi++) {
           const d = paths[pi];
+          // 深色外框层（在下层，无填充）
+          borderHTML += `<path d="${d}" fill="none" stroke="rgba(22,24,20,0.55)" stroke-width="3" stroke-linejoin="round"/>`;
           pathsHTML += `<path d="${d}" fill="${finalFill}" stroke="${stroke}" stroke-width="${sw}" class="${cls}" data-ri="${i}" onclick="selectRegion(${i})" onmouseenter="showRegionTooltip(${i},event)" onmousemove="moveRegionTooltip(event)" onmouseleave="hideRegionTooltip()"/>`;
         }
         const c = regionCenters[i];
@@ -2290,6 +2293,7 @@ const countryData = [
         const shortName = name.replace("日本韩国","日韩");
         labelsHTML += `<text x="${c.x}" y="${c.y-3}" class="map-label">${shortName}</text><text x="${c.x}" y="${c.y+8}" class="map-label-val">${fmt(r.control)}%</text>`;
       }
+      if (mapBorders) mapBorders.innerHTML = borderHTML;
       mapG.innerHTML = pathsHTML;
       labelG.innerHTML = labelsHTML;
 
