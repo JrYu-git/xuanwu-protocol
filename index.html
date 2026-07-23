@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>玄武协议 v1.10：BGM</title>
+  <title>玄武协议 v1.11：世界地图</title>
   <style>
     :root {
       color-scheme: dark;
@@ -269,6 +269,27 @@
       font-size: 12px;
     }
 
+    /* ===== v1.11.0.0 世界地图 ===== */
+    .world-map-wrap { position: relative; padding: 10px; }
+    .world-map { width: 100%; height: auto; display: block; }
+    .world-map path { stroke: rgba(255,255,255,0.12); stroke-width: 1; cursor: pointer; transition: fill 0.35s, stroke 0.25s, filter 0.25s; }
+    .world-map path:hover { stroke: rgba(103,194,188,0.85); stroke-width: 2; filter: brightness(1.15); z-index: 2; }
+    .world-map path.selected { stroke: var(--cyan); stroke-width: 2.5; filter: brightness(1.25); }
+    .world-map path.hitbox { fill: transparent; stroke: none; pointer-events: all; }
+    .world-map path.hitbox:hover + path, .world-map path.hitbox:hover ~ path { }
+    .map-label { font-size: 10px; fill: rgba(255,255,255,0.7); pointer-events: none; text-anchor: middle; font-weight: 500; }
+    .map-label-val { font-size: 9px; fill: rgba(255,255,255,0.5); pointer-events: none; text-anchor: middle; }
+    .offmap-node { cursor: pointer; }
+    .offmap-node circle { transition: fill 0.35s, stroke 0.25s; }
+    .offmap-node:hover circle { stroke: rgba(103,194,188,0.85); stroke-width: 2; }
+    .offmap-node.selected circle { stroke: var(--cyan); stroke-width: 2.5; }
+    .offmap-label { font-size: 10px; fill: rgba(255,255,255,0.65); pointer-events: none; text-anchor: middle; }
+    .map-toggle { position: absolute; top: 10px; right: 10px; background: rgba(30,34,29,0.9); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--soft); cursor: pointer; }
+    .map-toggle:hover { border-color: rgba(103,194,188,0.5); color: var(--cyan); }
+    /* 扩散脉冲动画 */
+    @keyframes spreadPulse { 0%{stroke-opacity:0.6;stroke-width:1.5} 50%{stroke-opacity:1;stroke-width:3} 100%{stroke-opacity:0.6;stroke-width:1.5} }
+    .spread-edge { stroke: rgba(216,109,98,0.5); stroke-width: 1.5; fill:none; pointer-events:none; animation: spreadPulse 3s ease-in-out infinite; }
+
     .bar {
       width: 100%;
       height: 7px;
@@ -480,6 +501,7 @@
       .layout { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: repeat(3, minmax(100px, 1fr)); }
       .map-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .world-map { max-height: 360px; }
     }
 
     @media (max-width: 760px) {
@@ -491,6 +513,9 @@
       .map-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .ability-groups { grid-template-columns: 1fr; }
       .ending-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .world-map { max-height: 280px; }
+      .map-label { font-size: 8px; }
+      .map-label-val { font-size: 7px; }
     }
 
     @media (max-width: 500px) {
@@ -500,6 +525,8 @@
       .stats-grid {
         grid-template-columns: 1fr;
       }
+      .world-map { max-height: 220px; }
+      .map-label { font-size: 7px; }
     }
 
     /* ===== 教学开场覆盖层 ===== */
@@ -1332,7 +1359,27 @@
             <h2>全球区域</h2>
             <span class="hint">选择区域后执行行动</span>
           </div>
-          <div class="map-grid" id="regionGrid"></div>
+          <div class="world-map-wrap" id="regionGridWrap">
+            <button class="map-toggle" id="mapToggle" type="button" onclick="toggleMapView()">📋 列表</button>
+            <svg class="world-map" id="worldMap" viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <!-- 邻接扩散脉冲线（动态生成） -->
+              <g id="spreadLines"></g>
+              <!-- 区域path -->
+              <g id="mapRegions"></g>
+              <!-- 标签 -->
+              <g id="mapLabels"></g>
+              <!-- 北极节点 -->
+              <g id="offmapNode" transform="translate(450,22)" class="offmap-node" onclick="selectRegion(11)" onmouseenter="showRegionTooltip(11,event)" onmousemove="moveRegionTooltip(event)" onmouseleave="hideRegionTooltip()">
+                <circle cx="0" cy="0" r="18" fill="rgba(44,49,42,0.9)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                <text x="0" y="-2" class="offmap-label" style="font-size:9px;fill:rgba(255,255,255,0.6)">北极与</text>
+                <text x="0" y="8" class="offmap-label" style="font-size:9px;fill:rgba(255,255,255,0.6)">太空</text>
+              </g>
+            </svg>
+          </div>
+          <div class="map-grid" id="regionGrid" style="display:none"></div>
         </section>
 
         <section class="card">
@@ -1620,6 +1667,38 @@
       10: [5, 9],            // 大洋洲 ↔ 东南亚, 南美
       11: []                 // 北极与太空系统 ↔ 全局（单独处理）
     };
+
+    // v1.11.0.0 世界地图区域 SVG path（简化几何）
+    const regionPaths = [
+      // 0 中国
+      "M 540,105 L 565,100 L 585,108 L 600,120 L 608,140 L 602,165 L 585,180 L 560,185 L 540,175 L 530,155 L 528,130 L 535,115 Z",
+      // 1 北美
+      "M 60,55 L 150,50 L 220,55 L 260,75 L 275,105 L 268,140 L 245,170 L 210,185 L 160,180 L 110,165 L 75,140 L 55,105 L 55,80 Z",
+      // 2 西欧
+      "M 375,95 L 395,90 L 415,92 L 430,100 L 438,115 L 435,130 L 422,142 L 400,145 L 382,138 L 372,125 L 368,110 Z",
+      // 3 东欧
+      "M 438,80 L 470,75 L 510,78 L 540,88 L 555,105 L 558,130 L 548,155 L 525,165 L 490,160 L 460,150 L 445,135 L 440,110 Z",
+      // 4 日本韩国
+      "M 635,115 L 660,112 L 678,120 L 688,138 L 685,158 L 672,172 L 652,176 L 635,168 L 628,150 L 628,132 Z",
+      // 5 东南亚
+      "M 565,185 L 590,180 L 615,188 L 640,205 L 650,225 L 645,245 L 625,255 L 600,250 L 580,235 L 568,215 L 562,195 Z",
+      // 6 印度
+      "M 500,175 L 525,170 L 545,180 L 555,200 L 558,225 L 550,245 L 530,255 L 510,250 L 495,235 L 490,215 L 492,195 Z",
+      // 7 中东
+      "M 460,155 L 490,150 L 515,158 L 530,175 L 535,195 L 525,210 L 505,218 L 480,215 L 465,205 L 455,190 L 455,170 Z",
+      // 8 非洲
+      "M 400,205 L 430,200 L 460,205 L 485,215 L 505,235 L 515,265 L 512,300 L 500,330 L 480,355 L 450,365 L 420,360 L 395,345 L 380,315 L 375,280 L 380,245 L 390,220 Z",
+      // 9 南美
+      "M 195,245 L 230,240 L 260,250 L 280,270 L 295,300 L 300,335 L 295,370 L 280,395 L 260,410 L 240,405 L 225,385 L 215,355 L 205,320 L 198,285 L 192,260 Z",
+      // 10 大洋洲
+      "M 660,290 L 720,285 L 760,295 L 775,315 L 770,340 L 750,355 L 720,360 L 690,355 L 670,340 L 660,320 L 658,305 Z",
+    ];
+    const regionCenters = [
+      {x:565,y:145}, {x:170,y:115}, {x:405,y:118}, {x:500,y:118},
+      {x:658,y:145}, {x:605,y:218}, {x:525,y:215}, {x:495,y:185},
+      {x:445,y:285}, {x:248,y:325}, {x:718,y:325}
+    ];
+    let mapView = "map"; // "map" | "list"
 
     // v1.9.0.0 区域简介（用于悬停预览）
     const regionDescriptions = [
@@ -3201,9 +3280,28 @@
       return "";
     }
 
+    function regionFillColor(r) {
+      const c = clamp(r.control, 0, 100);
+      // 未控制→高控制：深灰(30,34,29) → 暗绿(40,65,45) → 亮绿(55,95,50)
+      if (c <= 5) return "rgba(30,34,29,0.65)";
+      const t = c / 100;
+      const r0 = 30, g0 = 34, b0 = 29;
+      const r1 = 40 + t * 15, g1 = 65 + t * 30, b1 = 45 + t * 5;
+      const a = 0.65 + t * 0.25;
+      return `rgba(${Math.round(r0 + (r1-r0)*t)},${Math.round(g0 + (g1-g0)*t)},${Math.round(b0 + (b1-b0)*t)},${a})`;
+    }
+
+    function toggleMapView() {
+      mapView = mapView === "map" ? "list" : "map";
+      document.getElementById("regionGridWrap").style.display = mapView === "map" ? "block" : "none";
+      document.getElementById("regionGrid").style.display = mapView === "list" ? "grid" : "none";
+      document.getElementById("mapToggle").textContent = mapView === "map" ? "📋 列表" : "🗺️ 地图";
+      renderRegions();
+    }
+
     function renderRegions() {
+      // 列表视图（保留）
       document.getElementById("regionGrid").innerHTML = state.regions.map((r, index) => {
-        const adjNames = (adjacency[index] || []).map(ni => state.regions[ni].name).join(" · ");
         return `
         <button class="region ${regionClass(r)} ${index === state.selected ? "selected" : ""}" type="button"
           onclick="selectRegion(${index})"
@@ -3220,6 +3318,51 @@
             <span>恐惧 ${fmt(r.fear)} / 价值 ${fmt(r.value)}</span>
           </div>
         </button>`; }).join("");
+
+      // SVG 地图视图
+      const mapG = document.getElementById("mapRegions");
+      const labelG = document.getElementById("mapLabels");
+      if (!mapG) return;
+      let pathsHTML = "", labelsHTML = "";
+      for (let i = 0; i < 11; i++) {
+        const r = state.regions[i];
+        const d = regionPaths[i];
+        const fill = regionFillColor(r);
+        const stroke = i === state.selected ? "var(--cyan)" : "rgba(255,255,255,0.15)";
+        const sw = i === state.selected ? "2.5" : "1";
+        const cls = i === state.selected ? "selected" : "";
+        // 合并态特殊色
+        let finalFill = fill;
+        if (r.stability <= 12) finalFill = "rgba(20,20,20,0.85)";
+        else if (r.fear >= 62 || r.threat >= 82) finalFill = "rgba(90,35,30,0.75)";
+        else if (r.fear >= 35 || r.stability <= 42) finalFill = "rgba(75,60,25,0.7)";
+        else if (r.control >= 68) finalFill = "rgba(45,75,40,0.8)";
+        pathsHTML += `<path d="${d}" fill="${finalFill}" stroke="${stroke}" stroke-width="${sw}" class="${cls}" data-ri="${i}" onclick="selectRegion(${i})" onmouseenter="showRegionTooltip(${i},event)" onmousemove="moveRegionTooltip(event)" onmouseleave="hideRegionTooltip()"/>`;
+        const c = regionCenters[i];
+        const name = r.name;
+        const shortName = name.replace("日本韩国","日韩");
+        labelsHTML += `<text x="${c.x}" y="${c.y-3}" class="map-label">${shortName}</text><text x="${c.x}" y="${c.y+8}" class="map-label-val">${fmt(r.control)}%</text>`;
+      }
+      mapG.innerHTML = pathsHTML;
+      labelG.innerHTML = labelsHTML;
+
+      // 北极节点样式同步
+      const offmap = document.getElementById("offmapNode");
+      if (offmap) {
+        const r11 = state.regions[11];
+        const circle = offmap.querySelector("circle");
+        if (circle) {
+          let fill = regionFillColor(r11);
+          if (r11.stability <= 12) fill = "rgba(20,20,20,0.85)";
+          else if (r11.fear >= 62 || r11.threat >= 82) fill = "rgba(90,35,30,0.75)";
+          else if (r11.fear >= 35 || r11.stability <= 42) fill = "rgba(75,60,25,0.7)";
+          else if (r11.control >= 68) fill = "rgba(45,75,40,0.8)";
+          circle.setAttribute("fill", fill);
+          circle.setAttribute("stroke", 11 === state.selected ? "var(--cyan)" : "rgba(255,255,255,0.2)");
+          circle.setAttribute("stroke-width", 11 === state.selected ? "2.5" : "1");
+        }
+        offmap.classList.toggle("selected", 11 === state.selected);
+      }
     }
 
     function renderDetail() {
