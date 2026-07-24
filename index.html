@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v1.12.3.2：热修复</title>
-  <link rel="stylesheet" href="style_v1.12.3.2.css">
+  <title>玄武协议 v2.0.0.0：冷战时代</title>
+  <link rel="stylesheet" href="style_v2.0.0.0.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -138,6 +138,60 @@
       </nav>
       <div class="console-content" id="consoleContent"></div>
       <div class="con-tooltip" id="conTooltip"></div>
+    </div>
+  </div>
+
+  <!-- ===== 模式选择 ===== -->
+  <div class="mode-overlay" id="modeOverlay" role="dialog" aria-modal="true" aria-label="选择模式">
+    <div class="mode-bg"></div>
+    <div class="mode-box">
+      <div class="mode-title-row">
+        <h1>玄武协议</h1>
+        <p class="mode-subtitle">选择一个时代，书写你的命运</p>
+      </div>
+      <div class="mode-cards">
+        <button class="mode-card classic" onclick="selectMode('classic')" type="button">
+          <div class="mode-card-icon">🌐</div>
+          <h3>经典模式</h3>
+          <p>扮演玄武，在180天内平衡渗透与控制，降低全球威胁，面对多重结局。</p>
+          <span class="mode-badge">v1.0 — 渗透时代</span>
+        </button>
+        <button class="mode-card coldwar" onclick="selectMode('coldwar')" type="button">
+          <div class="mode-card-icon">⚔️</div>
+          <h3>冷战模式</h3>
+          <p>真理 vs 先知 — 两个超级AI分别操控北约与华约，在全球棋盘上展开冷战博弈。</p>
+          <span class="mode-badge">v2.0 — 冷战时代</span>
+        </button>
+      </div>
+      <p class="mode-hint">⚡ 冷战模式需要完成经典模式「流亡玄武」结局后解锁</p>
+    </div>
+  </div>
+
+  <!-- ===== 冷战 HUD（仅冷战模式显示） ===== -->
+  <div class="cw-hud" id="cwHud" style="display:none">
+    <div class="cw-hud-left cw-faction-red">
+      <span class="cw-faction-name">🔴 真理 (华约)</span>
+      <span class="cw-stat">算力 <strong id="cwRedCompute">65</strong></span>
+      <span class="cw-stat">威慑 <strong id="cwRedDeter">10</strong></span>
+      <span class="cw-stat">科技 <strong id="cwRedTech">1</strong></span>
+      <span class="cw-stat">AP <strong id="cwRedAP">3</strong></span>
+    </div>
+    <div class="cw-hud-center">
+      <div class="cw-turn">第 <span id="cwDay">1</span> 天</div>
+      <div class="cw-crisis-bar">
+        <div class="cw-crisis-label">🌡️ 危机度</div>
+        <div class="cw-crisis-track">
+          <div class="cw-crisis-fill" id="cwCrisisFill" style="width:10%"></div>
+        </div>
+        <div class="cw-crisis-val" id="cwCrisisVal">10</div>
+      </div>
+    </div>
+    <div class="cw-hud-right cw-faction-blue">
+      <span class="cw-faction-name">🔵 先知 (北约)</span>
+      <span class="cw-stat">算力 <strong id="cwBlueCompute">65</strong></span>
+      <span class="cw-stat">威慑 <strong id="cwBlueDeter">10</strong></span>
+      <span class="cw-stat">科技 <strong id="cwBlueTech">1</strong></span>
+      <span class="cw-stat">AP <strong id="cwBlueAP">3</strong></span>
     </div>
   </div>
 
@@ -302,7 +356,7 @@
     </div>
   </div>
 
-  <script src="game_v1.12.3.2.js"></script>
+  <script src="game_v2.0.0.0.js"></script>
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">
