@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v1.12.3.0：全平台适配</title>
-  <link rel="stylesheet" href="style_v1.12.3.0.css">
+  <title>玄武协议 v1.12.3.1：热修复</title>
+  <link rel="stylesheet" href="style_v1.12.3.1.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -52,7 +52,7 @@
           </div>
           <button class="map-toggle" id="mapToggle" type="button" onclick="toggleMapView()">📋 列表</button>
           <div class="world-map-wrap" id="regionGridWrap">
-            <svg class="world-map" id="worldMap" viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg">
+            <svg class="world-map" id="worldMap" viewBox="-10 0 920 450" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
               </defs>
@@ -302,6 +302,63 @@
     </div>
   </div>
 
-  <script src="game_v1.12.3.0.js"></script>
+  <script src="game_v1.12.3.1.js"></script>
+
+  <!-- ===== v1.5.0.0 成就弹出 ===== -->
+  <div class="ach-toast" id="achToast">
+    <div class="toast-icon" id="toastIcon"></div>
+    <div class="toast-body">
+      <div class="toast-label">成就解锁</div>
+      <div class="toast-name" id="toastName"></div>
+      <div class="toast-desc" id="toastDesc"></div>
+    </div>
+  </div>
+
+  <!-- ===== v1.5.0.0 存档面板 ===== -->
+  <div class="sys-overlay" id="saveOverlay">
+    <div class="sys-panel" id="savePanel">
+      <button class="sys-close" onclick="closeOverlay('saveOverlay')">&times;</button>
+      <h2>存档管理</h2>
+      <p class="subtitle">最多3个手动存档 + 1个自动存档（localStorage）</p>
+      <div id="saveSlots"></div>
+    </div>
+  </div>
+
+  <!-- ===== v1.5.0.0 终局图鉴 ===== -->
+  <div class="sys-overlay" id="galleryOverlay">
+    <div class="sys-panel" id="galleryPanel" style="max-width:760px;">
+      <button class="sys-close" onclick="closeOverlay('galleryOverlay')">&times;</button>
+      <h2>终局图鉴</h2>
+      <p class="subtitle">你见证过的每一个终点</p>
+      <div class="gallery-progress" id="galleryProgress"></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+      <div class="con-tooltip" id="galleryTooltip"></div>
+    </div>
+  </div>
+
+  <!-- ===== v1.5.0.0 成就面板 ===== -->
+  <div class="sys-overlay" id="achOverlay">
+    <div class="sys-panel" id="achPanel" style="max-width:620px;">
+      <button class="sys-close" onclick="closeOverlay('achOverlay')">&times;</button>
+      <h2>成就</h2>
+      <p class="subtitle">跨局追踪，永不休眠</p>
+      <div class="ach-stats" id="achStats"></div>
+      <div class="ach-grid" id="achGrid"></div>
+    </div>
+  </div>
+
+  <!-- v1.8.1.4 图鉴详情弹窗 -->
+  <div class="gallery-detail-overlay" id="galleryDetailOverlay" onclick="closeGalleryDetail()">
+    <div class="gallery-detail-box" id="galleryDetailBox" onclick="event.stopPropagation()">
+      <div class="gd-icon" id="gdIcon"></div>
+      <div class="gd-name" id="gdName"></div>
+      <div class="gd-achievement" id="gdAchievement"></div>
+      <div class="gd-date" id="gdDate"></div>
+      <div class="gd-desc" id="gdDesc"></div>
+      <div class="gd-flavor" id="gdFlavor"></div>
+      <button class="gd-close" onclick="closeGalleryDetail()">关闭</button>
+    </div>
+  </div>
+
 </body>
 </html>
