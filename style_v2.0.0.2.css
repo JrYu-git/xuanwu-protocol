@@ -1580,7 +1580,7 @@
 
 /* 模式选择覆盖层 */
 .mode-overlay {
-  display: grid;
+  display: none;
   position: fixed; inset: 0; z-index: 2000;
   place-items: center;
 }
