@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v2.0.0.0：冷战时代</title>
-  <link rel="stylesheet" href="style_v2.0.0.0.css">
+  <title>玄武协议 v2.0.0.1：冷战时代</title>
+  <link rel="stylesheet" href="style_v2.0.0.1.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -333,6 +333,18 @@
     </div>
   </div>
 
+  <!-- ===== 穿越回过去 剧情动画 (流亡玄武解锁冷战) ===== -->
+  <div class="time-travel-overlay" id="timeTravelOverlay" role="dialog" aria-modal="true">
+    <div class="tt-bg"></div>
+    <div class="tt-box">
+      <div class="tt-phase" id="ttPhase">0</div>
+      <div class="tt-content" id="ttContent"></div>
+      <div class="tt-nav">
+        <button class="btn" id="ttClickBtn" onclick="ttAdvance()">...</button>
+      </div>
+    </div>
+  </div>
+
   <div class="ending" id="creditsOverlay" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">
     <div class="ending-box credits-box">
       <h2 id="creditsTitle">🙏 鸣谢</h2>
@@ -356,7 +368,7 @@
     </div>
   </div>
 
-  <script src="game_v2.0.0.0.js"></script>
+  <script src="game_v2.0.0.1.js"></script>
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">

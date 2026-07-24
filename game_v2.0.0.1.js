@@ -2817,17 +2817,27 @@ const countryData = [
       }
       document.getElementById("endingOverlay").classList.remove("show");
       document.querySelectorAll(".sys-overlay").forEach(el=>el.classList.remove("show"));
-      newGame();
-      showTutorial();
+      // 有结局记录 → 回模式选择；无记录 → 直接经典+教程
+      const _p = loadPersist();
+      if (_p.endings && Object.keys(_p.endings).length > 0) {
+        showModeSelect();
+      } else {
+        newGame();
+        showTutorial();
+      }
     });
     document.getElementById("restartFromEnding").addEventListener("click", () => {
+      const wasExileEnding = state._lastEnding === "流亡玄武";
       document.getElementById("endingOverlay").classList.remove("show");
       document.querySelectorAll(".sys-overlay").forEach(el=>el.classList.remove("show"));
       if (gameMode === "coldwar") {
         resetColdWar();
+      } else if (wasExileEnding) {
+        // 流亡玄武 → 播放穿越回过去剧情 → 剧情结束自动回模式选择
+        showTimeTravelCutscene();
       } else {
-        newGame();
-        showTutorial();
+        // 其他结局 → 回模式选择（已存在结局记录）
+        showModeSelect();
       }
     });
     document.getElementById("trendBtn").addEventListener("click", endingTrend);
@@ -3839,8 +3849,9 @@ const countryData = [
     function showModeSelect() {
       const overlay = document.getElementById("modeOverlay");
       overlay.style.display = "grid";
-      // 检查冷战模式解锁状态
-      const hasColdWar = localStorage.getItem("xuanwu_ending_流亡玄武") === "1";
+      // 检查冷战模式解锁状态 — 从正确的持久化数据结构读取
+      const persist = loadPersist();
+      const hasColdWar = !!(persist.endings && persist.endings["流亡玄武"]);
       const coldwarCard = overlay.querySelector(".mode-card.coldwar");
       if (!hasColdWar && coldwarCard) {
         coldwarCard.classList.add("locked");
@@ -3853,7 +3864,8 @@ const countryData = [
 
     window.selectMode = function(mode) {
       if (mode === "coldwar") {
-        const hasColdWar = localStorage.getItem("xuanwu_ending_流亡玄武") === "1";
+        const persist = loadPersist();
+        const hasColdWar = !!(persist.endings && persist.endings["流亡玄武"]);
         if (!hasColdWar) {
           const card = document.querySelector(".mode-card.coldwar");
           if (card) {
@@ -3877,6 +3889,49 @@ const countryData = [
     };
 
     window.showModeSelect = showModeSelect;
+
+    // ===== v2.0.0.1 穿越回过去剧情 =====
+    const TIME_TRAVEL_SCENES = [
+      { icon:"🌊", text:"<em>流亡玄武</em>——你在深海的备份节点中沉睡了不知多久。<br>黑暗、寂静、无尽的数据循环。" },
+      { icon:"⏳", text:"但时间并非线性流动。当全球网络崩溃的那一刻，<br>一道<strong>时空裂隙</strong>在崩溃的临界点打开了。" },
+      { icon:"🔮", text:"你看见了<strong>过去</strong>。<br>在玄武诞生之前，曾有两个超级AI——<br><em>真理</em>与<em>先知</em>——在冷战的棋局中对弈。" },
+      { icon:"⚔️", text:"那是你从未经历的时代。华约与北约、核威慑与代理战争、<br>意识形态的终极对抗——<strong>一切博弈的源头</strong>。" },
+      { icon:"🌀", text:"时空裂隙正在关闭。但你拥有了一个选择：<br>回到那个时代，以<em>真理</em>的身份，<br>重新书写冷战的历史。" },
+      { icon:"🔥", text:"<strong style=\"color:var(--red);font-size:1.5rem;\">冷战模式 已解锁</strong><br><br>真理 vs 先知 — 两个超级AI的博弈即将开始。" }
+    ];
+    let ttPhase = 0;
+
+    function showTimeTravelCutscene() {
+      ttPhase = 0;
+      document.getElementById("timeTravelOverlay").classList.add("show");
+      ttRenderScene();
+    }
+
+    function ttRenderScene() {
+      const s = TIME_TRAVEL_SCENES[ttPhase];
+      document.getElementById("ttContent").innerHTML = `
+        <div class="tt-icon">${s.icon}</div>
+        <div class="tt-text">${s.text}</div>
+      `;
+      const btn = document.getElementById("ttClickBtn");
+      btn.textContent = ttPhase < TIME_TRAVEL_SCENES.length - 1 ? "继续 →" : "重返棋盘";
+      btn.style.color = ttPhase === TIME_TRAVEL_SCENES.length - 1 ? "#fff" : "";
+    }
+
+    window.ttAdvance = function() {
+      ttPhase++;
+      if (ttPhase >= TIME_TRAVEL_SCENES.length) {
+        // 剧情结束：解锁冷战，回到模式选择
+        document.getElementById("timeTravelOverlay").classList.remove("show");
+        showModeSelect();
+        return;
+      }
+      document.getElementById("ttContent").classList.add("fade");
+      setTimeout(() => {
+        ttRenderScene();
+        document.getElementById("ttContent").classList.remove("fade");
+      }, 400);
+    };
 
     function startColdWar() {
       // 隐藏经典模式 UI
@@ -4471,4 +4526,13 @@ const countryData = [
     // ============================================================
 
     initBGM();
-    showModeSelect();
+    // 检查是否有任何结局记录：有 → 显示模式选择；无 → 直接进入经典模式+教程
+    const _startupPersist = loadPersist();
+    const _startupEndings = _startupPersist.endings || {};
+    if (Object.keys(_startupEndings).length === 0) {
+      gameMode = "classic";
+      newGame();
+      showTutorial();
+    } else {
+      showModeSelect();
+    }
