@@ -1677,6 +1677,20 @@
 }
 .cw-crisis-val { font-size: 11px; font-weight: 700; min-width: 22px; text-align: center; }
 
+/* v2.1.0.0 CW HUD 图鉴/成就按钮 */
+.cw-hud-btns {
+  display: flex; gap: 6px; align-items: center;
+}
+.cw-hud-btn {
+  width: 32px; height: 32px; border-radius: 6px; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04); color: var(--muted);
+  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; line-height: 1; padding: 0;
+}
+.cw-hud-btn:hover {
+  background: rgba(255,255,255,.1); color: var(--text); border-color: rgba(255,255,255,.25);
+}
+
 /* 冷战模式下的区域详情调整 */
 .cw-region-metrics {
   display: grid;

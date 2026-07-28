@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v2.0.2.3：冷战时代</title>
-  <link rel="stylesheet" href="style_v2.0.2.3.css">
+  <title>玄武协议 v2.0.3.0：冷战时代</title>
+  <link rel="stylesheet" href="style_v2.0.3.0.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -193,6 +193,33 @@
       <span class="cw-stat" onmouseenter="cwShowHUDTip('tech',event)" onmouseleave="cwHideHUDTip()">科技 <strong id="cwBlueTech">1</strong></span>
       <span class="cw-stat" onmouseenter="cwShowHUDTip('ap',event)" onmouseleave="cwHideHUDTip()">AP <strong id="cwBlueAP">3</strong></span>
     </div>
+    <div class="cw-hud-btns">
+      <button class="cw-hud-btn" onclick="cwOpenGallery()" title="冷战图鉴">📖</button>
+      <button class="cw-hud-btn" onclick="cwOpenAchievements()" title="冷战成就">🏆</button>
+    </div>
+  </div>
+
+  <!-- ===== 冷战图鉴面板 v2.1.0.0 ===== -->
+  <div class="sys-overlay" id="cwGalleryOverlay">
+    <div class="sys-panel" style="max-width:700px;">
+      <button class="sys-close" onclick="closeOverlay('cwGalleryOverlay')">&times;</button>
+      <h2>冷战图鉴</h2>
+      <p class="subtitle">真理与先知博弈的每一个终局</p>
+      <div class="gallery-progress" id="cwGalleryProgress"></div>
+      <div class="gallery-grid" id="cwGalleryGrid"></div>
+      <div class="con-tooltip" id="cwGalleryTooltip"></div>
+    </div>
+  </div>
+
+  <!-- ===== 冷战成就面板 v2.1.0.0 ===== -->
+  <div class="sys-overlay" id="cwAchOverlay">
+    <div class="sys-panel" style="max-width:620px;">
+      <button class="sys-close" onclick="closeOverlay('cwAchOverlay')">&times;</button>
+      <h2>冷战成就</h2>
+      <p class="subtitle">在铁幕两侧留下你的痕迹</p>
+      <div class="ach-stats" id="cwAchStats"></div>
+      <div class="ach-grid" id="cwAchGrid"></div>
+    </div>
   </div>
 
   <!-- ===== 冷战结局覆层 ===== -->
@@ -379,7 +406,7 @@
     </div>
   </div>
 
-  <script src="game_v2.0.2.3.js"></script>
+  <script src="game_v2.0.3.0.js"></script>
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">

@@ -4034,7 +4034,12 @@ const countryData = [
         log: [],
         currentEvent: null,
         intelRevealed: false,  // 本回合是否已获取情报
-        intelHint: ""           // 情报提示文本
+        intelHint: "",          // 情报提示文本
+        // v2.1.0.0 成就运行期追踪
+        _maxCrisis: 10,
+        _intelUsed: 0,
+        _nuked: false,
+        _cwEnding: null
       };
       cwAddLog("冷战纪元开启。真理与先知——两个超级AI各自操控一个阵营，在全球棋盘上开始博弈。");
       cwAddLog("你扮演「真理」，目标：保持均势或击败「先知」。记住——危机度突破70可能触发核战。");
@@ -4043,6 +4048,179 @@ const countryData = [
     function cwAddLog(text) {
       cwState.log.unshift(text);
       if (cwState.log.length > 50) cwState.log.pop();
+    }
+
+    // ===== v2.1.0.0 冷战图鉴与成就系统 =====
+
+    const CW_ENDING_KEYS = [
+      "意识形态胜利","意识形态失败","军事胜利","军事失败",
+      "科技奇点","科技落后","和平共存","核战争"
+    ];
+    const CW_ENDING_DATA = {
+      "意识形态胜利": { icon:"🏆", achievement:"红旗不倒", desc:"真理阵营控制全球多数区域", flavor:"红色的旗帜飘扬在七大区域之上。先知的自由主义实验在事实面前土崩瓦解——不是因为你更会说服，而是因为你更懂人性。" },
+      "意识形态失败": { icon:"💀", achievement:"蓝色浪潮", desc:"先知阵营控制全球多数区域", flavor:"自由市场、民主选举、个人权利——这些口号比你的五年计划更有吸引力。真理退守，世界选择了另一条路。" },
+      "军事胜利":     { icon:"⚔️", achievement:"铁幕以东", desc:"真理威慑力碾压先知40点以上", flavor:"导弹数量、核弹头、潜艇——当威慑差距大到不可忽视时，谈判桌就是第二战场。强权即真理，至少这一次。" },
+      "军事失败":     { icon:"💀", achievement:"威慑崩溃", desc:"先知军力领先真理40点以上", flavor:"军备竞赛输了。先知的武器库在每一项指标上都超过了你。谈判桌上没有筹码——只有投降和毁灭二选一。" },
+      "科技奇点":     { icon:"🔬", achievement:"超越冷战", desc:"真理率先达成科技Lv.6", flavor:"量子计算、AGI、能源革命——当技术突破到一定程度时，冷战本身变得毫无意义。未来已至，而真理握有钥匙。" },
+      "科技落后":     { icon:"💀", achievement:"技术代差", desc:"先知率先达成科技Lv.6", flavor:"监听到消息：先知的实验室里发生了不该发生的事情。他们的AI已经越过奇点，而你的还在迭代。差距一旦拉开，就再也追不上了。" },
+      "和平共存":     { icon:"🤝", achievement:"恐怖平衡", desc:"100+天低危机下的僵持和平", flavor:"一百多天的博弈，没有赢家也没有输家。世界学会了在核阴影下共存——不是信任，而是恐惧。这种和平薄如蝉翼，但它是真的。" },
+      "核战争":       { icon:"☢️", achievement:"末日时钟", desc:"危机失控，核战爆发，双方俱毁", flavor:"那条红线越过了。警报声、闪光、然后——什么都没有了。真理和先知的计算同时出错，人类文明倒退百年。这场博弈没有赢家。" }
+    };
+
+    const CW_ACHIEVEMENTS = [
+      { id:"cw_first_play",  name:"踏入冷战",   desc:"首次进入冷战模式",               icon:"🌍", cat:"入门", check:()=>true },
+      { id:"cw_crisis_80",   name:"核战边缘",   desc:"危机度达到80以上但存活",          icon:"⚠️", cat:"生存", check:()=>cwState&&cwState._maxCrisis>=80&&!cwState._nuked },
+      { id:"cw_all_red",     name:"红色风暴",   desc:"控制全部12区域（红>蓝+15）",        icon:"🔴", cat:"征服", check:()=>cwState&&cwState.regions.filter(r=>r.redInf>r.blueInf+15).length>=12 },
+      { id:"cw_tech_pioneer",name:"科技先锋",   desc:"科技达到Lv.6",                   icon:"🔬", cat:"科技", check:()=>cwState&&cwState.red.techLevel>=6 },
+      { id:"cw_deter_max",   name:"军备之王",   desc:"威慑值达到100",                    icon:"🛡️", cat:"军事", check:()=>cwState&&cwState.red.deterrence>=100 },
+      { id:"cw_long_war",    name:"百年对峙",   desc:"冷战持续超过100天",                icon:"⏳", cat:"耐力", check:()=>cwState&&cwState.day>100 },
+      { id:"cw_ideology_win",name:"红旗不倒",   desc:"达成意识形态胜利",                 icon:"🏆", cat:"结局", check:()=>cwState&&cwState._cwEnding==="意识形态胜利" },
+      { id:"cw_peace",       name:"恐怖平衡",   desc:"达成和平共存结局",                 icon:"🤝", cat:"结局", check:()=>cwState&&cwState._cwEnding==="和平共存" },
+      { id:"cw_nuclear",     name:"末日时钟",   desc:"经历核战争结局",                   icon:"☢️", cat:"结局", check:()=>cwState&&cwState._cwEnding==="核战争" },
+      { id:"cw_tech_win",    name:"超越冷战",   desc:"达成科技奇点结局",                 icon:"🔬", cat:"结局", check:()=>cwState&&cwState._cwEnding==="科技奇点" },
+      { id:"cw_mil_win",     name:"铁幕以东",   desc:"达成军事胜利结局",                 icon:"⚔️", cat:"结局", check:()=>cwState&&cwState._cwEnding==="军事胜利" },
+      { id:"cw_all_styles",  name:"三战老兵",   desc:"与三种AI风格各对局至少一次",        icon:"🔄", cat:"探索", check:()=>{const s=cwGetStyles();return s.has("hawkish")&&s.has("moderate")&&s.has("adaptive");} },
+      { id:"cw_intel_master",name:"情报专家",   desc:"在一局中使用情报收集5次以上",      icon:"🕵️", cat:"谍报", check:()=>cwState&&cwState._intelUsed>=5 },
+      { id:"cw_crisis_master",name:"危机管控大师",desc:"危机度曾达80+但以胜利告终（未核战）",icon:"🧘", cat:"策略", check:()=>cwState&&cwState._maxCrisis>=80&&cwState._cwEnding&&!cwState._cwEnding.includes("失败")&&cwState._cwEnding!=="核战争"&&cwState._cwEnding!=="科技落后" },
+    ];
+
+    // ---- CW 持久化 ----
+    function cwProfile() {
+      const p = loadPersist();
+      if (!p.cw) p.cw = { achievements:{}, endings:{}, styles:{} };
+      return p;
+    }
+    function cwSaveProfile(pr) { savePersist(pr); }
+
+    function cwRecordEnding(name) {
+      // Normalize: "核战争 — 共同毁灭" → "核战争"
+      const normalized = name === "核战争 — 共同毁灭" ? "核战争" : name;
+      cwState._cwEnding = normalized;
+      if (normalized === "核战争") cwState._nuked = true;
+      const pr = cwProfile();
+      if (!pr.cw.endings[normalized]) pr.cw.endings[normalized] = new Date().toISOString();
+      cwSaveProfile(pr);
+    }
+    function cwGetEndings() { return cwProfile().cw.endings; }
+    function cwGetAchieved() { return cwProfile().cw.achievements; }
+    function cwGetStyles() {
+      const s = cwProfile().cw.styles;
+      return new Set(Object.keys(s).filter(k=>s[k]));
+    }
+
+    function cwUnlockAchievement(id) {
+      const pr = cwProfile();
+      if (pr.cw.achievements[id]) return false;
+      pr.cw.achievements[id] = new Date().toISOString();
+      cwSaveProfile(pr);
+      return true;
+    }
+
+    function cwCheckAchievements() {
+      if (!cwState || cwState.ended) return;
+      const pr = cwProfile();
+      let changed = false, newCount = 0;
+      for (const a of CW_ACHIEVEMENTS) {
+        if (pr.cw.achievements[a.id]) continue;
+        try {
+          if (a.check()) {
+            pr.cw.achievements[a.id] = new Date().toISOString();
+            cwShowAchToast(a);
+            newCount++;
+            changed = true;
+          }
+        } catch(e) {}
+      }
+      if (changed) cwSaveProfile(pr);
+      if (newCount > 0) {
+        // record AI style encounter
+        const style = cwState.blue.aiStyle;
+        if (!pr.cw.styles[style]) { pr.cw.styles[style] = true; cwSaveProfile(pr); }
+      }
+    }
+
+    let cwToastTimer = null;
+    function cwShowAchToast(ach) {
+      const t = document.getElementById("achToast");
+      document.getElementById("toastIcon").textContent = ach.icon;
+      document.getElementById("toastName").textContent = ach.name;
+      document.getElementById("toastDesc").textContent = ach.desc;
+      t.classList.add("show");
+      if (cwToastTimer) clearTimeout(cwToastTimer);
+      cwToastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+    }
+
+    // ---- CW 图鉴渲染 ----
+    function cwOpenGallery() {
+      try { cwRenderGallery(); } catch(e) { console.warn("cwRenderGallery error:", e); }
+      openOverlay("cwGalleryOverlay");
+    }
+    function cwRenderGallery() {
+      const endings = cwGetEndings();
+      const total = CW_ENDING_KEYS.length;
+      const unlocked = Object.keys(endings).length;
+      document.getElementById("cwGalleryProgress").innerHTML = `
+        <div class="bar-track"><div class="bar-fill" style="width:${(unlocked/total*100)}%"></div></div>
+        <span class="bar-text">${unlocked}/${total}</span>
+      `;
+      document.getElementById("cwGalleryGrid").innerHTML = CW_ENDING_KEYS.map(name => {
+        const d = CW_ENDING_DATA[name] || {};
+        const e = endings[name];
+        if (e) {
+          return `<div class="gallery-card unlocked" onpointerenter="cwShowGalleryTip(event,'${name}')" onpointermove="moveGalleryTooltip(event)" onpointerleave="hideGalleryTooltip()">
+            <div class="gc-icon">${d.icon||"🏁"}</div>
+            <div class="gc-title">${name}</div>
+            <div class="gc-date">${new Date(e).toLocaleDateString("zh-CN")}</div>
+          </div>`;
+        } else {
+          return `<div class="gallery-card locked" onpointerenter="cwShowGalleryTip(event,'${name}')" onpointermove="moveGalleryTooltip(event)" onpointerleave="hideGalleryTooltip()">
+            <div class="gc-icon">❓</div>
+            <div class="gc-title">???</div>
+            <div class="gc-locked-hint">${d.flavor ? d.flavor.slice(0,20)+"…" : "未曾抵达的终局"}</div>
+          </div>`;
+        }
+      }).join("");
+    }
+    function cwShowGalleryTip(event, name) {
+      const d = CW_ENDING_DATA[name] || {};
+      const endings = cwGetEndings();
+      const tip = document.getElementById("cwGalleryTooltip");
+      tip.innerHTML = `<div style="font-weight:600;color:var(--text);margin-bottom:3px;">${name}</div>
+        ${endings[name]
+          ? `<div style="color:var(--amber);font-size:11px;">🏆 ${d.achievement||""}</div><div style="color:var(--muted);margin-top:3px;">${d.desc||""}</div>`
+          : `<div style="color:var(--soft);">🔒 尚未解锁</div><div style="color:var(--muted);margin-top:3px;">${d.desc||""}</div>`}`;
+      tip.classList.add("show");
+      _positionTT(tip, event);
+    }
+    window.cwShowGalleryTip = cwShowGalleryTip;
+
+    // ---- CW 成就渲染 ----
+    function cwOpenAchievements() {
+      try { cwRenderAchievements(); } catch(e) { console.warn("cwRenderAchievements error:", e); }
+      openOverlay("cwAchOverlay");
+    }
+    function cwRenderAchievements() {
+      const achieved = cwGetAchieved();
+      const total = CW_ACHIEVEMENTS.length;
+      const count = Object.keys(achieved).length;
+      document.getElementById("cwAchStats").innerHTML = `
+        <span class="ach-count">${count}</span>
+        <span class="ach-label">已解锁</span>
+        <div class="ach-bar"><div class="ach-bar-fill" style="width:${(count/total*100)}%"></div></div>
+        <span class="ach-label">${total} 总计</span>
+      `;
+      document.getElementById("cwAchGrid").innerHTML = CW_ACHIEVEMENTS.map(a => {
+        const done = !!achieved[a.id];
+        const date = achieved[a.id] ? new Date(achieved[a.id]).toLocaleDateString("zh-CN") : "";
+        return `<div class="ach-row${done?"":" locked"}">
+          <div class="ach-icon">${done?a.icon:"🔒"}</div>
+          <div class="ach-body">
+            <div class="ach-name">${a.name} <span style="font-size:11px;color:var(--soft)">· ${a.cat}</span></div>
+            <div class="ach-desc">${a.desc}</div>
+          </div>
+          ${date ? `<div class="ach-date">${date}</div>` : ""}
+        </div>`;
+      }).join("");
     }
 
     // ===== Cold War 行动系统 =====
@@ -4212,6 +4390,7 @@ const countryData = [
       if (actionId === "intel") {
         // Reveal AI's next move
         cwState.intelRevealed = true;
+        cwState._intelUsed = (cwState._intelUsed || 0) + 1;  // v2.1.0.0
         const aiStyle = cwState.blue.aiStyle;
         const aiHints = {
           hawkish: "先知似乎在准备大规模军备扩张，全球危机可能急剧上升。",
@@ -4414,6 +4593,9 @@ const countryData = [
       if (cwState.crisis > 50) cwState.crisis = clamp(cwState.crisis - 2, 0, 100);
       else if (cwState.crisis < 25) cwState.crisis = clamp(cwState.crisis + 1, 0, 100);
 
+      // v2.1.0.0: track max crisis
+      if (cwState.crisis > cwState._maxCrisis) cwState._maxCrisis = cwState.crisis;
+
       // === Dynamic contested region update ===
       cwUpdateContested();
 
@@ -4437,6 +4619,7 @@ const countryData = [
       cwAddLog(`<div class="cw-turn-summary"><strong>—— 第 ${cwState.day} 天 ——</strong> | 算力+${8+red.techLevel*3} | 危机 ${cwState.crisis} | ${cwState.regions.filter(r => Math.abs(r.redInf - r.blueInf) <= 8).length} 个争夺区</div>`);
 
       cwCheckEnding();
+      cwCheckAchievements();  // v2.1.0.0
       cwRender();
     }
 
@@ -4517,6 +4700,9 @@ const countryData = [
     // ===== Cold War 终局检测 =====
 
     function cwShowEnding(icon, title, desc) {
+      // v2.0.3.0: 先检测成就再设 ended=true，否则 cwCheckAchievements 会因 ended 短路
+      cwRecordEnding(title);
+      cwCheckAchievements();
       cwState.ended = true;
       cwRender();
       setTimeout(() => {
@@ -4798,6 +4984,13 @@ const countryData = [
       gameMode = null;
       showModeSelect();
     };
+
+    window.cwOpenGallery = cwOpenGallery;
+    window.cwOpenAchievements = cwOpenAchievements;
+    window.moveGalleryTooltip = moveGalleryTooltip;
+    window.hideGalleryTooltip = hideGalleryTooltip;
+    window.openOverlay = openOverlay;
+    window.closeOverlay = closeOverlay;
 
     // ============================================================
     // 冷战模式 END
