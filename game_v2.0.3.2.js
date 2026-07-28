@@ -3976,7 +3976,7 @@ const countryData = [
         cwBtn.className = "cw-next-btn";
         cwBtn.textContent = "⚡ 结束回合";
         cwBtn.onclick = cwNextDay;
-        const topbar = document.querySelector(".topbar-right");
+        const topbar = document.querySelector(".turn-actions");
         if (topbar) topbar.appendChild(cwBtn);
       }
 
