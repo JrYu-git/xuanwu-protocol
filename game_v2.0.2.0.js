@@ -3994,7 +3994,8 @@ const countryData = [
           ap: 3,
           maxAp: 3,
           aiStyle: ["hawkish", "moderate", "adaptive"][Math.floor(Math.random() * 3)],
-          actionsThisTurn: []
+          actionsThisTurn: [],
+          techCoopCd: 0  // v2.0.2.0: tech_coop 3-day global cooldown for AI
         },
 
         regions: [
@@ -4020,7 +4021,7 @@ const countryData = [
         intelHint: ""           // 情报提示文本
       };
       cwAddLog("冷战纪元开启。真理与先知——两个超级AI各自操控一个阵营，在全球棋盘上开始博弈。");
-      cwAddLog("你扮演「真理」，目标：保持均势或击败「先知」。记住——危机度突破80可能触发核战。");
+      cwAddLog("你扮演「真理」，目标：保持均势或击败「先知」。记住——危机度突破70可能触发核战。");
     }
 
     function cwAddLog(text) {
@@ -4121,7 +4122,7 @@ const countryData = [
         cwAddLog("[真理] 情报收集完成。已获取先知战略意图。<span class='cw-intel-reveal'>🕵️ " + cwState.intelHint + "</span>");
       } else if (actionId.startsWith("econ") || actionId === "culture" || actionId === "propaganda" || actionId === "tech_coop" || actionId === "alliance") {
         region[infKey] = clamp(region[infKey] + roll, 0, 100);
-        if (actionId === "tech_coop") side.techLevel = Math.min(5, side.techLevel + 1);
+        if (actionId === "tech_coop") side.techLevel = Math.min(6, side.techLevel + 1);
         // Influence actions shake up stability
         if (roll > 15) region.stability = clamp(region.stability - 3, 10, 100);
         cwAddLog(`[真理] 在${region.name}执行${actionDef.name}：赤方影响力 +${roll}${region.stability <= 50 ? ' (低稳定度增益)' : region.stability >= 80 ? ' (高稳定度折扣)' : ''}`);
@@ -4189,11 +4190,17 @@ const countryData = [
         ];
         if (cwState.crisis > 75) actionPool.unshift({ type: "deescalate", sub: "diplomacy", weight: 5 });
       } else if (style === "moderate") {
+        // v2.0.2.0: tech_coop 仅非冷却时可用，权重调低，增补其他行动
+        const coopPool = ai.techCoopCd <= 0
+          ? allRegions.filter(r => Math.abs(r.redInf - r.blueInf) <= 12).slice(0, 3).map(r => ({ type: "influence", sub: "tech_coop", region: r.index, weight: 2 }))
+          : [];
         actionPool = [
           ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 6).map(r => ({ type: "influence", sub: "econ_aid", region: r.index, weight: 3 })),
-          ...allRegions.filter(r => Math.abs(r.redInf - r.blueInf) <= 12).map(r => ({ type: "influence", sub: "tech_coop", region: r.index, weight: 2 })),
-          { type: "military", sub: "missile_def", weight: 2 },
-          { type: "espionage", sub: "intel", weight: 1 }
+          ...coopPool,
+          { type: "military", sub: "missile_def", weight: 3 },
+          { type: "military", sub: "conventional", weight: 1 },
+          { type: "espionage", sub: "intel", weight: 1 },
+          ...allRegions.sort((a, b) => b.redInf - a.redInf).slice(0, 2).map(r => ({ type: "influence", sub: "propaganda", region: r.index, weight: 1 }))
         ];
         if (cwState.crisis > 60) actionPool.unshift({ type: "deescalate", sub: "disarm", weight: 4 });
       } else { // adaptive
@@ -4210,11 +4217,14 @@ const countryData = [
             { type: "military", sub: "conventional", weight: 1 }
           ];
         } else {
+          // v2.0.2.0: 中危机段增加攻击性行动，避免被动等死
           actionPool = [
             ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 4).map(r => ({ type: "influence", sub: "econ_aid", region: r.index, weight: 2 })),
             ...allRegions.filter(r => Math.abs(r.redInf - r.blueInf) <= 15).map(r => ({ type: "influence", sub: "culture", region: r.index, weight: 2 })),
+            { type: "military", sub: "missile_def", weight: 2 },
+            { type: "espionage", sub: "tech_theft", weight: 2 },
             { type: "espionage", sub: "intel", weight: 1 },
-            { type: "espionage", sub: "tech_theft", weight: 1 }
+            ...(ai.techCoopCd <= 0 ? allRegions.filter(r => Math.abs(r.redInf - r.blueInf) <= 10).slice(0, 2).map(r => ({ type: "influence", sub: "tech_coop", region: r.index, weight: 1 })) : [])
           ];
         }
       }
@@ -4247,7 +4257,7 @@ const countryData = [
 
           if (act.type === "influence" || act.sub === "alliance") {
             region.blueInf = clamp(region.blueInf + roll, 0, 100);
-            if (act.sub === "tech_coop") ai.techLevel = Math.min(5, ai.techLevel + 1);
+            if (act.sub === "tech_coop") { ai.techLevel = Math.min(6, ai.techLevel + 1); ai.techCoopCd = 3; }
             if (roll > 15) region.stability = clamp(region.stability - 3, 10, 100);
             cwAddLog(`[先知] 在${region.name}执行${actionDef.name}：蓝方影响力 +${roll}`);
           } else if (act.sub === "subversion" || act.sub === "sabotage") {
@@ -4296,6 +4306,9 @@ const countryData = [
       // Compute regeneration
       red.compute = Math.min(200, red.compute + 8 + red.techLevel * 3);
       blue.compute = Math.min(200, blue.compute + 8 + blue.techLevel * 3);
+
+      // v2.0.2.0: AI tech_coop cooldown decay
+      if (blue.techCoopCd > 0) blue.techCoopCd--;
 
       // Passive crisis drift
       if (cwState.crisis > 50) cwState.crisis = clamp(cwState.crisis - 2, 0, 100);
@@ -4422,13 +4435,21 @@ const countryData = [
     }
 
     function cwCheckNuclearRisk() {
-      if (cwState.crisis >= 85) {
+      // v2.0.2.0: 降低核战触发阈值，提高概率，危机≥60递增风险
+      if (cwState.crisis >= 70) {
+        const baseRisk = cwState.crisis >= 85 ? 0.12 : 0.06;
         const roll = Math.random();
-        if (roll < 0.08) {
+        if (roll < baseRisk) {
           cwAddLog("☢️ 核战爆发！真理与先知的博弈失控——全球陷入核冬天。");
           cwShowEnding("☢️", "核战争 — 共同毁灭", "全球陷入核冬天。真理与先知的计算同时出错，人类文明倒退百年。双方同归于尽，没有赢家。");
-        } else if (roll < 0.25) {
+        } else if (roll < baseRisk + 0.12) {
           cwAddLog("⚠️ 核战警报拉响！世界屏住呼吸……好在这一次擦肩而过。");
+        }
+      } else if (cwState.crisis >= 60) {
+        // Progressive risk: 2% per day above 60
+        if (Math.random() < 0.02) {
+          cwAddLog("⚠️ 危机逼近临界点！先知的军事机器已进入最高战备状态。");
+          cwState.crisis = clamp(cwState.crisis + 2, 0, 100);
         }
       }
     }
@@ -4465,12 +4486,12 @@ const countryData = [
         return;
       }
 
-      if (cwState.red.techLevel >= 5) {
+      if (cwState.red.techLevel >= 6) {
         cwAddLog("🔬 科技奇点！真理率先突破技术极限。");
         cwShowEnding("🔬", "科技奇点", "真理率先抵达技术极限。量子计算、AGI、能源革命——冷战在科技爆发面前失去了意义。未来属于真理。");
         return;
       }
-      if (cwState.blue.techLevel >= 5) {
+      if (cwState.blue.techLevel >= 6) {
         cwAddLog("💀 科技落后！先知率先突破。");
         cwShowEnding("💀", "科技落后", "监听到消息：先知的实验室已经实现了技术突破。他们在科技竞赛中跑在了前面。");
         return;
@@ -4505,7 +4526,7 @@ const countryData = [
       document.getElementById("cwCrisisFill").style.width = s.crisis + "%";
       // Crisis color
       const cf = document.getElementById("cwCrisisVal");
-      if (s.crisis >= 80) cf.style.color = "#ff2222";
+      if (s.crisis >= 70) cf.style.color = "#ff2222";
       else if (s.crisis >= 60) cf.style.color = "#e94560";
       else if (s.crisis >= 40) cf.style.color = "#f0a500";
       else cf.style.color = "#4ecca3";
