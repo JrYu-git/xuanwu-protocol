@@ -3256,13 +3256,18 @@ const countryData = [
       }
     }
     function moveGalleryTooltip(event) {
-      const tip = document.getElementById("galleryTooltip");
-      if (!tip.classList.contains('show')) return;
-      _positionTT(tip, event);
+      const tip = document.getElementById("cwGalleryTooltip");
+      if (tip && tip.classList.contains('show')) { _positionTT(tip, event); return; }
+      const classicTip = document.getElementById("galleryTooltip");
+      if (!classicTip || !classicTip.classList.contains('show')) return;
+      _positionTT(classicTip, event);
     }
     function hideGalleryTooltip() {
       clearTimeout(_gtTimer);
-      document.getElementById("galleryTooltip").classList.remove('show');
+      const cwTip = document.getElementById("cwGalleryTooltip");
+      if (cwTip) cwTip.classList.remove('show');
+      const classicTip = document.getElementById("galleryTooltip");
+      if (classicTip) classicTip.classList.remove('show');
     }
 
     // ---- v1.8.1.4 图鉴详情弹窗 ----
@@ -3961,6 +3966,8 @@ const countryData = [
       document.getElementById("resetBtn").style.display = "none";
       document.getElementById("saveBtn").style.display = "none";
       document.getElementById("trendBtn").style.display = "none";
+      document.getElementById("galleryBtn").style.display = "none";
+      document.getElementById("achBtn").style.display = "none";
       // 添加冷战下一天按钮
       let cwBtn = document.getElementById("cwNextDayBtn");
       if (!cwBtn) {
@@ -4975,6 +4982,8 @@ const countryData = [
       document.getElementById("resetBtn").style.display = "";
       document.getElementById("saveBtn").style.display = "";
       document.getElementById("trendBtn").style.display = "";
+      document.getElementById("galleryBtn").style.display = "";
+      document.getElementById("achBtn").style.display = "";
       const cwBtn = document.getElementById("cwNextDayBtn");
       if (cwBtn) cwBtn.remove();
       const eventCard = document.getElementById("cwEventCard");
