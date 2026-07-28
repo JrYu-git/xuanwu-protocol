@@ -2,15 +2,14 @@ const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, value))
 const fmt = value => Math.round(value);
 const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia('(pointer: coarse)').matches);
 
-// v2.0.2.2 通用：接收 rgba(R,G,B,A) 字符串，返回更鲜艳的 rgba 颜色
+// v2.0.2.3 通用：接收 rgba(R,G,B,A) 字符串，返回更鲜艳的 rgba 颜色（系数提升至 0.8）
 function makeVibrant(rgba) {
   const m = rgba.match(/rgba?\((\d+),(\d+),(\d+),?([\d.]+)?\)/);
   if (!m) return rgba;
   let [, r, g, b] = m.map(Number);
   const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
-  // 计算饱和度提升：将每个通道推离灰色的平均值
   const avg = (r + g + b) / 3;
-  const factor = 0.35; // 鲜艳度提升系数
+  const factor = 0.8;
   r = Math.round(clamp(r + (r - avg) * factor, 0, 255));
   g = Math.round(clamp(g + (g - avg) * factor, 0, 255));
   b = Math.round(clamp(b + (b - avg) * factor, 0, 255));
