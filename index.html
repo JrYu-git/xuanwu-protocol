@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v2.0.0.2：冷战时代</title>
-  <link rel="stylesheet" href="style_v2.0.0.2.css">
+  <title>玄武协议 v2.0.1.0：冷战时代</title>
+  <link rel="stylesheet" href="style_v2.0.1.0.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -195,6 +195,17 @@
     </div>
   </div>
 
+  <!-- ===== 冷战结局覆层 ===== -->
+  <div class="cw-ending-overlay" id="cwEndingOverlay" role="dialog" aria-modal="true">
+    <div class="cw-ending-box">
+      <div class="cw-ending-icon" id="cwEndingIcon">🏆</div>
+      <h2 id="cwEndingTitle">胜利</h2>
+      <p id="cwEndingDesc"></p>
+      <div class="cw-ending-stats" id="cwEndingStats"></div>
+      <button class="btn btn-red" onclick="resetColdWar()">回到模式选择</button>
+    </div>
+  </div>
+
   <!-- ===== 教学开场覆盖层 ===== -->
   <div class="tutorial-overlay" id="tutorialOverlay" role="dialog" aria-modal="true" aria-label="游戏教学">
     <div class="tut-bg"></div>
@@ -368,7 +379,7 @@
     </div>
   </div>
 
-  <script src="game_v2.0.0.2.js"></script>
+  <script src="game_v2.0.1.0.js"></script>
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">

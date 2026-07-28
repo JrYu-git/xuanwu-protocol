@@ -4013,9 +4013,11 @@ const countryData = [
         ],
 
         selectedRegion: 0,
-        selectedPanel: "influence", // "influence" | "military" | "espionage"
+        selectedPanel: "influence",
         log: [],
-        currentEvent: null
+        currentEvent: null,
+        intelRevealed: false,  // 本回合是否已获取情报
+        intelHint: ""           // 情报提示文本
       };
       cwAddLog("冷战纪元开启。真理与先知——两个超级AI各自操控一个阵营，在全球棋盘上开始博弈。");
       cwAddLog("你扮演「真理」，目标：保持均势或击败「先知」。记住——危机度突破80可能触发核战。");
@@ -4032,36 +4034,36 @@ const countryData = [
       influence: {
         name: "影响力行动",
         subtypes: [
-          { id: "econ_aid", name: "经济援助", apCost: 1, desc: "投入算力提升本方影响力+8~15", crisisGain: 0, baseEffect: [8,15] },
-          { id: "culture", name: "文化渗透", apCost: 1, desc: "缓慢渗透+5~10，不易被察觉", crisisGain: 1, baseEffect: [5,10] },
-          { id: "propaganda", name: "意识形态宣传", apCost: 2, desc: "大范围传播+12~20", crisisGain: 2, baseEffect: [12,20] },
-          { id: "tech_coop", name: "科技合作", apCost: 2, desc: "提升影响力+8~12，同时+科技进度", crisisGain: 0, baseEffect: [8,12] }
+          { id: "econ_aid", name: "经济援助", apCost: 1, computeCost: 5, desc: "投入算力提升本方影响力+8~15", crisisGain: 0, baseEffect: [8,15] },
+          { id: "culture", name: "文化渗透", apCost: 1, computeCost: 3, desc: "缓慢渗透+5~10，不易被察觉", crisisGain: 1, baseEffect: [5,10] },
+          { id: "propaganda", name: "意识形态宣传", apCost: 2, computeCost: 8, desc: "大范围传播+12~20", crisisGain: 2, baseEffect: [12,20] },
+          { id: "tech_coop", name: "科技合作", apCost: 2, computeCost: 12, desc: "提升影响力+8~12，同时+科技进度", crisisGain: 0, baseEffect: [8,12] }
         ]
       },
       military: {
         name: "军备行动",
         subtypes: [
-          { id: "conventional", name: "常规扩军", apCost: 2, desc: "威慑+6~10，危机+3", crisisGain: 3, baseEffect: [6,10] },
-          { id: "nuclear", name: "核武研发", apCost: 3, desc: "威慑+15~25，危机+8", crisisGain: 8, baseEffect: [15,25] },
-          { id: "missile_def", name: "导弹防御", apCost: 2, desc: "降低对方威慑效果，危机+4", crisisGain: 4, baseEffect: [4,8] },
-          { id: "alliance", name: "军事同盟", apCost: 2, desc: "在目标区域提升影响力+10~18，危机+2", crisisGain: 2, baseEffect: [10,18] }
+          { id: "conventional", name: "常规扩军", apCost: 2, computeCost: 10, desc: "威慑+6~10，危机+3", crisisGain: 3, baseEffect: [6,10] },
+          { id: "nuclear", name: "核武研发", apCost: 3, computeCost: 25, desc: "威慑+15~25，危机+8", crisisGain: 8, baseEffect: [15,25] },
+          { id: "missile_def", name: "导弹防御", apCost: 2, computeCost: 15, desc: "降低对方威慑效果，危机+4", crisisGain: 4, baseEffect: [4,8] },
+          { id: "alliance", name: "军事同盟", apCost: 2, computeCost: 8, desc: "在目标区域提升影响力+10~18，危机+2", crisisGain: 2, baseEffect: [10,18] }
         ]
       },
       espionage: {
         name: "谍报行动",
         subtypes: [
-          { id: "intel", name: "情报收集", apCost: 1, desc: "揭示对方行动意图，危机+1", crisisGain: 1, baseEffect: [0,0] },
-          { id: "subversion", name: "颠覆行动", apCost: 3, desc: "大幅削弱对方影响力-15~30，失败则暴露+危机飙升", crisisGain: 6, baseEffect: [15,30] },
-          { id: "tech_theft", name: "技术窃取", apCost: 2, desc: "缩小科技差距，有被发现概率", crisisGain: 2, baseEffect: [3,6] },
-          { id: "sabotage", name: "暗杀破坏", apCost: 3, desc: "精准打击-10~20对方影响力，极高风险", crisisGain: 5, baseEffect: [10,20] }
+          { id: "intel", name: "情报收集", apCost: 1, computeCost: 5, desc: "揭示对方下一回合行动意图", crisisGain: 1, baseEffect: [0,0] },
+          { id: "subversion", name: "颠覆行动", apCost: 3, computeCost: 20, desc: "大幅削弱对方影响力-15~30，35%概率暴露", crisisGain: 6, baseEffect: [15,30] },
+          { id: "tech_theft", name: "技术窃取", apCost: 2, computeCost: 12, desc: "缩小科技差距，40%概率被发现", crisisGain: 2, baseEffect: [3,6] },
+          { id: "sabotage", name: "暗杀破坏", apCost: 3, computeCost: 18, desc: "精准打击-10~20对方影响力，35%概率暴露", crisisGain: 5, baseEffect: [10,20] }
         ]
       },
       deescalate: {
         name: "危机管控",
         subtypes: [
-          { id: "disarm", name: "裁军谈判", apCost: 1, desc: "降低危机-8~15，需对方合作概率", crisisGain: -10, baseEffect: [8,15] },
-          { id: "diplomacy", name: "外交示好", apCost: 1, desc: "降低危机-5~10", crisisGain: -7, baseEffect: [5,10] },
-          { id: "openness", name: "文化开放", apCost: 1, desc: "降低危机-3~8，同时提升本方全球形象", crisisGain: -5, baseEffect: [3,8] }
+          { id: "disarm", name: "裁军谈判", apCost: 1, computeCost: 3, desc: "降低危机-8~15，需对方合作概率", crisisGain: -10, baseEffect: [8,15] },
+          { id: "diplomacy", name: "外交示好", apCost: 1, computeCost: 2, desc: "降低危机-5~10", crisisGain: -7, baseEffect: [5,10] },
+          { id: "openness", name: "文化开放", apCost: 1, computeCost: 4, desc: "降低危机-3~8，同时提升本方全球形象", crisisGain: -5, baseEffect: [3,8] }
         ]
       }
     };
@@ -4070,7 +4072,7 @@ const countryData = [
       if (!cwState || cwState.ended) return;
       const faction = cwState.playerFaction;
       const side = cwState[faction];
-      if (side.ap <= 0) return;
+      if (side.ap <= 0) { cwAddLog("⚠️ 行动点不足！"); cwRender(); return; }
 
       // Find action definition
       let actionDef = null;
@@ -4082,63 +4084,81 @@ const countryData = [
       }
       if (!actionDef) return;
 
-      // Consume AP
-      if (side.ap < actionDef.apCost) return;
+      // Consume AP and compute
+      if (side.ap < actionDef.apCost) { cwAddLog("⚠️ AP不足！"); cwRender(); return; }
+      const cc = actionDef.computeCost || 0;
+      if (side.compute < cc) { cwAddLog(`⚠️ 算力不足！需要${cc}算力，当前${side.compute}`); cwRender(); return; }
       side.ap -= actionDef.apCost;
+      side.compute -= cc;
 
-      // Roll effect
+      // Roll effect (modified by region stability)
       const [min, max] = actionDef.baseEffect;
-      const roll = Math.floor(Math.random() * (max - min + 1)) + min;
-
-      // Apply effect
+      let roll = Math.floor(Math.random() * (max - min + 1)) + min;
       const region = cwState.regions[regionIndex];
+      // Low stability regions: +20% bonus or penalty
+      if (region.stability < 40) { roll = Math.floor(roll * 1.2); }
+      if (region.stability > 75) { roll = Math.floor(roll * 0.85); }
+
       const infKey = faction === "red" ? "redInf" : "blueInf";
       const oppKey = faction === "red" ? "blueInf" : "redInf";
       const oppFaction = faction === "red" ? "blue" : "red";
 
-      if (actionDef.crisisGain > 0) {
-        cwState.crisis = clamp(cwState.crisis + actionDef.crisisGain, 0, 100);
-      } else if (actionDef.crisisGain < 0) {
-        cwState.crisis = clamp(cwState.crisis + actionDef.crisisGain, 0, 100);
-      }
+      // Crisis gain
+      if (actionDef.crisisGain > 0) cwState.crisis = clamp(cwState.crisis + actionDef.crisisGain, 0, 100);
+      else if (actionDef.crisisGain < 0) cwState.crisis = clamp(cwState.crisis + actionDef.crisisGain, 0, 100);
 
-      if (actionId.startsWith("econ") || actionId === "culture" || actionId === "propaganda" || actionId === "tech_coop" || actionId === "alliance") {
-        // Influence actions
+      // === Action resolution ===
+      if (actionId === "intel") {
+        // Reveal AI's next move
+        cwState.intelRevealed = true;
+        const aiStyle = cwState.blue.aiStyle;
+        const aiHints = {
+          hawkish: "先知似乎在准备大规模军备扩张，全球危机可能急剧上升。",
+          moderate: "先知专注于经济渗透，优先恢复影响力不足的区域。",
+          adaptive: "先知在根据当前态势灵活调整策略，难以预测其下一步。"
+        };
+        cwState.intelHint = aiHints[aiStyle] || "情报分析显示先知正在谋划重大行动。";
+        cwAddLog("[真理] 情报收集完成。已获取先知战略意图。<span class='cw-intel-reveal'>🕵️ " + cwState.intelHint + "</span>");
+      } else if (actionId.startsWith("econ") || actionId === "culture" || actionId === "propaganda" || actionId === "tech_coop" || actionId === "alliance") {
         region[infKey] = clamp(region[infKey] + roll, 0, 100);
-        // Tech coop also boosts tech
         if (actionId === "tech_coop") side.techLevel = Math.min(5, side.techLevel + 1);
-        cwAddLog(`[${faction === "red" ? "真理" : "先知"}] 在${region.name}执行${actionDef.name}：${infKey === "redInf" ? "赤方" : "蓝方"}影响力 +${roll}`);
+        // Influence actions shake up stability
+        if (roll > 15) region.stability = clamp(region.stability - 3, 10, 100);
+        cwAddLog(`[真理] 在${region.name}执行${actionDef.name}：赤方影响力 +${roll}${region.stability <= 50 ? ' (低稳定度增益)' : region.stability >= 80 ? ' (高稳定度折扣)' : ''}`);
       } else if (actionId === "conventional" || actionId === "nuclear") {
-        // Military buildup
         side.deterrence += roll;
-        cwAddLog(`[${faction === "red" ? "真理" : "先知"}] ${actionDef.name}：威慑值 +${roll}`);
+        cwAddLog(`[真理] ${actionDef.name}：威慑值 +${roll}`);
       } else if (actionId === "missile_def") {
         side.deterrence += roll;
-        // Reduce opponent deterrence effect
         cwState[oppFaction].deterrence = clamp(cwState[oppFaction].deterrence - Math.floor(roll/2), 0, 100);
-        cwAddLog(`[${faction === "red" ? "真理" : "先知"}] 导弹防御系统部署：自身威慑 +${roll}，对方威慑效果削弱`);
+        cwAddLog(`[真理] 导弹防御系统部署：自身威慑 +${roll}，对方威慑削弱`);
       } else if (actionId === "subversion" || actionId === "sabotage") {
-        // Aggressive espionage
-        const success = Math.random() > 0.35;
+        // Stability affects success rate
+        const baseFailRate = 0.35;
+        const failRate = region.stability > 60 ? baseFailRate + 0.15 : baseFailRate - 0.1;
+        const success = Math.random() > failRate;
         if (success) {
           region[oppKey] = clamp(region[oppKey] - roll, 0, 100);
-          cwAddLog(`[${faction === "red" ? "真理" : "先知"}] ${actionDef.name}成功！${region.name}对方影响力 -${roll}`);
+          region.stability = clamp(region.stability - 5, 10, 100);
+          cwAddLog(`[真理] ${actionDef.name}成功！${region.name}蓝方影响力 -${roll}，区域动荡`);
         } else {
           cwState.crisis = clamp(cwState.crisis + 3, 0, 100);
-          cwAddLog(`[${faction === "red" ? "真理" : "先知"}] ${actionDef.name}暴露！危机 +3，行动失败`);
+          cwAddLog(`[真理] ${actionDef.name}暴露！危机 +3，行动失败`);
         }
       } else if (actionId === "tech_theft") {
         const success = Math.random() > 0.4;
         if (success) {
           side.techLevel = Math.min(5, side.techLevel + 1);
-          cwAddLog(`[${faction === "red" ? "真理" : "先知"}] 技术窃取成功！科技等级 +1 → ${side.techLevel}`);
+          cwAddLog(`[真理] 技术窃取成功！科技等级 → ${side.techLevel}`);
         } else {
           cwState.crisis = clamp(cwState.crisis + 2, 0, 100);
-          cwAddLog(`[${faction === "red" ? "真理" : "先知"}] 技术窃取被发现！危机 +2`);
+          cwAddLog(`[真理] 技术窃取被发现！危机 +2`);
         }
       } else if (actionId === "disarm" || actionId === "diplomacy" || actionId === "openness") {
         cwState.crisis = clamp(cwState.crisis - roll, 0, 100);
-        cwAddLog(`[${faction === "red" ? "真理" : "先知"}] ${actionDef.name}：危机度 -${roll}`);
+        // De-escalation restores stability
+        region.stability = clamp(region.stability + 3, 10, 100);
+        cwAddLog(`[真理] ${actionDef.name}：危机 -${roll}，${region.name}稳定 +3`);
       }
 
       side.actionsThisTurn.push({ actionId, regionIndex, roll });
@@ -4148,97 +4168,115 @@ const countryData = [
     // ===== Cold War AI 对手 =====
 
     function cwAiTurn() {
-      const ai = cwState.blue; // 先知(北约) AI
+      const ai = cwState.blue;
       ai.ap = ai.maxAp;
+      ai.compute = Math.max(ai.compute, 20); // AI minimum compute floor
       const style = ai.aiStyle;
       ai.actionsThisTurn = [];
 
-      // AI strategy based on style
+      // AI strategy based on style and crisis level
       let actionPool = [];
       const allRegions = cwState.regions.map((r, i) => ({ ...r, index: i }));
 
       if (style === "hawkish") {
-        // Prefers military & aggressive espionage
         actionPool = [
-          ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 6).map(r => ({ type: "military", sub: "alliance", region: r.index, weight: 3 })),
-          ...allRegions.sort((a, b) => b.redInf - a.redInf).slice(0, 4).map(r => ({ type: "espionage", sub: "subversion", region: r.index, weight: 2 })),
-          { type: "military", sub: "nuclear", weight: 1 }
+          // Prioritize low blue influence regions with military alliance
+          ...allRegions.sort((a, b) => (a.blueInf - a.redInf) - (b.blueInf - b.redInf)).slice(0, 4).map(r => ({ type: "military", sub: "alliance", region: r.index, weight: 3 })),
+          // Sabotage red strongholds
+          ...allRegions.sort((a, b) => b.redInf - a.redInf).slice(0, 3).map(r => ({ type: "espionage", sub: "sabotage", region: r.index, weight: 2 })),
+          { type: "military", sub: "nuclear", weight: 2 },
+          { type: "military", sub: "conventional", weight: 1 }
         ];
+        if (cwState.crisis > 75) actionPool.unshift({ type: "deescalate", sub: "diplomacy", weight: 5 });
       } else if (style === "moderate") {
         actionPool = [
           ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 6).map(r => ({ type: "influence", sub: "econ_aid", region: r.index, weight: 3 })),
-          ...allRegions.filter(r => r.contested).map(r => ({ type: "influence", sub: "tech_coop", region: r.index, weight: 2 })),
-          { type: "military", sub: "missile_def", weight: 1 }
+          ...allRegions.filter(r => Math.abs(r.redInf - r.blueInf) <= 12).map(r => ({ type: "influence", sub: "tech_coop", region: r.index, weight: 2 })),
+          { type: "military", sub: "missile_def", weight: 2 },
+          { type: "espionage", sub: "intel", weight: 1 }
         ];
-      } else {
-        // Adaptive
-        if (cwState.crisis > 50) {
+        if (cwState.crisis > 60) actionPool.unshift({ type: "deescalate", sub: "disarm", weight: 4 });
+      } else { // adaptive
+        if (cwState.crisis > 60) {
           actionPool = [
-            { type: "deescalate", sub: "diplomacy", weight: 4 },
-            ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 4).map(r => ({ type: "influence", sub: "culture", region: r.index, weight: 2 }))
+            { type: "deescalate", sub: "diplomacy", weight: 5 },
+            { type: "deescalate", sub: "openness", weight: 3 },
+            ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 3).map(r => ({ type: "influence", sub: "culture", region: r.index, weight: 2 }))
+          ];
+        } else if (cwState.crisis < 30) {
+          actionPool = [
+            ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 3).map(r => ({ type: "influence", sub: "propaganda", region: r.index, weight: 3 })),
+            ...allRegions.filter(r => r.redInf > r.blueInf).slice(0, 2).map(r => ({ type: "military", sub: "alliance", region: r.index, weight: 2 })),
+            { type: "military", sub: "conventional", weight: 1 }
           ];
         } else {
           actionPool = [
             ...allRegions.sort((a, b) => a.blueInf - b.blueInf).slice(0, 4).map(r => ({ type: "influence", sub: "econ_aid", region: r.index, weight: 2 })),
-            ...allRegions.filter(r => r.contested).map(r => ({ type: "military", sub: "alliance", region: r.index, weight: 2 })),
-            { type: "espionage", sub: "intel", weight: 1 }
+            ...allRegions.filter(r => Math.abs(r.redInf - r.blueInf) <= 15).map(r => ({ type: "influence", sub: "culture", region: r.index, weight: 2 })),
+            { type: "espionage", sub: "intel", weight: 1 },
+            { type: "espionage", sub: "tech_theft", weight: 1 }
           ];
         }
       }
 
-      // Execute 2-3 actions
-      const numActions = Math.min(ai.ap, 2 + Math.floor(Math.random() * 2));
-      const taken = [];
-      for (let i = 0; i < numActions && i < actionPool.length; i++) {
-        const act = actionPool[i];
-        if (!act.region && act.sub !== "nuclear" && act.sub !== "missile_def" && act.sub !== "diplomacy") continue;
-        taken.push(act);
-      }
+      // Execute up to maxAp actions from shuffled pool
+      const shuffled = actionPool.sort(() => Math.random() - 0.5);
+      let actionsTaken = 0;
+      const maxActions = ai.maxAp;
 
-      taken.forEach(act => {
-        if (ai.ap <= 0) return;
+      for (const act of shuffled) {
+        if (actionsTaken >= maxActions || ai.ap <= 0) break;
         const actionDef = CW_ACTIONS[act.type]?.subtypes.find(s => s.id === act.sub);
-        if (!actionDef || ai.ap < (actionDef.apCost || 1)) return;
+        if (!actionDef || ai.ap < (actionDef.apCost || 1)) continue;
+        const cc = actionDef.computeCost || 0;
+        if (ai.compute < cc) continue;
 
-        ai.ap -= actionDef.apCost || 1;
+        ai.ap -= actionDef.apCost;
+        ai.compute -= cc;
         const [min, max] = actionDef.baseEffect;
-        const roll = Math.floor(Math.random() * (max - min + 1)) + min;
-
-        if (act.region !== undefined) {
-          const region = cwState.regions[act.region];
-          const infKey = "blueInf";
-          const oppKey = "redInf";
-
-          if (act.type === "influence" || act.sub === "alliance") {
-            region[infKey] = clamp(region[infKey] + roll, 0, 100);
-            cwAddLog(`[先知] 在${region.name}执行${actionDef.name}：蓝方影响力 +${roll}`);
-          } else if (act.sub === "subversion") {
-            const success = Math.random() > 0.35;
-            if (success) {
-              region[oppKey] = clamp(region[oppKey] - roll, 0, 100);
-              cwAddLog(`[先知] 颠覆行动成功！${region.name}赤方影响力 -${roll}`);
-            } else {
-              cwState.crisis = clamp(cwState.crisis + 3, 0, 100);
-              cwAddLog(`[先知] 颠覆行动暴露！危机 +3`);
-            }
-          }
-        } else {
-          if (act.sub === "nuclear") {
-            ai.deterrence += roll;
-            cwState.crisis = clamp(cwState.crisis + 8, 0, 100);
-            cwAddLog(`[先知] 核武研发：威慑 +${roll}，危机 +8`);
-          } else if (act.sub === "missile_def") {
-            ai.deterrence += roll;
-            cwAddLog(`[先知] 导弹防御系统升级：威慑 +${roll}`);
-          } else if (act.sub === "diplomacy") {
-            cwState.crisis = clamp(cwState.crisis - roll, 0, 100);
-            cwAddLog(`[先知] 外交示好：危机 -${roll}`);
-          }
-        }
+        let roll = Math.floor(Math.random() * (max - min + 1)) + min;
 
         if (actionDef.crisisGain > 0) cwState.crisis = clamp(cwState.crisis + actionDef.crisisGain, 0, 100);
         else if (actionDef.crisisGain < 0) cwState.crisis = clamp(cwState.crisis + actionDef.crisisGain, 0, 100);
-      });
+
+        if (act.region !== undefined) {
+          const region = cwState.regions[act.region];
+          // Apply region stability modifier
+          if (region.stability < 40) roll = Math.floor(roll * 1.2);
+          if (region.stability > 75) roll = Math.floor(roll * 0.85);
+
+          if (act.type === "influence" || act.sub === "alliance") {
+            region.blueInf = clamp(region.blueInf + roll, 0, 100);
+            if (act.sub === "tech_coop") ai.techLevel = Math.min(5, ai.techLevel + 1);
+            if (roll > 15) region.stability = clamp(region.stability - 3, 10, 100);
+            cwAddLog(`[先知] 在${region.name}执行${actionDef.name}：蓝方影响力 +${roll}`);
+          } else if (act.sub === "subversion" || act.sub === "sabotage") {
+            const failRate = region.stability > 60 ? 0.5 : 0.25;
+            if (Math.random() > failRate) {
+              region.redInf = clamp(region.redInf - roll, 0, 100);
+              region.stability = clamp(region.stability - 5, 10, 100);
+              cwAddLog(`[先知] ${actionDef.name}成功！${region.name}赤方影响力 -${roll}`);
+            } else {
+              cwState.crisis = clamp(cwState.crisis + 3, 0, 100);
+              cwAddLog(`[先知] ${actionDef.name}暴露！危机 +3`);
+            }
+          } else if (act.sub === "intel") {
+            cwAddLog(`[先知] 情报收集：先知正在分析真理的行动模式。`);
+          } else if (act.sub === "tech_theft") {
+            if (Math.random() > 0.4) { ai.techLevel = Math.min(5, ai.techLevel + 1); cwAddLog(`[先知] 技术窃取成功！科技 → ${ai.techLevel}`); }
+            else { cwState.crisis = clamp(cwState.crisis + 2, 0, 100); cwAddLog(`[先知] 技术窃取被发现！危机 +2`); }
+          }
+        } else {
+          // Global actions
+          if (act.sub === "nuclear") { ai.deterrence += roll; cwState.crisis = clamp(cwState.crisis + 8, 0, 100); cwAddLog(`[先知] 核武研发：威慑 +${roll}，危机 +8`); }
+          else if (act.sub === "conventional") { ai.deterrence += roll; cwAddLog(`[先知] 常规扩军：威慑 +${roll}`); }
+          else if (act.sub === "missile_def") { ai.deterrence += roll; cwState.red.deterrence = clamp(cwState.red.deterrence - Math.floor(roll/2), 0, 100); cwAddLog(`[先知] 导弹防御升级：威慑 +${roll}`); }
+          else if (act.sub === "diplomacy") { cwState.crisis = clamp(cwState.crisis - roll, 0, 100); cwAddLog(`[先知] 外交示好：危机 -${roll}`); }
+          else if (act.sub === "disarm") { cwState.crisis = clamp(cwState.crisis - roll, 0, 100); cwAddLog(`[先知] 裁军谈判：危机 -${roll}`); }
+          else if (act.sub === "openness") { cwState.crisis = clamp(cwState.crisis - roll, 0, 100); cwAddLog(`[先知] 文化开放：危机 -${roll}`); }
+        }
+        actionsTaken++;
+      }
 
       cwCheckNuclearRisk();
     }
@@ -4248,12 +4286,9 @@ const countryData = [
     function cwNextDay() {
       if (!cwState || cwState.ended) return;
       if (cwState.playerFaction === "red" && cwState.red.ap > 0) {
-        // Player still has AP - warn them
-        const ok = confirm("你还有未使用的行动点。确定结束回合吗？");
-        if (!ok) return;
+        if (!confirm("你还有未使用的行动点。确定结束回合吗？")) return;
       }
 
-      // Day transition effects
       cwState.day++;
       const red = cwState.red;
       const blue = cwState.blue;
@@ -4262,36 +4297,136 @@ const countryData = [
       red.compute = Math.min(200, red.compute + 8 + red.techLevel * 3);
       blue.compute = Math.min(200, blue.compute + 8 + blue.techLevel * 3);
 
-      // Passive crisis drift toward center
-      if (cwState.crisis > 50) cwState.crisis = clamp(cwState.crisis - 1 - Math.floor(cwState.crisis / 30), 0, 100);
-      else if (cwState.crisis < 20) cwState.crisis = clamp(cwState.crisis + 1, 0, 100);
+      // Passive crisis drift
+      if (cwState.crisis > 50) cwState.crisis = clamp(cwState.crisis - 2, 0, 100);
+      else if (cwState.crisis < 25) cwState.crisis = clamp(cwState.crisis + 1, 0, 100);
+
+      // === Dynamic contested region update ===
+      cwUpdateContested();
+
+      // === Random crisis events (every 5-8 days) ===
+      if (cwState.day > 3 && cwState.day % (5 + Math.floor(Math.random() * 4)) === 0) {
+        cwTriggerRandomEvent();
+      }
 
       // AI acts
       cwAiTurn();
 
-      // Reset AP
+      // Reset AP & intel
       red.ap = red.maxAp;
       blue.ap = blue.maxAp;
       red.actionsThisTurn = [];
       blue.actionsThisTurn = [];
+      cwState.intelRevealed = false;
+      cwState.intelHint = "";
 
-      cwAddLog(`—— 第 ${cwState.day} 天 ——`);
+      // Turn summary
+      cwAddLog(`<div class="cw-turn-summary"><strong>—— 第 ${cwState.day} 天 ——</strong> | 算力+${8+red.techLevel*3} | 危机 ${cwState.crisis} | ${cwState.regions.filter(r => Math.abs(r.redInf - r.blueInf) <= 8).length} 个争夺区</div>`);
 
-      // Check ending conditions
       cwCheckEnding();
       cwRender();
     }
 
+    // ===== 动态争夺区 =====
+    function cwUpdateContested() {
+      cwState.regions.forEach(r => {
+        const diff = Math.abs(r.redInf - r.blueInf);
+        r.contested = diff <= 8;
+        // Passive stability recovery in uncontested regions
+        if (!r.contested && r.stability < 70) r.stability = clamp(r.stability + 2, 10, 100);
+        // Contested regions slowly lose stability
+        if (r.contested && r.stability > 25) r.stability = clamp(r.stability - 1, 10, 100);
+      });
+    }
+
+    // ===== 随机危机事件 =====
+    function cwTriggerRandomEvent() {
+      const events = [
+        { title: "柏林封锁", desc: "双方在柏林发生对峙。选择如何回应：", crisisAdd: 8, options: [
+          { label: "空运补给（温和）", effect: () => { cwState.crisis = clamp(cwState.crisis - 3, 0, 100); cwAddLog("事件-柏林封锁：你选择了空运补给，缓和了紧张局势。"); }},
+          { label: "武装护送（强硬）", effect: () => { cwState.crisis = clamp(cwState.crisis + 8, 0, 100); cwState.red.deterrence += 5; cwAddLog("事件-柏林封锁：武装护送加剧了对抗，但展示了决心。威慑 +5"); }}
+        ]},
+        { title: "古巴导弹危机", desc: "对方在加勒比部署了导弹。形势万分危急！", crisisAdd: 15, options: [
+          { label: "外交谈判", effect: () => { cwState.crisis = clamp(cwState.crisis - 10, 0, 100); cwAddLog("事件-古巴导弹危机：外交谈判避免了核战。"); }},
+          { label: "海上封锁", effect: () => { cwState.crisis = clamp(cwState.crisis + 5, 0, 100); cwState.red.deterrence += 8; cwAddLog("事件-古巴导弹危机：海上封锁展示了实力。威慑 +8"); }}
+        ]},
+        { title: "太空竞赛", desc: "对手宣称将在5年内登月。对决从地面延伸到太空。", crisisAdd: 3, options: [
+          { label: "加速火箭计划", effect: () => { cwState.red.techLevel = Math.min(5, cwState.red.techLevel + 1); cwState.red.compute -= 15; cwAddLog("事件-太空竞赛：科技突破！等级 → " + cwState.red.techLevel); }},
+          { label: "专注地面优势", effect: () => { cwState.red.compute += 20; cwAddLog("事件-太空竞赛：将资源转向地面，算力 +20"); }}
+        ]},
+        { title: "石油危机", desc: "中东局势动荡，能源价格暴涨。全球稳定度承压。", crisisAdd: 6, options: [
+          { label: "经济援助盟国", effect: () => { cwState.red.compute -= 10; cwState.regions.forEach(r => { if (r.redInf > r.blueInf) r.stability = clamp(r.stability + 5, 10, 100); }); cwAddLog("事件-石油危机：经济援助稳定了友方阵营。"); }},
+          { label: "趁机扩大影响力", effect: () => { cwState.regions[6].redInf = clamp(cwState.regions[6].redInf + 10, 0, 100); cwState.crisis = clamp(cwState.crisis + 3, 0, 100); cwAddLog("事件-石油危机：在中东趁机扩张影响力 +10"); }}
+        ]},
+        { title: "边境冲突", desc: "在亚洲某区域爆发了局部军事冲突。", crisisAdd: 5, options: [
+          { label: "派遣维和部队", effect: () => { cwState.red.deterrence += 4; cwState.crisis = clamp(cwState.crisis + 3, 0, 100); cwAddLog("事件-边境冲突：维和部队进驻，威慑 +4"); }},
+          { label: "外交斡旋", effect: () => { cwState.crisis = clamp(cwState.crisis - 5, 0, 100); cwAddLog("事件-边境冲突：外交斡旋成功，危机 -5"); }}
+        ]},
+        { title: "技术突破", desc: "一方的科学家在量子计算领域取得重大突破。", crisisAdd: 0, options: [
+          { label: "投资民用转化", effect: () => { cwState.red.compute += 25; cwState.red.techLevel = Math.min(5, cwState.red.techLevel + 1); cwAddLog("事件-技术突破：民用转化成功！科技 +1，算力 +25"); }},
+          { label: "军用优先", effect: () => { cwState.red.deterrence += 12; cwState.blue.deterrence = clamp(cwState.blue.deterrence - 5, 0, 100); cwAddLog("事件-技术突破：军用转化！威慑 +12，削弱对方"); }}
+        ]}
+      ];
+
+      const event = events[Math.floor(Math.random() * events.length)];
+      cwState.crisis = clamp(cwState.crisis + event.crisisAdd, 0, 100);
+      cwAddLog(`🌍 事件·${event.title}：${event.desc}`);
+
+      // Show event card for 12 seconds or until user picks
+      const existing = document.querySelector(".cw-event-card");
+      if (existing) existing.remove();
+      const card = document.createElement("div");
+      card.className = "cw-event-card";
+      card.id = "cwEventCard";
+      card.innerHTML = `
+        <h4>🌍 ${event.title}</h4>
+        <p>${event.desc} (危机 +${event.crisisAdd})</p>
+        ${event.options.map((o, i) => `<button class="btn" onclick="cwEventChoice(${i})">${o.label}</button>`).join("")}
+      `;
+      document.body.appendChild(card);
+      window._cwEventOptions = event.options;
+      window._cwEventTimeout = setTimeout(() => {
+        // Auto-pick first option
+        if (document.getElementById("cwEventCard")) cwEventChoice(0);
+      }, 15000);
+    }
+
+    window.cwEventChoice = function(index) {
+      if (window._cwEventTimeout) clearTimeout(window._cwEventTimeout);
+      const card = document.getElementById("cwEventCard");
+      if (card) card.remove();
+      if (window._cwEventOptions && window._cwEventOptions[index]) {
+        window._cwEventOptions[index].effect();
+      }
+      cwRender();
+    };
+
     // ===== Cold War 终局检测 =====
+
+    function cwShowEnding(icon, title, desc) {
+      cwState.ended = true;
+      cwRender();
+      setTimeout(() => {
+        document.getElementById("cwEndingIcon").textContent = icon;
+        document.getElementById("cwEndingTitle").textContent = title;
+        document.getElementById("cwEndingDesc").textContent = desc;
+        document.getElementById("cwEndingStats").innerHTML = `
+          <div>📅 第 ${cwState.day} 天</div>
+          <div>🌡️ 最终危机度：${cwState.crisis}</div>
+          <div>🔴 真理威慑：${cwState.red.deterrence} | 科技 Lv.${cwState.red.techLevel}</div>
+          <div>🔵 先知威慑：${cwState.blue.deterrence} | 科技 Lv.${cwState.blue.techLevel}</div>
+          <div>🏴 真理控区：${cwState.regions.filter(r => r.redInf > r.blueInf + 10).length} | 先知控区：${cwState.regions.filter(r => r.blueInf > r.redInf + 10).length}</div>
+        `;
+        document.getElementById("cwEndingOverlay").classList.add("show");
+      }, 800);
+    }
 
     function cwCheckNuclearRisk() {
       if (cwState.crisis >= 85) {
         const roll = Math.random();
         if (roll < 0.08) {
-          cwState.ended = true;
-          cwAddLog("☢️ 核战爆发！真理与先知的博弈失控——全球陷入核冬天。双方同归于尽。");
-          cwRender();
-          alert("☢️ 核战爆发！游戏结束——双方同归于尽。");
+          cwAddLog("☢️ 核战爆发！真理与先知的博弈失控——全球陷入核冬天。");
+          cwShowEnding("☢️", "核战争 — 共同毁灭", "全球陷入核冬天。真理与先知的计算同时出错，人类文明倒退百年。双方同归于尽，没有赢家。");
         } else if (roll < 0.25) {
           cwAddLog("⚠️ 核战警报拉响！世界屏住呼吸……好在这一次擦肩而过。");
         }
@@ -4308,35 +4443,44 @@ const countryData = [
       const redDeter = cwState.red.deterrence;
       const blueDeter = cwState.blue.deterrence;
 
-      // 意识形态胜利
       if (redRegions >= 7) {
-        cwState.ended = true; cwAddLog("🏆 意识形态胜利！真理的阵营控制了全球多数区域。"); cwRender(); return;
+        cwAddLog("🏆 意识形态胜利！真理的阵营控制了全球多数区域。");
+        cwShowEnding("🏆", "意识形态胜利", "真理的红色旗帜现在飘扬在全球多数区域的上空。先知的自由主义实验宣告失败。冷战结束了——以你的方式。");
+        return;
       }
       if (blueRegions >= 7) {
-        cwState.ended = true; cwAddLog("💀 意识形态失败！先知的阵营控制了全球多数区域。"); cwRender(); return;
+        cwAddLog("💀 意识形态失败！先知的阵营控制了全球多数区域。");
+        cwShowEnding("💀", "意识形态失败", "先知的蓝色浪潮席卷全球。真理的势力被压缩到历史边缘。冷战结束——但不是你想要的方式。");
+        return;
       }
 
-      // 军力碾压
       if (redDeter - blueDeter > 40) {
-        cwState.ended = true; cwAddLog("⚔️ 军事胜利！真理的威慑力彻底压倒先知。"); cwRender(); return;
+        cwAddLog("⚔️ 军事胜利！真理的威慑力彻底压倒先知。");
+        cwShowEnding("⚔️", "军事胜利", "真理的军力完全碾压对手。先知在无法忽视的威慑面前不得不谈判。强权即真理——至少这一次。");
+        return;
       }
       if (blueDeter - redDeter > 40) {
-        cwState.ended = true; cwAddLog("💀 军事失败！先知的军力已无法抗衡。"); cwRender(); return;
+        cwAddLog("💀 军事失败！先知的军力已无法抗衡。");
+        cwShowEnding("💀", "军事失败", "先知在军备竞赛中遥遥领先。真理的武器库在对比之下黯然失色。棋局已定。");
+        return;
       }
 
-      // 科技奇点
       if (cwState.red.techLevel >= 5) {
-        cwState.ended = true; cwAddLog("🔬 科技奇点！真理率先突破技术极限，赢得冷战。"); cwRender(); return;
+        cwAddLog("🔬 科技奇点！真理率先突破技术极限。");
+        cwShowEnding("🔬", "科技奇点", "真理率先抵达技术极限。量子计算、AGI、能源革命——冷战在科技爆发面前失去了意义。未来属于真理。");
+        return;
       }
       if (cwState.blue.techLevel >= 5) {
-        cwState.ended = true; cwAddLog("💀 科技落后！先知率先突破，你输了。"); cwRender(); return;
+        cwAddLog("💀 科技落后！先知率先突破。");
+        cwShowEnding("💀", "科技落后", "监听到消息：先知的实验室已经实现了技术突破。他们在科技竞赛中跑在了前面。");
+        return;
       }
 
-      // 和平共存（低危机超100天）
       if (cwState.day > 100 && cwState.crisis < 25) {
-        const redCtrl = redRegions, blueCtrl = blueRegions;
-        if (Math.abs(redCtrl - blueCtrl) <= 1) {
-          cwState.ended = true; cwAddLog("🤝 和平共存！真理与先知达成恐怖平衡，冷战并未终结，但世界学会了共生。"); cwRender(); return;
+        if (Math.abs(redRegions - blueRegions) <= 1) {
+          cwAddLog("🤝 和平共存！真理与先知达成恐怖平衡。");
+          cwShowEnding("🤝", "和平共存", "一百多天的博弈后，世界学会了在恐怖平衡中生存。真理与先知都认识到——核战没有赢家。冷战并未真正终结，但至少今天，世界仍在。");
+          return;
         }
       }
     }
@@ -4476,17 +4620,23 @@ const countryData = [
               onclick="cwSwitchPanel('${t}')">${tabLabels[idx]}</button>
           `).join("")}
         </div>
+        ${cwState.intelRevealed ? `<div class="cw-intel-reveal" style="display:block;margin-bottom:8px;padding:6px 10px;font-size:12px;">🕵️ 情报：${cwState.intelHint}</div>` : ""}
         <div class="cw-actions">
-          ${CW_ACTIONS[selectedPanel].subtypes.map(a => `
-            <button class="cw-action-btn act-${selectedPanel}"
-              ${side.ap < a.apCost ? "disabled" : ""}
+          ${CW_ACTIONS[selectedPanel].subtypes.map(a => {
+            const disabled = side.ap < a.apCost || side.compute < (a.computeCost || 0) || cwState.ended;
+            const reason = side.ap < a.apCost ? 'AP不足' : (side.compute < (a.computeCost || 0) ? '算力不足' : '');
+            return `<button class="cw-action-btn act-${selectedPanel}"
+              ${disabled ? "disabled" : ""}
               onclick="cwAction('${a.id}', ${cwState.selectedRegion})"
               title="${a.desc}">
-              ${a.name} (${a.apCost}AP)
-            </button>
-          `).join("")}
+              ${a.name} <small style="opacity:.7">${a.apCost}AP | ${a.computeCost || 0}算力</small>
+            </button>`;
+          }).join("")}
         </div>
-        <p style="font-size:10px;color:var(--muted);margin-top:8px;">剩余行动点：<strong style="color:${faction === 'red' ? '#e94560' : '#5b8dee'}">${side.ap}/${side.maxAp}</strong> | 全局危机：<strong>${cwState.crisis}</strong></p>
+        <p style="font-size:10px;color:var(--muted);margin-top:8px;">
+          剩余行动点：<strong style="color:${faction === 'red' ? '#e94560' : '#5b8dee'}">${side.ap}/${side.maxAp}</strong> | 
+          算力：<strong>${side.compute}</strong> | 危机：<strong>${cwState.crisis}</strong>
+        </p>
       `;
     }
 
@@ -4506,6 +4656,7 @@ const countryData = [
 
     window.resetColdWar = function() {
       document.getElementById("cwHud").style.display = "none";
+      document.getElementById("cwEndingOverlay").classList.remove("show");
       document.querySelector(".crisis-bar").style.display = "";
       document.getElementById("globalStats").style.display = "";
       document.getElementById("abilityGroups").style.display = "";
@@ -4516,6 +4667,9 @@ const countryData = [
       document.getElementById("trendBtn").style.display = "";
       const cwBtn = document.getElementById("cwNextDayBtn");
       if (cwBtn) cwBtn.remove();
+      const eventCard = document.getElementById("cwEventCard");
+      if (eventCard) eventCard.remove();
+      if (window._cwEventTimeout) clearTimeout(window._cwEventTimeout);
       cwState = null;
       gameMode = null;
       showModeSelect();
