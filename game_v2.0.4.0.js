@@ -4157,6 +4157,157 @@ const countryData = [
       cwToastTimer = setTimeout(() => t.classList.remove("show"), 3500);
     }
 
+    // ===== v2.0.4.0 冷战存档系统 =====
+    const CW_SAVE_SLOTS = 3;
+
+    function cwGetSaves() {
+      const p = loadPersist();
+      // cwSaves 结构：{ slots: [slot0, slot1, slot2], auto: obj|null }
+      return p.cwSaves || { slots: [], auto: null };
+    }
+
+    function cwSaveSaves(saves) {
+      const p = loadPersist();
+      p.cwSaves = saves;
+      savePersist(p);
+    }
+
+    // 存档前确保 cwState 可序列化（目前全是纯对象，无需预处理，但保留结构完整性）
+    function cwSaveGame(slotIndex) {
+      const saves = cwGetSaves();
+      if (!saves.slots) saves.slots = [];
+      while (saves.slots.length <= Math.max(slotIndex, CW_SAVE_SLOTS - 1)) saves.slots.push(undefined);
+
+      const redCtrl = cwState.regions.filter(r => r.redInf > r.blueInf).length;
+      const blueCtrl = cwState.regions.filter(r => r.blueInf > r.redInf).length;
+
+      saves.slots[slotIndex] = {
+        label: `第${cwState.day}天 · 危机${cwState.crisis} · 红${redCtrl}区/蓝${blueCtrl}区`,
+        time: new Date().toISOString(),
+        day: cwState.day,
+        crisis: cwState.crisis,
+        redCtrl: redCtrl,
+        blueCtrl: blueCtrl,
+        redDeter: cwState.red.deterrence,
+        blueDeter: cwState.blue.deterrence,
+        redTech: cwState.red.techLevel,
+        blueTech: cwState.blue.techLevel,
+        data: JSON.parse(JSON.stringify(cwState))
+      };
+      cwSaveSaves(saves);
+      cwRenderSaveSlots();
+    }
+
+    function cwLoadGame(slotIndex) {
+      const saves = cwGetSaves();
+      if (!saves.slots || !saves.slots[slotIndex] || !saves.slots[slotIndex].data) return;
+      cwState = saves.slots[slotIndex].data;
+      cwState.ended = false;
+      cwState.currentEvent = null;
+      document.getElementById("cwEndingOverlay").classList.remove("show");
+      closeOverlay("cwSaveOverlay");
+      cwRender();
+    }
+
+    function cwDeleteSave(slotIndex) {
+      const saves = cwGetSaves();
+      if (!saves.slots) return;
+      saves.slots[slotIndex] = undefined;
+      cwSaveSaves(saves);
+      cwRenderSaveSlots();
+    }
+
+    function cwLoadAutoSave() {
+      const saves = cwGetSaves();
+      if (!saves.auto || !saves.auto.data) return;
+      cwState = saves.auto.data;
+      cwState.ended = false;
+      cwState.currentEvent = null;
+      document.getElementById("cwEndingOverlay").classList.remove("show");
+      closeOverlay("cwSaveOverlay");
+      cwRender();
+    }
+
+    function cwDeleteAutoSave() {
+      const saves = cwGetSaves();
+      saves.auto = null;
+      cwSaveSaves(saves);
+      cwRenderSaveSlots();
+    }
+
+    function cwAutoSave() {
+      if (!cwState || cwState.ended) return;
+      const saves = cwGetSaves();
+      const redCtrl = cwState.regions.filter(r => r.redInf > r.blueInf).length;
+      const blueCtrl = cwState.regions.filter(r => r.blueInf > r.redInf).length;
+      saves.auto = {
+        label: `自动存档 · 第${cwState.day}天 · 危机${cwState.crisis}`,
+        time: new Date().toISOString(),
+        day: cwState.day,
+        crisis: cwState.crisis,
+        redCtrl: redCtrl,
+        blueCtrl: blueCtrl,
+        redDeter: cwState.red.deterrence,
+        blueDeter: cwState.blue.deterrence,
+        redTech: cwState.red.techLevel,
+        blueTech: cwState.blue.techLevel,
+        data: JSON.parse(JSON.stringify(cwState))
+      };
+      cwSaveSaves(saves);
+    }
+
+    function cwOpenSave() {
+      if (!cwState) return;
+      cwRenderSaveSlots();
+      openOverlay("cwSaveOverlay");
+    }
+
+    function cwRenderSaveSlots() {
+      const saves = cwGetSaves();
+      const container = document.getElementById("cwSaveSlots");
+      if (!container) return;
+      let html = "";
+      // 手动存档槽位
+      const slots = saves.slots || [];
+      for (let i = 0; i < CW_SAVE_SLOTS; i++) {
+        const s = slots[i];
+        if (s && s.data) {
+          html += `<div class="save-slot">
+            <div class="slot-info">
+              <div class="slot-name">存档 ${i + 1}: ${s.label}</div>
+              <div class="slot-meta">危机${s.crisis} · 红区${s.redCtrl}/蓝区${s.blueCtrl} · 红威慑${s.redDeter}/蓝威慑${s.blueDeter} · 红科技${s.redTech}/蓝科技${s.blueTech} · ${new Date(s.time).toLocaleString("zh-CN")}</div>
+            </div>
+            <div class="slot-btns">
+              <button class="load-btn" onclick="cwLoadGame(${i})">读档</button>
+              <button class="del-btn" onclick="cwDeleteSave(${i})">删除</button>
+            </div>
+          </div>`;
+        } else {
+          html += `<div class="save-slot empty" onclick="cwSaveGame(${i})">
+            <div class="slot-info">
+              <div class="slot-name">存档 ${i + 1}</div>
+              <div class="slot-meta">空槽位 — 点击此处保存当前进度</div>
+            </div>
+          </div>`;
+        }
+      }
+      // 自动存档槽位
+      const auto = saves.auto;
+      if (auto && auto.data) {
+        html += `<div class="save-slot">
+          <div class="slot-info">
+            <div class="slot-name">自动存档<span class="auto-save-badge">AUTO</span></div>
+            <div class="slot-meta">${auto.label} · ${new Date(auto.time).toLocaleString("zh-CN")}</div>
+          </div>
+          <div class="slot-btns">
+            <button class="load-btn" onclick="cwLoadAutoSave()">读档</button>
+            <button class="del-btn" onclick="cwDeleteAutoSave()">删除</button>
+          </div>
+        </div>`;
+      }
+      container.innerHTML = html;
+    }
+
     // ---- CW 图鉴渲染 ----
     function cwOpenGallery() {
       try { cwRenderGallery(); } catch(e) { console.warn("cwRenderGallery error:", e); }
@@ -4627,6 +4778,7 @@ const countryData = [
 
       cwCheckEnding();
       cwCheckAchievements();  // v2.1.0.0
+      cwAutoSave();  // v2.0.4.0 每回合自动存档
       cwRender();
     }
 
@@ -4994,6 +5146,12 @@ const countryData = [
       showModeSelect();
     };
 
+    window.cwOpenSave = cwOpenSave;
+    window.cwSaveGame = cwSaveGame;
+    window.cwLoadGame = cwLoadGame;
+    window.cwDeleteSave = cwDeleteSave;
+    window.cwLoadAutoSave = cwLoadAutoSave;
+    window.cwDeleteAutoSave = cwDeleteAutoSave;
     window.cwOpenGallery = cwOpenGallery;
     window.cwOpenAchievements = cwOpenAchievements;
     window.moveGalleryTooltip = moveGalleryTooltip;
