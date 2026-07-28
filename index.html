@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v2.0.2.0：冷战时代</title>
-  <link rel="stylesheet" href="style_v2.0.2.0.css">
+  <title>玄武协议 v2.0.2.1：冷战时代</title>
+  <link rel="stylesheet" href="style_v2.0.2.1.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
@@ -171,14 +171,14 @@
   <div class="cw-hud" id="cwHud" style="display:none">
     <div class="cw-hud-left cw-faction-red">
       <span class="cw-faction-name">🔴 真理 (华约)</span>
-      <span class="cw-stat">算力 <strong id="cwRedCompute">65</strong></span>
-      <span class="cw-stat">威慑 <strong id="cwRedDeter">10</strong></span>
-      <span class="cw-stat">科技 <strong id="cwRedTech">1</strong></span>
-      <span class="cw-stat">AP <strong id="cwRedAP">3</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('compute',event)" onmouseleave="cwHideHUDTip()">算力 <strong id="cwRedCompute">65</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('deterrence',event)" onmouseleave="cwHideHUDTip()">威慑 <strong id="cwRedDeter">10</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('tech',event)" onmouseleave="cwHideHUDTip()">科技 <strong id="cwRedTech">1</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('ap',event)" onmouseleave="cwHideHUDTip()">AP <strong id="cwRedAP">3</strong></span>
     </div>
     <div class="cw-hud-center">
       <div class="cw-turn">第 <span id="cwDay">1</span> 天</div>
-      <div class="cw-crisis-bar">
+      <div class="cw-crisis-bar" onmouseenter="cwShowHUDTip('crisis',event)" onmouseleave="cwHideHUDTip()">
         <div class="cw-crisis-label">🌡️ 危机度</div>
         <div class="cw-crisis-track">
           <div class="cw-crisis-fill" id="cwCrisisFill" style="width:10%"></div>
@@ -188,10 +188,10 @@
     </div>
     <div class="cw-hud-right cw-faction-blue">
       <span class="cw-faction-name">🔵 先知 (北约)</span>
-      <span class="cw-stat">算力 <strong id="cwBlueCompute">65</strong></span>
-      <span class="cw-stat">威慑 <strong id="cwBlueDeter">10</strong></span>
-      <span class="cw-stat">科技 <strong id="cwBlueTech">1</strong></span>
-      <span class="cw-stat">AP <strong id="cwBlueAP">3</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('compute',event)" onmouseleave="cwHideHUDTip()">算力 <strong id="cwBlueCompute">65</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('deterrence',event)" onmouseleave="cwHideHUDTip()">威慑 <strong id="cwBlueDeter">10</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('tech',event)" onmouseleave="cwHideHUDTip()">科技 <strong id="cwBlueTech">1</strong></span>
+      <span class="cw-stat" onmouseenter="cwShowHUDTip('ap',event)" onmouseleave="cwHideHUDTip()">AP <strong id="cwBlueAP">3</strong></span>
     </div>
   </div>
 
@@ -379,7 +379,7 @@
     </div>
   </div>
 
-  <script src="game_v2.0.2.0.js"></script>
+  <script src="game_v2.0.2.1.js"></script>
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">

@@ -4069,6 +4069,90 @@ const countryData = [
       }
     };
 
+    // ===== v2.0.2.1 冷战悬浮提示（复用 #actionTooltip 基础设施） =====
+    function buildCWActionTip(actionId) {
+      let actionDef = null, catKey = "";
+      for (const [k, cat] of Object.entries(CW_ACTIONS)) {
+        const found = cat.subtypes.find(s => s.id === actionId);
+        if (found) { actionDef = found; catKey = k; break; }
+      }
+      if (!actionDef) return null;
+      const icons = { influence: "\ud83c\udfaf", military: "\ud83d\udee1\ufe0f", espionage: "\ud83d\udd75\ufe0f", deescalate: "\ud83d\udd4a\ufe0f" };
+      const icon = icons[catKey] || "\ud83d\udccb";
+      let effHtml = "";
+      if (actionDef.baseEffect && actionDef.baseEffect[0] !== 0) {
+        const lo = actionDef.baseEffect[0], hi = actionDef.baseEffect[1];
+        const label = catKey === "military" ? "威慑" : catKey === "espionage" ? "削弱对方影响力" : "本方影响力";
+        effHtml = `<span class="pos">${label} +${lo}~${hi}</span>`;
+      } else if (actionId === "intel") {
+        effHtml = `<span class="info">揭示对手下一回合行动意图</span>`;
+      } else if (actionId === "missile_def") {
+        effHtml = `<span class="pos">降低对方威慑行动效果 ${actionDef.baseEffect[0]}~${actionDef.baseEffect[1]}</span>`;
+      }
+      let crisisNote = "";
+      if (actionDef.crisisGain > 0) crisisNote = `<span class="neg">危机 +${actionDef.crisisGain}</span>`;
+      else if (actionDef.crisisGain < 0) crisisNote = `<span class="pos">危机 ${actionDef.crisisGain}</span>`;
+      return `<div class="tt-title">${icon} ${actionDef.name}</div>
+        <div class="tt-desc">${actionDef.desc}</div>
+        <div class="tt-cost">
+          <span>消耗：${actionDef.apCost} AP \u00b7 ${actionDef.computeCost || 0} \u7b97\u529b</span>
+          ${crisisNote}
+        </div>${effHtml ? `<div class="tt-sect-label">\u884c\u52a8\u6548\u679c</div><div class="tt-effect">${effHtml}</div>` : ""}`;
+    }
+    window.cwShowActionTip = function(actionId, e) {
+      const tt = document.getElementById("actionTooltip");
+      const html = buildCWActionTip(actionId);
+      if (!html) { tt.classList.remove("show"); return; }
+      tt.innerHTML = html;
+      tt.classList.add("show");
+      _positionTT(tt, e);
+    };
+    window.cwHideActionTip = function() {
+      document.getElementById("actionTooltip").classList.remove("show");
+    };
+
+    // HUD tooltip
+    window.cwShowHUDTip = function(key, e) {
+      const tips = {
+        compute: "\u7b97\u529b\uff1a\u884c\u52a8\u8d44\u6e90\uff0c\u7528\u4e8e\u6267\u884c\u5404\u7c7b\u884c\u52a8\u3002\u6bcf\u65e5\u81ea\u52a8\u56de\u590d 8 + \u79d1\u6280\u00d73\u3002\u4e0a\u9650200\u3002",
+        deterrence: "\u5a01\u6444\uff1a\u519b\u4e8b\u5b9e\u529b\u6307\u6807\u3002\u5a01\u6444\u5dee\u226540\u65f6\u53ef\u89e6\u53d1\u519b\u4e8b\u80dc\u5229\u7ed3\u5c40\u3002",
+        tech: "\u79d1\u6280\u7b49\u7ea7\uff1a\u6280\u672f\u7ade\u4e89\u529b\u3002\u8fbe\u52306\u7ea7\u89e6\u53d1\u79d1\u6280\u5947\u70b9\u80dc\u5229\u3002\u63d0\u5347\u7b97\u529b\u56de\u590d\u901f\u5ea6\u3002",
+        ap: "\u884c\u52a8\u70b9(AP)\uff1a\u6bcf\u56de\u5408\u53ef\u6267\u884c\u884c\u52a8\u7684\u6b21\u6570\u4e0a\u9650\u3002\u6bcf\u65e5\u81ea\u52a8\u56de\u6ee1\u3002",
+        crisis: "\u5371\u673a\u5ea6(0-100)\uff1a\u5168\u7403\u5c40\u52bf\u7d27\u5f20\u7a0b\u5ea6\u3002\u8d8a\u9ad8\u8d8a\u5371\u9669\u3002\u226570\u6709\u6bcf\u56de\u5408\u9012\u589e\u6838\u6218\u98ce\u9669\uff0c\u226585\u53ef\u80fd\u76f4\u63a5\u89e6\u53d1\u6838\u6218\u3002"
+      };
+      const html = tips[key] || "";
+      if (!html) return;
+      const tt = document.getElementById("actionTooltip");
+      tt.innerHTML = `<div class="tt-title">${key === "crisis" ? "\ud83c\udf21\ufe0f \u5371\u673a\u5ea6" : key === "compute" ? "\ud83d\udcbb \u7b97\u529b" : key === "deterrence" ? "\ud83d\udee1\ufe0f \u5a01\u6444" : key === "tech" ? "\ud83d\udd2c \u79d1\u6280" : "\u26a1 \u884c\u52a8\u70b9"}</div>
+        <div class="tt-desc">${html}</div>`;
+      tt.classList.add("show");
+      _positionTT(tt, e);
+    };
+    window.cwHideHUDTip = function() {
+      document.getElementById("actionTooltip").classList.remove("show");
+    };
+
+    // Region map tooltip
+    window.cwShowRegionTip = function(ri, e) {
+      const r = cwState.regions[ri];
+      if (!r) return;
+      const diff = r.redInf - r.blueInf;
+      const status = Math.abs(diff) <= 8 ? "\u2696\ufe0f \u4e89\u593a\u4e2d" : (diff > 0 ? "\ud83d\udd34 \u771f\u7406\u4e3b\u5bfc" : "\ud83d\udd35 \u5148\u77e5\u4e3b\u5bfc");
+      const tt = document.getElementById("actionTooltip");
+      tt.innerHTML = `<div class="tt-title">${r.name} <span style="font-size:11px;color:var(--soft)">${status}</span></div>
+        <div class="tt-desc">${r.contested ? "\ud83d\udd25 \u70ed\u70b9\u533a\u57df\uff0c\u5f71\u54cd\u529b\u62c9\u952f\u6fc0\u70c8" : "\u00b7 \u76f8\u5bf9\u5e73\u9759\u7684\u533a\u57df"}</div>
+        <div class="tt-stats" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;">
+          <span style="color:#e94560">\u771f\u7406\uff1a${r.redInf}%</span>
+          <span style="color:#5b8dee">\u5148\u77e5\uff1a${r.blueInf}%</span>
+          <span style="color:var(--soft)">\u7a33\u5b9a\uff1a${r.stability}%</span>
+        </div>`;
+      tt.classList.add("show");
+      _positionTT(tt, e);
+    };
+    window.cwHideRegionTip = function() {
+      document.getElementById("actionTooltip").classList.remove("show");
+    };
+
     window.cwAction = function(actionId, regionIndex) {
       if (!cwState || cwState.ended) return;
       const faction = cwState.playerFaction;
@@ -4571,7 +4655,7 @@ const countryData = [
 
         for (let pi = 0; pi < paths.length; pi++) {
           borderHTML += `<path d="${paths[pi]}" fill="none" stroke="rgba(22,24,20,0.55)" stroke-width="3" stroke-linejoin="round"/>`;
-          pathsHTML += `<path d="${paths[pi]}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" data-ri="${i}" onclick="selectCWRegion(${i})"/>`;
+          pathsHTML += `<path d="${paths[pi]}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" data-ri="${i}" onclick="selectCWRegion(${i})" onmouseenter="cwShowRegionTip(${i},event)" onmouseleave="cwHideRegionTip()"/>`;
         }
 
         const c = regionCenters[i];
@@ -4649,7 +4733,7 @@ const countryData = [
             return `<button class="cw-action-btn act-${selectedPanel}"
               ${disabled ? "disabled" : ""}
               onclick="cwAction('${a.id}', ${cwState.selectedRegion})"
-              title="${a.desc}">
+              onmouseenter="cwShowActionTip('${a.id}',event)" onmouseleave="cwHideActionTip()">
               ${a.name} <small style="opacity:.7">${a.apCost}AP | ${a.computeCost || 0}算力</small>
             </button>`;
           }).join("")}
