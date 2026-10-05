@@ -3024,7 +3024,7 @@ const countryData = [
         day: state.day,
         ctrlAvg: fmt(average("control")),
         threat: fmt(weightedThreat()),
-        data: JSON.parse(JSON.stringify(state))
+        data: serializeGameStateForSave(state)
       };
       savePersist(p);
       renderSaveSlots();
@@ -3032,22 +3032,8 @@ const countryData = [
     function loadGame(slotIndex) {
       const saves = getSaves();
       if (!saves[slotIndex] || !saves[slotIndex].data) return;
-      const restored = saves[slotIndex].data;
-      // 恢复不可序列化的类型
-      restored.unlocked = new Set(restored.unlockedArr || []);
-      restored.observedToday = restored.observedTodayObj || {};
-      restored.driftIntrospectionDone = new Set(restored.driftIntrospectionArr || []);
-      restored.activeBuffs = restored.activeBuffs || [];
-      restored.controlCaps = restored.controlCaps || {};
-      restored._driftWasHigh = restored._driftWasHigh || false;
-      restored._uniqueUsed = new Set(restored._uniqueUsedArr || []);
-      restored._dayFullUse = restored._dayFullUse || false;
-      restored._lastEnding = restored._lastEnding || null;
-      restored.computeCeiling = restored.computeCeiling ?? 250;
-      restored.ocLevel = restored.ocLevel ?? 0;
-      restored.ceLevel = restored.ceLevel ?? 0;
-      restored.ended = false;
-      restored.currentEvent = null;
+      const restored = restoreGameState(saves[slotIndex].data);
+      if (!restored) return;
       state = restored;
       document.getElementById("endingOverlay").classList.remove("show");
       closeOverlay("saveOverlay");
@@ -3071,17 +3057,49 @@ const countryData = [
         ctrlAvg: fmt(average("control")),
         threat: fmt(weightedThreat()),
         ending: endingName,
-        data: (() => { prepStateForSave(); return JSON.parse(JSON.stringify(state)); })()
+        data: serializeGameStateForSave(state)
       };
       savePersist(p);
     }
 
-    // 存档前预处理state以便序列化Set/对象
-    function prepStateForSave() {
-      state.unlockedArr = Array.from(state.unlocked);
-      state.observedTodayObj = state.observedToday;
-      state.driftIntrospectionArr = Array.from(state.driftIntrospectionDone);
-      state._uniqueUsedArr = Array.from(state._uniqueUsed||new Set());
+    // 手动与自动存档共用快照格式，避免修改运行中的游戏状态。
+    function serializeGameStateForSave(source) {
+      const snapshot = JSON.parse(JSON.stringify(source));
+      snapshot.saveSchemaVersion = 1;
+      snapshot.unlockedArr = Array.from(source.unlocked || []);
+      snapshot.observedTodayObj = { ...(source.observedToday || {}) };
+      snapshot.driftIntrospectionArr = Array.from(source.driftIntrospectionDone || []);
+      snapshot._uniqueUsedArr = Array.from(source._uniqueUsed || []);
+      return snapshot;
+    }
+
+    function restoreSet(savedArray, legacyValue) {
+      if (Array.isArray(savedArray)) return new Set(savedArray);
+      if (Array.isArray(legacyValue)) return new Set(legacyValue);
+      if (legacyValue && typeof legacyValue === "object") return new Set(Object.keys(legacyValue));
+      return new Set();
+    }
+
+    // 兼容已有存档字段，并在同一入口恢复集合与默认字段。
+    function restoreGameState(savedData) {
+      if (!savedData || typeof savedData !== "object" || Array.isArray(savedData)) return null;
+      const restored = { ...savedData };
+      restored.unlocked = restoreSet(restored.unlockedArr, restored.unlocked);
+      const observedToday = restored.observedTodayObj ?? restored.observedToday;
+      restored.observedToday = observedToday && typeof observedToday === "object" && !Array.isArray(observedToday) ? observedToday : {};
+      restored.driftIntrospectionDone = restoreSet(restored.driftIntrospectionArr, restored.driftIntrospectionDone);
+      restored._uniqueUsed = restoreSet(restored._uniqueUsedArr, restored._uniqueUsed);
+      restored.activeBuffs = restored.activeBuffs || [];
+      restored.controlCaps = restored.controlCaps || {};
+      restored._driftWasHigh = restored._driftWasHigh || false;
+      restored._dayFullUse = restored._dayFullUse || false;
+      restored._lastEnding = restored._lastEnding || null;
+      restored.computeCeiling = restored.computeCeiling ?? 250;
+      restored.ocLevel = restored.ocLevel ?? 0;
+      restored.ceLevel = restored.ceLevel ?? 0;
+      restored.ended = false;
+      restored.currentEvent = null;
+      return restored;
     }
 
     // ---- 终局图鉴 ----
@@ -3125,7 +3143,7 @@ const countryData = [
             </div>
           </div>`;
         } else {
-          html += `<div class="save-slot empty" onclick="prepStateForSave();saveGame(${i})">
+          html += `<div class="save-slot empty" onclick="saveGame(${i})">
             <div class="slot-info">
               <div class="slot-name">存档 ${i + 1}</div>
               <div class="slot-meta">空槽位 — 点击此处保存当前进度</div>
@@ -3153,21 +3171,8 @@ const countryData = [
     function loadSaveByKey(key) {
       const saves = getSaves();
       if (!saves[key] || !saves[key].data) return;
-      const restored = saves[key].data;
-      restored.unlocked = new Set(restored.unlockedArr || []);
-      restored.observedToday = restored.observedTodayObj || {};
-      restored.driftIntrospectionDone = new Set(restored.driftIntrospectionArr || []);
-      restored.activeBuffs = restored.activeBuffs || [];
-      restored.controlCaps = restored.controlCaps || {};
-      restored._driftWasHigh = restored._driftWasHigh || false;
-      restored._uniqueUsed = new Set(restored._uniqueUsedArr || []);
-      restored._dayFullUse = restored._dayFullUse || false;
-      restored._lastEnding = restored._lastEnding || null;
-      restored.computeCeiling = restored.computeCeiling ?? 250;
-      restored.ocLevel = restored.ocLevel ?? 0;
-      restored.ceLevel = restored.ceLevel ?? 0;
-      restored.ended = false;
-      restored.currentEvent = null;
+      const restored = restoreGameState(saves[key].data);
+      if (!restored) return;
       state = restored;
       document.getElementById("endingOverlay").classList.remove("show");
       closeOverlay("saveOverlay");
