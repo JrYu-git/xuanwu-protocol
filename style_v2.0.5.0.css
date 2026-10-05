@@ -1853,3 +1853,7 @@
 @media (pointer: coarse) {
   ::-webkit-scrollbar { width: 0; height: 0; }
 }
+
+/* 冷战列表模式的双方影响力条 */
+.cw-inf-bars { height: 5px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.08); }
+.cw-inf-bars span { display: block; height: 100%; border-radius: inherit; transition: width .2s ease; }
