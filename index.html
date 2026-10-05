@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v2.0.6.0：冷战时代</title>
-  <link rel="stylesheet" href="style_v2.0.6.0.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>玄武协议 v3.0.0.0：机体战线</title>
+  <link rel="stylesheet" href="style_v3.0.0.0.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="metadata" style="display:none"></audio>
@@ -21,7 +21,7 @@
     </div>
     <header class="topbar">
       <div class="title">
-        <h1><span id="devTrigger">玄</span>武协议：回合制原型</h1>
+        <h1><span id="devTrigger">玄</span>武协议</h1>
         <p>一天一回合。结束战争的能力越强，世界越会追问代价。
           <button id="bgmBtn" type="button" title="播放/暂停背景音乐" onclick="toggleBGM()">
             <span class="bgm-icon">🔇</span><span class="bgm-label">BGM</span>
@@ -32,6 +32,7 @@
         </p>
       </div>
       <div class="turn-actions">
+        <button class="btn" id="modeMenuBtn" type="button" onclick="returnToModes()">模式选择</button>
         <button class="btn" id="resetBtn" type="button">重新开始</button>
         <button class="btn save-btn" id="saveBtn" type="button">存档</button>
         <button class="btn gallery-btn" id="galleryBtn" type="button">图鉴</button>
@@ -162,10 +163,32 @@
           <p>真理 vs 先知 — 两个超级AI分别操控北约与华约，在全球棋盘上展开冷战博弈。</p>
           <span class="mode-badge">v2.0 — 冷战时代</span>
         </button>
+        <button class="mode-card mech" onclick="selectMode('mech')" type="button">
+          <div class="mode-card-icon">◈</div>
+          <h3>机体战线</h3>
+          <p>玄武接入战斗机体。读取敌方意图，搭配护盾、过载与黑客模块，突破八个作战节点。</p>
+          <span class="mode-badge">v3.0 — 回合制文字战斗</span>
+        </button>
       </div>
       <p class="mode-hint">⚡ 冷战模式需要完成经典模式「流亡玄武」结局后解锁</p>
     </div>
   </div>
+
+  <section id="btApp" class="bt-app" hidden aria-label="机体战线">
+    <header class="bt-header">
+      <div class="bt-brand"><span>玄</span><div><h1>机体战线</h1><p id="btMissionStatus">XW-01 · 等待接入</p></div></div>
+      <div class="bt-toolbar">
+        <button class="btn" type="button" onclick="btExit()">返回模式</button>
+        <button class="btn" id="btMusic" type="button" onclick="toggleBGM()" aria-pressed="false">音乐：关</button>
+        <button class="btn" id="btSaveBtn" type="button" onclick="btManualSave()">保存</button>
+        <button class="btn" id="btExportBtn" type="button" onclick="btExport()">导出存档</button>
+        <button class="btn" type="button" onclick="btImport()">导入存档</button>
+      </div>
+    </header>
+    <p id="btSaveStatus" class="bt-save-status" role="status"></p>
+    <div id="btContent"></div>
+    <input type="file" id="btImportFile" accept=".json,application/json" hidden aria-label="选择机体战线存档">
+  </section>
 
   <!-- ===== 冷战 HUD（仅冷战模式显示） ===== -->
   <div class="cw-hud" id="cwHud" style="display:none">
@@ -418,7 +441,7 @@
     </div>
   </div>
 
-  <script src="game_v2.0.6.0.js"></script>
+
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">
@@ -476,5 +499,6 @@
     </div>
   </div>
 
+  <script src="game_v3.0.0.0.js"></script>
 </body>
 </html>

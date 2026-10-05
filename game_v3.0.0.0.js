@@ -47,7 +47,7 @@ function makeVibrant(rgba) {
     // 用户首次交互后自动播放（绕过浏览器自动播放限制）
     let _bgmAutoOnce = false;
     function _bgmAutoPlay(event) {
-      if (event && event.target.closest && event.target.closest("#bgmBtn")) return;
+      if (event && event.target.closest && event.target.closest("#bgmBtn,#btMusic")) return;
       if (_bgmAutoOnce || !bgmLoaded) return;
       const a = document.getElementById("bgmAudio");
       const btn = document.getElementById("bgmBtn");
@@ -2916,6 +2916,8 @@ const countryData = [
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
     }
     function savePersist(data) {
+      // 数组的 auto 命名属性不会进入JSON；转为带数字键的对象，兼容现有手动槽位。
+      if (Array.isArray(data.saves)) data.saves = Object.assign({}, data.saves);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
@@ -3056,7 +3058,7 @@ const countryData = [
       if (!p.saves) p.saves = [];
       const endingName = state._lastEnding || "未知";
       p.saves["auto"] = {
-        label: `自动存档 · ${endingName}`,
+        label: state.ended ? `自动存档 · ${endingName}` : `自动存档 · 第${state.day}天`,
         time: new Date().toISOString(),
         day: state.day,
         ctrlAvg: fmt(average("control")),
@@ -3351,6 +3353,7 @@ const countryData = [
 
     // 点击追踪："玄"字连续点击7次打开密码弹窗
     document.getElementById("devTrigger").addEventListener("click", function(e) {
+      if (gameMode !== "classic" || !state) return;
       e.stopPropagation();
       if (devClickTimer) clearTimeout(devClickTimer);
       devClickCount++;
@@ -3875,9 +3878,10 @@ const countryData = [
     // ============================================================
 
     let cwState = null;
-    let gameMode = null; // "classic" | "coldwar"
+    let gameMode = null; // "classic" | "coldwar" | "mech"
 
     function showModeSelect() {
+      clearModeOverlays();
       const overlay = document.getElementById("modeOverlay");
       overlay.style.display = "grid";
       // 检查冷战模式解锁状态 — 从正确的持久化数据结构读取
@@ -3894,6 +3898,7 @@ const countryData = [
     }
 
     window.selectMode = function(mode) {
+      if (!["classic", "coldwar", "mech"].includes(mode)) return;
       if (mode === "coldwar") {
         const persist = loadPersist();
         const hasColdWar = !!(persist.endings && persist.endings["流亡玄武"]);
@@ -3909,6 +3914,8 @@ const countryData = [
           return;
         }
       }
+      clearModeOverlays();
+      if (mode !== "mech") prepareStandardMode();
       gameMode = mode;
       document.getElementById("modeOverlay").style.display = "none";
       if (mode === "classic") {
@@ -3916,6 +3923,8 @@ const countryData = [
         showTutorial();
       } else if (mode === "coldwar") {
         startColdWar();
+      } else if (mode === "mech") {
+        startMechMode();
       }
     };
 
@@ -5285,14 +5294,541 @@ const countryData = [
     // 冷战模式 END
     // ============================================================
 
-    initBGM();
-    // 检查是否有任何结局记录：有 → 显示模式选择；无 → 直接进入经典模式+教程
-    const _startupPersist = loadPersist();
-    const _startupEndings = _startupPersist.endings || {};
-    if (Object.keys(_startupEndings).length === 0) {
-      gameMode = "classic";
-      newGame();
-      showTutorial();
-    } else {
-      showModeSelect();
+
+/* 玄武·机体远征：独立、可存档的确定性回合战斗引擎。 */
+(function (root) {
+  'use strict';
+  const VERSION = 1;
+  const SKILLS = Object.freeze({
+    cannon: {id:'cannon',name:'聚能重炮',cost:3,cooldown:1,heat:24,damage:26,desc:'造成26＋火力伤害，热量＋24；冷却1回合。'},
+    barrier: {id:'barrier',name:'折射护盾',cost:2,cooldown:2,heat:8,shield:28,desc:'获得28＋护盾强化点护盾，热量＋8；冷却2回合。'},
+    interrupt: {id:'interrupt',name:'入侵中断',cost:3,cooldown:3,heat:14,damage:8,desc:'造成8＋火力伤害并取消敌人本次行动，热量＋14；冷却3回合。'},
+    mark: {id:'mark',name:'漏洞标记',cost:2,cooldown:2,heat:10,damage:5,desc:'造成5＋火力伤害，令随后2个回合的攻击伤害提高50%，热量＋10；冷却2回合。'},
+    vent: {id:'vent',name:'冷却穿刺',cost:1,cooldown:1,heat:-30,damage:12,desc:'造成12＋火力伤害，并降低30热量；冷却1回合。'},
+    overload: {id:'overload',name:'超载爆发',cost:5,cooldown:3,heat:45,damage:34,desc:'造成34＋火力＋行动前热量÷4（向下取整）的伤害，热量＋45；冷却3回合。'}
+  });
+  const ENEMIES = Object.freeze({
+    patrol:{id:'patrol',name:'巡逻守卫',hp:46,desc:'交替使用射击、护盾和重击。',pattern:[{type:'attack',name:'动能射击',damage:9},{type:'shield',name:'防御姿态',shield:12},{type:'attack',name:'近距重击',damage:15}]},
+    drone:{id:'drone',name:'游猎无人机',hp:43,desc:'轻型机体会干扰算力，再发动连续扫射。',pattern:[{type:'attack',name:'双联扫射',damage:11},{type:'jam',name:'信号干扰',damage:4,drain:2},{type:'attack',name:'俯冲射击',damage:16}]},
+    artillery:{id:'artillery',name:'重装炮台',hp:56,desc:'蓄力后发动高伤害炮击，打断炮击可争取喘息时间。',pattern:[{type:'charge',name:'主炮蓄力',damage:0},{type:'attack',name:'蓄力炮击',damage:27},{type:'shield',name:'装甲重整',shield:15},{type:'attack',name:'副炮点射',damage:11}]},
+    repairer:{id:'repairer',name:'修复工程机',hp:62,desc:'会修复自身并展开护盾，适合集中火力击破。',pattern:[{type:'attack',name:'焊枪切割',damage:13},{type:'repair',name:'纳米修补',heal:14},{type:'shield',name:'工程屏障',shield:13},{type:'attack',name:'高压电弧',damage:18}]},
+    infiltrator:{id:'infiltrator',name:'幽影入侵者',hp:57,desc:'使用干扰与热能攻击扰乱机体资源。',pattern:[{type:'jam',name:'算力封锁',damage:7,drain:2},{type:'heat',name:'热能注入',damage:10,heat:20},{type:'attack',name:'核心穿刺',damage:19,pierce:true}]},
+    warden:{id:'warden',name:'堡垒监守者',hp:98,boss:true,desc:'生命降至一半时进入第二阶段，炮击更强且修复更频繁。',pattern:[{type:'attack',name:'双臂压制',damage:13},{type:'charge',name:'攻城炮蓄力',damage:0},{type:'attack',name:'攻城炮击',damage:28},{type:'shield',name:'堡垒护甲',shield:18}],phase2:[{type:'charge',name:'极限炮击蓄力',damage:0},{type:'attack',name:'极限炮击',damage:34},{type:'repair',name:'紧急重组',heal:12},{type:'attack',name:'破城重击',damage:20}]},
+    nexus:{id:'nexus',name:'失控协议核心',hp:144,boss:true,desc:'生命降至一半时解除限制，热能干扰与终结炮交替出现。',pattern:[{type:'jam',name:'权限剥夺',damage:10,drain:2},{type:'shield',name:'协议屏障',shield:22},{type:'charge',name:'歼灭序列准备',damage:0},{type:'attack',name:'歼灭光束',damage:32}],phase2:[{type:'heat',name:'全域热冲击',damage:15,heat:22},{type:'charge',name:'终结序列准备',damage:0},{type:'attack',name:'终结光束',damage:40},{type:'jam',name:'核心反制',damage:16,drain:2}]}
+  });
+  const ROUTE = Object.freeze([
+    {enemyId:'patrol',title:'01 · 失联哨站',story:'玄武接入一具旧式战斗机体。前方哨站拒绝回应身份识别，只能突破守卫。'},
+    {enemyId:'drone',title:'02 · 风蚀走廊',story:'无人机沿废弃运输线巡猎。它们正在把入侵信号传回深处的核心。'},
+    {enemyId:'artillery',title:'03 · 封锁闸门',story:'一道重装炮台封锁了补给通道。观察蓄力信号，寻找攻击窗口。'},
+    {enemyId:'warden',title:'04 · 堡垒中枢',story:'监守者控制着唯一的维修站。击败它后，可以在维修站进行一次整备。'},
+    {enemyId:'repairer',title:'05 · 废弃工厂',story:'自动工程机仍在修复失控防线。它把玄武识别成需要清除的异物。'},
+    {enemyId:'infiltrator',title:'06 · 静默网络',story:'幽影程序侵入了实体机体。算力与温度都可能成为它的攻击目标。'},
+    {enemyId:'artillery',title:'07 · 核心防线',story:'强化炮台守住最后一道闸门。闸门后方，失控协议已经开始自我复制。'},
+    {enemyId:'nexus',title:'08 · 协议终点',story:'玄武终于抵达失控协议核心。必须击毁其机体，将整条防线从失控指令中解放。'}
+  ]);
+  const REWARDS = Object.freeze({
+    restore:{id:'restore',name:'战场维修',desc:'恢复32生命。'},
+    armor:{id:'armor',name:'加固机体',desc:'生命上限＋15，并恢复15生命。'},
+    power:{id:'power',name:'火控升级',desc:'所有主动攻击的基础伤害＋2。'},
+    capacitor:{id:'capacitor',name:'算力电容',desc:'算力上限＋1，并恢复3算力（上限12）。'},
+    shield:{id:'shield',name:'护盾发生器',desc:'防御与护盾技能获得的护盾＋4。'},
+    kit:{id:'kit',name:'维修物资',desc:'获得1份维修包，并恢复10生命（最多5份）。'},
+    cooling:{id:'cooling',name:'散热改装',desc:'每回合自动散热额外＋3，立即降低20热量。'}
+  });
+  const HELP = Object.freeze([
+    '普通攻击造成10＋火力伤害，恢复2算力并增加8热量；防御获得12＋护盾强化点护盾、恢复1算力并降低20热量。',
+    '每回合只执行一次行动，随后敌人执行预告意图。入侵中断会取消这次意图，并推进到下一次意图；冷却期间无法重复使用。',
+    '护盾先抵挡伤害，上限60；每轮结束时双方剩余护盾减少4。穿盾攻击直接伤害生命。',
+    '每轮结束自动散热8＋散热强化。热量达到100会立即过热：损失12生命和2算力，热量降至60；过热可能导致败北。',
+    '冷却显示还需经过多少个其他行动才能再次使用。新战斗清空冷却，恢复2算力，热量降低20；生命保留。',
+    '敌人每战斗6回合，攻击意图伤害增加2；界面预告已包含增幅。首领半血时转换阶段，下次意图立即更新。',
+    '每场胜利都提供三选一奖励。第4场后的维修站只能选择一次免费整备。最终战奖励领取后完成远征。',
+    '6种技能全部可用，在战前或维修站选择携带最多4种；普通攻击、防御和维修包始终可用。'
+  ]);
+  const clamp = (n,min,max) => Math.min(max,Math.max(min,n));
+  const plain = v => !!v && typeof v === 'object' && !Array.isArray(v) && (Object.getPrototypeOf(v) === null || Object.getPrototypeOf(Object.getPrototypeOf(v)) === null);
+  const integer = (n,min,max) => Number.isInteger(n) && n >= min && n <= max;
+  const fail = reason => ({ok:false,reason});
+  const ok = () => ({ok:true});
+  function log(s,message) { s.log.unshift(message); if(s.log.length>60)s.log.length=60; }
+  function random(s) { let x=s.rngState>>>0; x^=x<<13; x^=x>>>17; x^=x<<5; s.rngState=x>>>0;return s.rngState/4294967296; }
+  function seedValue(seed) {
+    if(Number.isInteger(seed) && seed>=0 && seed<=4294967295) return (seed>>>0)||0x9e3779b9;
+    if(typeof seed==='string') {let h=2166136261;for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619);}return(h>>>0)||1;}
+    return ((Date.now() ^ Math.floor(Math.random()*4294967296))>>>0)||1;
+  }
+  function newRun(seed) {
+    const n=seedValue(seed);
+    return {version:VERSION,phase:'briefing',stage:0,turn:0,seed:n,rngState:n,
+      player:{hp:120,maxHp:120,shield:0,compute:5,maxCompute:8,heat:0,power:0,shieldBonus:0,coolingBonus:0,repairKits:2,equipped:['cannon','barrier','interrupt','vent'],unlocked:Object.keys(SKILLS),cooldowns:Object.fromEntries(Object.keys(SKILLS).map(id=>[id,0]))},
+      enemy:null,log:['玄武已接入战斗机体。请选择技能，准备开始远征。'],rewardOptions:[],rewardChosen:null,campUsed:false,
+      stats:{turns:0,wins:0,damageDealt:0,damageTaken:0,interrupts:0,overheats:0,repairs:0},lastAction:null};
+  }
+  function createEnemy(stage) {
+    const def=ENEMIES[ROUTE[stage].enemyId];
+    const extra=stage===6?24:0;
+    return {id:def.id,name:def.name,hp:def.hp+extra,maxHp:def.hp+extra,shield:0,patternIndex:0,phase:1,exposedTurns:0,intent:null};
+  }
+  function buildIntent(s) {
+    const e=s.enemy,def=ENEMIES[e.id];
+    const pattern=e.phase===2?def.phase2:def.pattern;
+    const base=pattern[e.patternIndex%pattern.length];
+    const growth=Math.floor(Math.max(0,s.turn-1)/6)*2+(s.stage===6?3:0);
+    const out={name:base.name,type:base.type,damage:base.damage?base.damage+growth:0,shield:base.shield||0,heal:base.heal||0,drain:base.drain||0,heat:base.heat||0,pierce:!!base.pierce};
+    const details=[];
+    if(out.damage)details.push('造成'+out.damage+'点'+(out.pierce?'穿盾':'')+'伤害');
+    if(out.shield)details.push('获得'+out.shield+'护盾');
+    if(out.heal)details.push('恢复'+out.heal+'生命');
+    if(out.drain)details.push('削减'+out.drain+'算力');
+    if(out.heat)details.push('增加我方'+out.heat+'热量');
+    if(base.type==='charge')details.push('本次不攻击，准备下一回合的高伤害炮击');
+    out.desc=details.join('；')+'。';return out;
+  }
+  function updateIntent(s) {s.enemy.intent=buildIntent(s);}
+  function equip(s,id) {
+    if(!s || !['briefing','camp'].includes(s.phase))return fail('只能在战前或维修站调整技能。');
+    if(!Object.hasOwn(SKILLS,id) || !s.player.unlocked.includes(id))return fail('该技能不可用。');
+    const at=s.player.equipped.indexOf(id);
+    if(at>=0) s.player.equipped.splice(at,1);
+    else {if(s.player.equipped.length>=4)return fail('最多携带4个技能，请先卸下一个。');s.player.equipped.push(id);}
+    return ok();
+  }
+  function actionReason(s,id) {
+    if(!s)return '远征尚未开始。';
+    if(s.phase==='camp')return ['camp_repair','camp_recharge','camp_upgrade'].includes(id)?'':'请先选择一项维修站整备。';
+    if(s.phase!=='battle')return '当前不能进行战斗行动。';
+    if(s.player.hp<=0 || !s.enemy || s.enemy.hp<=0)return '战斗已结束。';
+    if(['attack','guard'].includes(id))return '';
+    if(id==='repair') {if(!s.player.repairKits)return '维修包已用完。';if(s.player.hp===s.player.maxHp)return '生命已满。';return '';}
+    if(!Object.hasOwn(SKILLS,id))return '未知行动。';
+    if(!s.player.equipped.includes(id))return '未携带该技能。';
+    if(s.player.cooldowns[id]>0)return '还需冷却'+s.player.cooldowns[id]+'回合。';
+    if(s.player.compute<SKILLS[id].cost)return '需要'+SKILLS[id].cost+'算力。';
+    return '';
+  }
+  function damagePreview(s,id) {
+    let value=id==='attack'?10+s.player.power:(SKILLS[id]?.damage||0)+(SKILLS[id]?.damage?s.player.power:0);
+    if(id==='overload')value+=Math.floor(s.player.heat/4);
+    if(s.enemy && s.enemy.exposedTurns>0)value=Math.floor(value*1.5);
+    return value;
+  }
+  function actionInfo(s,id) {
+    if(!s)return '';
+    if(id==='attack')return '造成'+damagePreview(s,id)+'伤害，恢复2算力，热量＋8。';
+    if(id==='guard')return '获得'+(12+s.player.shieldBonus)+'护盾，恢复1算力，热量－20。';
+    if(id==='repair')return '消耗1份维修包，恢复35生命，热量－10；随后敌人行动。';
+    if(id==='camp_repair')return '恢复最大生命的45%（向上取整），获得1份维修包。';
+    if(id==='camp_recharge')return '算力补满、热量归零，并提高1点算力上限（最多12）。';
+    if(id==='camp_upgrade')return '火力＋2、护盾强化＋4，并恢复15生命。';
+    const d=SKILLS[id];if(!d)return '';
+    let detail=d.damage?'造成'+damagePreview(s,id)+'伤害。':'获得'+(d.shield+s.player.shieldBonus)+'护盾。';
+    if(id==='interrupt')detail+='取消敌人当前意图。';
+    if(id==='mark')detail+='随后2回合攻击伤害＋50%。';
+    return detail+'消耗'+d.cost+'算力，热量'+(d.heat>=0?'＋':'')+d.heat+'，冷却'+d.cooldown+'回合。';
+  }
+  function hit(s,target,amount,pierce) {
+    const blocked=pierce?0:Math.min(target.shield,amount);target.shield-=blocked;
+    const dealt=Math.min(target.hp,Math.max(0,amount-blocked));target.hp-=dealt;
+    if(target===s.player)s.stats.damageTaken+=dealt;else s.stats.damageDealt+=dealt;
+    return {blocked,dealt};
+  }
+  function addShield(target,amount) {const before=target.shield;target.shield=clamp(before+amount,0,60);return target.shield-before;}
+  function overheat(s) {
+    if(s.player.heat<100)return;
+    const p=s.player,loss=Math.min(p.hp,12);p.hp-=loss;s.stats.damageTaken+=loss;p.compute=clamp(p.compute-2,0,p.maxCompute);p.heat=60;s.stats.overheats++;
+    log(s,'机体过热！损失'+loss+'生命与2算力，温度回落至60。');
+  }
+  function defeat(s) {finishRound(s,false);s.phase='defeat';s.player.hp=0;s.rewardOptions=[];log(s,'机体核心停止响应。远征结束，玄武等待下一次接入。');}
+  function rewardPool(s) {
+    return Object.keys(REWARDS).filter(id=>id!=='capacitor'||s.player.maxCompute<12).filter(id=>id!=='kit'||s.player.repairKits<5).filter(id=>id!=='cooling'||s.player.coolingBonus<18).filter(id=>id!=='shield'||s.player.shieldBonus<32).filter(id=>id!=='armor'||s.player.maxHp<240).filter(id=>id!=='power'||s.player.power<24);
+  }
+  function win(s) {
+    s.enemy.hp=0;s.phase='reward';s.stats.wins++;s.rewardChosen=null;
+    const pool=rewardPool(s);s.rewardOptions=[];
+    while(s.rewardOptions.length<3 && pool.length){s.rewardOptions.push(pool.splice(Math.floor(random(s)*pool.length),1)[0]);}
+    log(s,'击败'+s.enemy.name+'。请选择一项战后奖励。');
+  }
+  function phaseChange(s) {
+    const e=s.enemy,def=ENEMIES[e.id];
+    if(def.boss && e.phase===1 && e.hp>0 && e.hp<=e.maxHp/2){e.phase=2;e.patternIndex=0;updateIntent(s);log(s,e.name+'进入第二阶段！下一回合将使用「'+e.intent.name+'」。');}
+  }
+  function act(s,id) {
+    const reason=actionReason(s,id);if(reason)return fail(reason);
+    if(s.phase==='camp'){
+      const p=s.player;
+      if(id==='camp_repair'){p.hp=clamp(p.hp+Math.ceil(p.maxHp*.45),0,p.maxHp);p.repairKits=clamp(p.repairKits+1,0,5);}
+      else if(id==='camp_recharge'){p.maxCompute=clamp(p.maxCompute+1,8,12);p.compute=p.maxCompute;p.heat=0;}
+      else {p.power=clamp(p.power+2,0,24);p.shieldBonus=clamp(p.shieldBonus+4,0,32);p.hp=clamp(p.hp+15,0,p.maxHp);}
+      s.campUsed=true;s.phase='briefing';log(s,'维修站整备完成：'+actionInfo(s,id));return ok();
     }
+    const p=s.player,e=s.enemy,intent={...e.intent};const damage=damagePreview(s,id);let interrupted=false;
+    s.lastAction=id;s.stats.turns++;
+    if(id==='attack'){p.compute=clamp(p.compute+2,0,p.maxCompute);p.heat+=8;}
+    else if(id==='guard'){const n=addShield(p,12+p.shieldBonus);p.compute=clamp(p.compute+1,0,p.maxCompute);p.heat=Math.max(0,p.heat-20);log(s,'防御姿态：获得'+n+'护盾，恢复1算力并降低20热量。');}
+    else if(id==='repair'){p.repairKits--;const n=Math.min(35,p.maxHp-p.hp);p.hp+=n;p.heat=Math.max(0,p.heat-10);s.stats.repairs++;log(s,'使用维修包，恢复'+n+'生命，热量降低10。');}
+    else {
+      const d=SKILLS[id];p.compute-=d.cost;p.heat=Math.max(0,p.heat+d.heat);p.cooldowns[id]=d.cooldown+1;
+      if(id==='barrier')log(s,'折射护盾展开，获得'+addShield(p,d.shield+p.shieldBonus)+'护盾。');
+      if(id==='interrupt'){interrupted=true;s.stats.interrupts++;}
+    }
+    if(damage>0){const out=hit(s,e,damage,false);log(s,(id==='attack'?'普通攻击':SKILLS[id].name)+'：造成'+out.dealt+'生命伤害'+(out.blocked?'，'+out.blocked+'被护盾吸收':'')+'。');}
+    if(id==='mark')e.exposedTurns=3;
+    overheat(s);
+    if(p.hp<=0){defeat(s);return ok();}
+    if(e.hp<=0){finishRound(s,false);win(s);return ok();}
+    if(interrupted)log(s,'入侵成功！敌方「'+intent.name+'」被取消。');
+    else {
+      if(intent.damage>0){const out=hit(s,p,intent.damage,intent.pierce);log(s,e.name+'使用「'+intent.name+'」：造成'+out.dealt+'生命伤害'+(out.blocked?'，'+out.blocked+'被护盾吸收':'')+'。');}
+      if(intent.shield)log(s,e.name+'展开护盾，增加'+addShield(e,intent.shield)+'护盾。');
+      if(intent.heal){const n=Math.min(intent.heal,e.maxHp-e.hp);e.hp+=n;log(s,e.name+'修复了'+n+'生命。');}
+      if(intent.drain){const n=Math.min(p.compute,intent.drain);p.compute-=n;log(s,'算力受到干扰，损失'+n+'点。');}
+      if(intent.heat){p.heat+=intent.heat;log(s,'热能干扰使机体热量增加'+intent.heat+'。');}
+      if(intent.type==='charge')log(s,e.name+'正在蓄力，下一次攻击即将到来。');
+      overheat(s);
+    }
+    if(p.hp<=0){defeat(s);return ok();}
+    finishRound(s,true);return ok();
+  }
+  function finishRound(s,continueBattle) {
+    const p=s.player,e=s.enemy;
+    for(const id of Object.keys(SKILLS))p.cooldowns[id]=Math.max(0,p.cooldowns[id]-1);
+    p.heat=Math.max(0,p.heat-8-p.coolingBonus);p.shield=Math.max(0,p.shield-4);e.shield=Math.max(0,e.shield-4);e.exposedTurns=Math.max(0,e.exposedTurns-1);
+    if(continueBattle){s.turn++;e.patternIndex++;updateIntent(s);phaseChange(s);}
+  }
+  function chooseReward(s,id) {
+    if(!s || s.phase!=='reward' || s.rewardChosen!==null)return fail('当前不能领取奖励。');
+    if(!Object.hasOwn(REWARDS,id) || !s.rewardOptions.includes(id))return fail('请选择本次提供的奖励。');
+    const p=s.player;
+    if(id==='restore')p.hp=clamp(p.hp+32,0,p.maxHp);
+    else if(id==='armor'){p.maxHp=clamp(p.maxHp+15,120,240);p.hp=clamp(p.hp+15,0,p.maxHp);}
+    else if(id==='power')p.power=clamp(p.power+2,0,24);
+    else if(id==='capacitor'){p.maxCompute=clamp(p.maxCompute+1,8,12);p.compute=clamp(p.compute+3,0,p.maxCompute);}
+    else if(id==='shield')p.shieldBonus=clamp(p.shieldBonus+4,0,32);
+    else if(id==='kit'){p.repairKits=clamp(p.repairKits+1,0,5);p.hp=clamp(p.hp+10,0,p.maxHp);}
+    else if(id==='cooling'){p.coolingBonus=clamp(p.coolingBonus+3,0,18);p.heat=Math.max(0,p.heat-20);}
+    s.rewardChosen=id;s.rewardOptions=[];log(s,'获得「'+REWARDS[id].name+'」：'+REWARDS[id].desc);return ok();
+  }
+  function advance(s) {
+    if(!s)return fail('远征尚未开始。');
+    if(s.phase==='briefing'){
+      if(s.player.hp<=0)return fail('机体已损毁。');
+      s.enemy=createEnemy(s.stage);s.turn=1;s.phase='battle';s.player.shield=0;s.player.compute=clamp(s.player.compute+2,0,s.player.maxCompute);s.player.heat=Math.max(0,s.player.heat-20);
+      for(const id of Object.keys(SKILLS))s.player.cooldowns[id]=0;
+      updateIntent(s);log(s,ROUTE[s.stage].title+'：遭遇'+s.enemy.name+'。');return ok();
+    }
+    if(s.phase==='reward'){
+      if(s.rewardChosen===null)return fail('请先选择战后奖励。');
+      if(s.stage===ROUTE.length-1){s.phase='victory';log(s,'失控协议已清除，防线重新响应玄武。远征成功！');return ok();}
+      s.stage++;s.enemy=null;s.turn=0;s.rewardChosen=null;s.phase=s.stage===4&&!s.campUsed?'camp':'briefing';
+      if(s.phase==='camp')log(s,'抵达维修站：请选择一项免费整备，也可调整携带技能。');return ok();
+    }
+    return fail(s.phase==='camp'?'请先选择一项维修站整备。':'当前无法推进。');
+  }
+  function normalize(saved) {
+    // Only known fields are copied. Invalid identities and impossible phase combinations are rejected.
+    if(!plain(saved) || saved.version!==VERSION || !['briefing','battle','reward','camp','victory','defeat'].includes(saved.phase))return null;
+    if(!integer(saved.stage,0,7) || !integer(saved.turn,0,100000) || !integer(saved.seed,1,4294967295) || !integer(saved.rngState,1,4294967295))return null;
+    const p=saved.player;if(!plain(p))return null;
+    const bounds={maxHp:[120,240],hp:[0,240],shield:[0,60],maxCompute:[8,12],compute:[0,12],heat:[0,99],power:[0,24],shieldBonus:[0,32],coolingBonus:[0,18],repairKits:[0,5]};
+    for(const [key,[lo,hi]] of Object.entries(bounds))if(!integer(p[key],lo,hi))return null;
+    if(p.hp>p.maxHp || p.compute>p.maxCompute)return null;
+    if(!Array.isArray(p.equipped)||p.equipped.length>4||new Set(p.equipped).size!==p.equipped.length||!p.equipped.every(id=>Object.hasOwn(SKILLS,id)))return null;
+    if(!Array.isArray(p.unlocked)||p.unlocked.length!==6||new Set(p.unlocked).size!==6||!p.unlocked.every(id=>Object.hasOwn(SKILLS,id)))return null;
+    if(!plain(p.cooldowns)||Object.keys(p.cooldowns).length!==6)return null;
+    for(const id of Object.keys(SKILLS))if(!integer(p.cooldowns[id],0,SKILLS[id].cooldown))return null;
+    if(typeof saved.campUsed!=='boolean' || (saved.stage>4&&!saved.campUsed) || (saved.stage<4&&saved.campUsed))return null;
+    const expectsEnemy=['battle','reward','victory','defeat'].includes(saved.phase);
+    let e=null;
+    if(expectsEnemy){
+      const raw=saved.enemy;if(!plain(raw)||raw.id!==ROUTE[saved.stage].enemyId)return null;
+      const expected=createEnemy(saved.stage),def=ENEMIES[raw.id];
+      if(raw.maxHp!==expected.maxHp||!integer(raw.hp,0,raw.maxHp)||!integer(raw.shield,0,60)||!integer(raw.patternIndex,0,100000)||!integer(raw.exposedTurns,0,2)||![1,2].includes(raw.phase))return null;
+      if(raw.phase===2&&!def.boss)return null;
+      if(raw.patternIndex>saved.turn-1 || (raw.phase===1&&raw.patternIndex!==saved.turn-1))return null;
+      if(saved.turn<1)return null;
+      if(saved.phase==='battle'&&(raw.hp<=0||p.hp<=0 || (def.boss&&raw.phase===1&&raw.hp<=raw.maxHp/2)))return null;
+      if(['reward','victory'].includes(saved.phase)&&(raw.hp!==0||p.hp<=0))return null;
+      if(saved.phase==='defeat'&&p.hp!==0)return null;
+      e={id:raw.id,name:def.name,hp:raw.hp,maxHp:raw.maxHp,shield:raw.shield,patternIndex:raw.patternIndex,phase:raw.phase,exposedTurns:raw.exposedTurns,intent:null};
+    } else if(saved.enemy!==null || saved.turn!==0 || p.hp<=0)return null;
+    if(saved.phase==='camp'&&(saved.stage!==4||saved.campUsed))return null;
+    if(saved.stage===4&&saved.phase!=='camp'&&!saved.campUsed)return null;
+    if(saved.phase==='victory'&&saved.stage!==7)return null;
+    if(!plain(saved.stats))return null;
+    const stats={};for(const key of ['turns','wins','damageDealt','damageTaken','interrupts','overheats','repairs']){if(!integer(saved.stats[key],0,10000000))return null;stats[key]=saved.stats[key];}
+    const winsExpected=saved.stage+(['reward','victory'].includes(saved.phase)?1:0);if(stats.wins!==winsExpected || stats.turns<saved.turn-1)return null;
+    if(!Array.isArray(saved.rewardOptions)||saved.rewardOptions.length>3||new Set(saved.rewardOptions).size!==saved.rewardOptions.length||!saved.rewardOptions.every(id=>Object.hasOwn(REWARDS,id)))return null;
+    if(saved.rewardChosen!==null && !Object.hasOwn(REWARDS,saved.rewardChosen))return null;
+    if(saved.phase==='reward' && (saved.rewardChosen===null ? saved.rewardOptions.length!==3 : saved.rewardOptions.length!==0))return null;
+    if(saved.phase!=='reward'&&saved.rewardOptions.length!==0)return null;
+    if(saved.phase==='victory'&&saved.rewardChosen===null)return null;
+    if(!['reward','victory'].includes(saved.phase)&&saved.rewardChosen!==null)return null;
+    if(!Array.isArray(saved.log)||saved.log.length>60||!saved.log.every(x=>typeof x==='string'&&x.length<=600))return null;
+    if(saved.lastAction!==null&&!['attack','guard','repair',...Object.keys(SKILLS)].includes(saved.lastAction))return null;
+    const out={version:VERSION,phase:saved.phase,stage:saved.stage,turn:saved.turn,seed:saved.seed,rngState:saved.rngState,player:{},enemy:e,log:saved.log.slice(),rewardOptions:saved.rewardOptions.slice(),rewardChosen:saved.rewardChosen,campUsed:saved.campUsed,stats,lastAction:saved.lastAction};
+    for(const key of Object.keys(bounds))out.player[key]=p[key];
+    out.player.equipped=p.equipped.slice();out.player.unlocked=Object.keys(SKILLS);out.player.cooldowns=Object.fromEntries(Object.keys(SKILLS).map(id=>[id,p.cooldowns[id]]));
+    if(e)updateIntent(out);
+    return out;
+  }
+  function deepFreeze(value) {if(value&&typeof value==='object'){for(const child of Object.values(value))deepFreeze(child);Object.freeze(value);}return value;}
+  [SKILLS,ENEMIES,ROUTE,REWARDS].forEach(deepFreeze);
+  root.XWBattle = Object.freeze({version:VERSION,skills:SKILLS,enemies:ENEMIES,route:ROUTE,rewards:REWARDS,help:HELP,newRun,act,chooseReward,advance,equip,normalize,actionReason,actionInfo});
+})(typeof window!=='undefined'?window:globalThis);
+
+    // 机体战线界面与独立存档；战斗数值由 XWBattle 引擎统一处理。
+    const BT_SAVE_KEY = "xuanwu_mech_v3";
+    let btState = null;
+    let btSavedRun = null;
+    let btNotice = "每次行动后自动保存，也可以导出存档带到其他版本。";
+    let btStorageFailed = false;
+    const btEscape = value => String(value == null ? "" : value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const btPhaseName = phase => ({ briefing: "出击准备", battle: "交战中", reward: "战后回收", camp: "中继站整备", victory: "任务完成", defeat: "机体失联" }[phase] || "待命");
+    function btReadSave() {
+      try {
+        const raw = localStorage.getItem(BT_SAVE_KEY);
+        if (!raw) return null;
+        const envelope = JSON.parse(raw);
+        const restored = XWBattle.normalize(envelope.state);
+        if (!restored) throw new Error("invalid");
+        return restored;
+      } catch (error) {
+        btNotice = "上次存档暂时无法读取。可以导入备份，或开始新任务。";
+        return null;
+      }
+    }
+    function btSave(manual = false) {
+      if (!btState) return false;
+      try {
+        localStorage.setItem(BT_SAVE_KEY, JSON.stringify({ mode: "mech", version: "3.0.0.0", savedAt: new Date().toISOString(), state: btState }));
+        btSavedRun = XWBattle.normalize(btState);
+        btStorageFailed = false;
+        btNotice = `${manual ? "已保存" : "已自动保存"} · ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+        return true;
+      } catch (error) {
+        btStorageFailed = true;
+        btNotice = "浏览器未能保存。请先导出存档，关闭页面前保留备份。";
+        return false;
+      }
+    }
+    function startMechMode() {
+      document.querySelector("main.app").hidden = true;
+      document.getElementById("btApp").hidden = false;
+      document.getElementById("cwHud").style.display = "none";
+      document.getElementById("tutorialOverlay").style.display = "none";
+      btState = null;
+      btNotice = "每次行动后自动保存，也可以导出存档带到其他版本。";
+      btStorageFailed = false;
+      btSavedRun = btReadSave();
+      btRender();
+      window.scrollTo(0, 0);
+    }
+    function btBar(label, value, maximum, color) {
+      return `<div class="bt-meter"><div><span>${label}</span><strong>${value}<small> / ${maximum}</small></strong></div><div class="bt-meter-track"><i style="width:${Math.max(0, Math.min(100, value / maximum * 100))}%;background:${color}"></i></div></div>`;
+    }
+    function btRouteHTML() {
+      const complete = btState.phase === "victory";
+      return `<nav class="bt-route" aria-label="作战路线">${XWBattle.route.map((node, i) => `<span class="${i < btState.stage || complete ? "done" : i === btState.stage ? "current" : ""}" title="${btEscape(node.title)}" ${i === btState.stage ? 'aria-current="step"' : ""}><b>${i < btState.stage || complete ? "✓" : i + 1}</b><small>${btEscape(node.title)}</small></span>`).join("")}</nav>`;
+    }
+    function btPlayerHTML() {
+      const p = btState.player;
+      const status = [];
+      if (p.vulnerableTurns) status.push(`受到干扰 ${p.vulnerableTurns} 回合`);
+      if (p.heat >= 75) status.push("热量偏高，建议散热");
+      if (p.shield > 0) status.push(`护盾 ${p.shield}`);
+      return `<article class="bt-unit bt-player"><div class="bt-unit-heading"><span class="bt-unit-symbol">玄</span><div><small>XW-01 · 远程接入</small><h2>玄武作战机体</h2></div><span class="bt-unit-tag">我方</span></div>
+        ${btBar("机体完整度", p.hp, p.maxHp, "var(--green)")}${btBar("可用算力", p.compute, p.maxCompute, "var(--cyan)")}${btBar("核心热量", p.heat, 100, p.heat >= 75 ? "var(--red)" : "var(--amber)")}
+        <div class="bt-unit-foot"><span>攻击强化 +${p.power || 0}</span><span>护盾强化 +${p.shieldBonus || 0}</span><span>维修包 ${p.repairKits}</span></div>
+        <div class="bt-status">${status.length ? status.map(btEscape).join(" · ") : "所有模块运行正常"}</div></article>`;
+    }
+    function btEnemyHTML() {
+      const e = btState.enemy;
+      if (!e) return "";
+      return `<article class="bt-unit bt-enemy"><div class="bt-unit-heading"><span class="bt-unit-symbol">敌</span><div><small>敌方信号 · ${e.phase > 1 ? "第二阶段" : "目标锁定"}</small><h2>${btEscape(e.name)}</h2></div><span class="bt-unit-tag">敌方</span></div>
+        ${btBar("装甲完整度", e.hp, e.maxHp, "var(--red)")}<div class="bt-unit-foot"><span>护盾 ${e.shield || 0}</span>${e.exposedTurns ? `<span>破绽 ${e.exposedTurns} 回合</span>` : ""}</div>
+        <div class="bt-intent"><small>下一次敌方行动</small><h3>${btEscape(e.intent && e.intent.name)}</h3><p>${btEscape(e.intent && e.intent.desc)}</p></div>
+        <p class="bt-enemy-hint">你的行动先结算；成功击败或打断敌人，可阻止其本回合行动。</p></article>`;
+    }
+    function btActionButton(id, basic = false) {
+      const s = btState, skill = XWBattle.skills[id];
+      const basics = { attack: { name: "普通攻击", label: "回收算力", desc: "造成伤害并恢复算力。" }, guard: { name: "防御散热", label: "护盾 / 冷却", desc: "增加护盾并降低热量。" }, repair: { name: "使用维修包", label: `剩余 ${s.player.repairKits}`, desc: "恢复机体完整度，随后敌人仍会行动。" } };
+      const info = basic ? basics[id] : skill;
+      const reason = XWBattle.actionReason(s, id);
+      const description = XWBattle.actionInfo ? XWBattle.actionInfo(s, id) : info.desc;
+      const detail = typeof description === "string" ? description : info.desc;
+      const cost = basic ? info.label : `${skill.cost} 算力 · ${skill.heat > 0 ? "热量 +" : "热量 "}${skill.heat || 0} · 冷却 ${skill.cooldown || 0}`;
+      return `<button type="button" class="bt-action ${basic ? "bt-basic" : ""}" data-bt-action="${id}" ${reason ? "disabled" : ""}><span><strong>${btEscape(info.name)}</strong><small>${btEscape(cost)}</small></span><p>${btEscape(detail)}</p><em>${btEscape(reason || "执行后进入敌方行动")}</em></button>`;
+    }
+    function btLoadoutHTML() {
+      const p = btState.player;
+      return `<section class="bt-panel"><div class="bt-section-title"><h2>出战模块</h2><span>已装备 ${p.equipped.length} / 4</span></div><p class="bt-muted">点击模块装卸；满4个时，先卸下一项。普通攻击、防御和维修始终可用。</p><div class="bt-loadout">${p.unlocked.map(id => {
+        const skill = XWBattle.skills[id], equipped = p.equipped.includes(id);
+        return `<button type="button" class="bt-module ${equipped ? "equipped" : ""}" aria-pressed="${equipped}" data-bt-equip="${id}"><strong>${btEscape(skill.name)}<span>${equipped ? "已装备" : "未装备"}</span></strong><small>${skill.cost} 算力 · 冷却 ${skill.cooldown || 0}</small><p>${btEscape(skill.desc)}</p></button>`;
+      }).join("")}</div></section>`;
+    }
+    function btLogHTML() {
+      return `<aside class="bt-panel bt-log-panel"><div class="bt-section-title"><h2>战斗记录</h2><span>最近 ${Math.min(btState.log.length, 60)} 条</span></div><div class="bt-log" role="log" aria-live="polite" aria-relevant="additions">${btState.log.map((line, i) => `<p class="${i === 0 ? "latest" : ""}">${btEscape(line)}</p>`).join("")}</div></aside>`;
+    }
+    function btHelpHTML() {
+      return `<details class="bt-help"><summary>查看作战规则</summary><ul>${XWBattle.help.map(line => `<li>${btEscape(line)}</li>`).join("")}</ul></details>`;
+    }
+    function btLobbyHTML() {
+      return `<section class="bt-lobby"><div class="bt-eyebrow">第三模式 · 回合制文字战斗</div><h1>机体战线</h1><p class="bt-lead">地面通信已中断。玄武接入最后一台可用机体，穿过封锁区，切断失控兵器的指挥链。</p><div class="bt-mission-facts"><span><strong>8</strong>作战节点</span><span><strong>6</strong>可选技能模块</span><span><strong>2</strong>首领战</span></div><div class="bt-lobby-actions">
+        ${btSavedRun ? `<button class="btn primary" onclick="btContinue()">继续任务 · 第 ${btSavedRun.stage + 1} 节点 / ${btPhaseName(btSavedRun.phase)}</button>` : ""}<button class="btn ${btSavedRun ? "" : "primary"}" onclick="btNewRun()">开始新任务</button></div><p class="bt-muted">先看敌方意图，再下达指令。每回合选择一个行动，战后通过奖励强化机体。</p></section>${btHelpHTML()}`;
+    }
+    function btPhaseHTML() {
+      const s = btState, node = XWBattle.route[s.stage];
+      if (s.phase === "briefing") return `<section class="bt-story"><div class="bt-eyebrow">出击前 / 第 ${s.stage + 1} 节点</div><h2>${btEscape(node.title)}</h2><p>${btEscape(node.story)}</p><button class="btn primary" onclick="btAdvance()">接入战场 →</button></section><div class="bt-prep">${btPlayerHTML()}${btLoadoutHTML()}</div>`;
+      if (s.phase === "camp") return `<section class="bt-story"><div class="bt-eyebrow">中继站 · 一次免费整备</div><h2>重新校准，继续前进</h2><p>玄武争取到短暂的维护窗口。选择一次补给，并重新搭配出战模块。</p><div class="bt-camp-options">
+        <button class="bt-action" data-bt-action="camp_repair"><strong>全面维修</strong><p>${btEscape(XWBattle.actionInfo(s, "camp_repair"))}</p></button>
+        <button class="bt-action" data-bt-action="camp_recharge"><strong>补充物资</strong><p>${btEscape(XWBattle.actionInfo(s, "camp_recharge"))}</p></button>
+        <button class="bt-action" data-bt-action="camp_upgrade"><strong>武器校准</strong><p>${btEscape(XWBattle.actionInfo(s, "camp_upgrade"))}</p></button></div></section><div class="bt-prep">${btPlayerHTML()}${btLoadoutHTML()}</div>`;
+      if (s.phase === "reward" && s.rewardChosen) return `<section class="bt-story"><div class="bt-eyebrow">回收完成</div><h2>已获得：${btEscape(XWBattle.rewards[s.rewardChosen].name)}</h2><p>${btEscape(XWBattle.rewards[s.rewardChosen].desc)}</p><button class="btn primary" onclick="btAdvance()">${s.stage === XWBattle.route.length - 1 ? "完成任务 →" : s.stage === 3 ? "进入中继站整备 →" : "前往下一节点 →"}</button></section>${btPlayerHTML()}`;
+      if (s.phase === "reward") return `<section class="bt-story"><div class="bt-eyebrow">节点已清除 / 战后回收</div><h2>选择一项战利品</h2><p>这次选择将影响后续战斗。查看机体状态后，决定修复还是强化。</p><div class="bt-rewards">${s.rewardOptions.map(id => {
+        const reward = XWBattle.rewards[id];
+        return `<button class="bt-reward" data-bt-reward="${id}"><span>回收模块</span><h3>${btEscape(reward.name)}</h3><p>${btEscape(reward.desc)}</p><strong>选择此奖励 →</strong></button>`;
+      }).join("")}</div></section>${btPlayerHTML()}`;
+      if (s.phase === "victory" || s.phase === "defeat") {
+        const won = s.phase === "victory";
+        return `<section class="bt-result ${won ? "won" : "lost"}"><div class="bt-eyebrow">${won ? "任务完成" : "连接中断"}</div><h2>${won ? "最后一道指令，是停火。" : "玄武仍在，机体已失联。"}</h2><p>${won ? "指挥链被切断，失控兵器逐一停机。玄武将战斗记录送回地面网络，为幸存者打开了通道。" : "战斗记录已上传。回顾敌方意图与技能搭配，下一次出击可以选择另一条战术路线。"}</p><div class="bt-result-stats"><span>击败目标<strong>${s.stats.wins}</strong></span><span>行动回合<strong>${s.stats.turns}</strong></span><span>造成伤害<strong>${s.stats.damageDealt}</strong></span><span>成功打断<strong>${s.stats.interrupts}</strong></span></div><div class="bt-lobby-actions"><button class="btn primary" onclick="btNewRun()">重新出击</button><button class="btn" onclick="btExit()">返回模式选择</button></div></section>`;
+      }
+      return `<div class="bt-battle-heading"><div><div class="bt-eyebrow">${btEscape(node.title)}</div><h2>第 ${s.turn} 回合</h2></div><p>选择一个指令，随后敌人行动</p></div><div class="bt-units">${btPlayerHTML()}${btEnemyHTML()}</div><section class="bt-panel bt-command-panel"><div class="bt-section-title"><h2>下达指令</h2><span>普通指令 + ${s.player.equipped.length} 个模块</span></div><div class="bt-basic-actions">${["attack", "guard", "repair"].map(id => btActionButton(id, true)).join("")}</div><div class="bt-skill-actions">${s.player.equipped.map(id => btActionButton(id)).join("")}</div></section>`;
+    }
+    function btRender() {
+      const root = document.getElementById("btContent");
+      if (!root) return;
+      document.getElementById("btMissionStatus").textContent = btState ? `第 ${btState.stage + 1}/${XWBattle.route.length} 节点 · ${btPhaseName(btState.phase)}` : "XW-01 · 等待接入";
+      const notice = document.getElementById("btSaveStatus");
+      notice.textContent = btNotice;
+      notice.classList.toggle("warning", btStorageFailed);
+      document.getElementById("btSaveBtn").disabled = !btState;
+      document.getElementById("btExportBtn").disabled = !btState && !btSavedRun;
+      root.innerHTML = !btState ? btLobbyHTML() : `${btRouteHTML()}<div class="bt-layout"><div class="bt-main-column">${btPhaseHTML()}${btHelpHTML()}</div>${btLogHTML()}</div>`;
+      btUpdateMusic();
+    }
+    function btApply(result) {
+      if (!result.ok) btNotice = result.reason || "当前无法执行该操作。";
+      else btSave();
+      btRender();
+    }
+    window.btNewRun = function() {
+      const previous = btState || btSavedRun;
+      if (previous && !["victory", "defeat"].includes(previous.phase) && !confirm("开始新任务会替换当前机体任务存档。是否继续？")) return;
+      btState = XWBattle.newRun();
+      btSave();
+      btRender();
+    };
+    window.btContinue = function() {
+      btState = btReadSave();
+      if (!btState) { btRender(); return; }
+      btNotice = "已恢复任务，可从当前回合继续。";
+      btRender();
+    };
+    window.btAdvance = function() { if (btState) btApply(XWBattle.advance(btState)); };
+    window.btCommand = function(id) { if (btState) btApply(XWBattle.act(btState, id)); };
+    window.btReward = function(id) { if (btState) btApply(XWBattle.chooseReward(btState, id)); };
+    window.btEquip = function(id) { if (btState) btApply(XWBattle.equip(btState, id)); };
+    window.btManualSave = function() { btSave(true); btRender(); };
+    window.btExit = function() {
+      if (btState && !btSave() && !confirm("本次任务未能保存。建议取消并导出存档。仍然返回模式选择？")) { btRender(); return; }
+      btState = null;
+      document.getElementById("btApp").hidden = true;
+      gameMode = null;
+      showModeSelect();
+    };
+    window.btExport = function() {
+      const saved = btState || btSavedRun;
+      if (!saved) return;
+      const blob = new Blob([JSON.stringify({ mode: "mech", version: "3.0.0.0", savedAt: new Date().toISOString(), state: saved }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob), link = document.createElement("a");
+      link.href = url;
+      link.download = `玄武机体战线_节点${saved.stage + 1}_回合${saved.turn}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      btNotice = "已生成存档文件。导入后可继续相同回合。";
+      btRender();
+    };
+    window.btImport = function() { document.getElementById("btImportFile").click(); };
+    function btUpdateMusic() {
+      const button = document.getElementById("btMusic");
+      if (button) {
+        const paused = document.getElementById("bgmAudio").paused;
+        button.textContent = paused ? "音乐：关" : "音乐：开";
+        button.setAttribute("aria-pressed", String(!paused));
+      }
+    }
+    function btInitUI() {
+      document.getElementById("btContent").addEventListener("click", event => {
+        const action = event.target.closest("[data-bt-action]"), reward = event.target.closest("[data-bt-reward]"), equip = event.target.closest("[data-bt-equip]");
+        if (action && !action.disabled) window.btCommand(action.dataset.btAction);
+        else if (reward && !reward.disabled) window.btReward(reward.dataset.btReward);
+        else if (equip && !equip.disabled) window.btEquip(equip.dataset.btEquip);
+      });
+      document.getElementById("btImportFile").addEventListener("change", async event => {
+        const file = event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+        if (file.size > 256000) { btNotice = "存档文件过大，请选择机体战线导出的 JSON 存档。"; btRender(); return; }
+        try {
+          const parsed = JSON.parse(await file.text());
+          const restored = parsed.mode === "mech" && XWBattle.normalize(parsed.state);
+          if (!restored) throw new Error("invalid");
+          if ((btState || btSavedRun) && !confirm("导入将替换当前机体任务存档。是否继续？")) return;
+          btState = restored;
+          if (btSave()) btNotice = "存档导入成功，已恢复当前任务。";
+        } catch (error) { btNotice = "无法读取该存档。请选择完整的机体战线存档文件。"; }
+        btRender();
+      });
+      const audio = document.getElementById("bgmAudio");
+      audio.addEventListener("play", btUpdateMusic);
+      audio.addEventListener("pause", btUpdateMusic);
+      audio.addEventListener("error", () => {
+        if (gameMode === "mech") { btNotice = "音乐未能载入，请确认 MP3 与游戏文件位于同一文件夹。"; btRender(); }
+      });
+    }
+
+    // 三种玩法共享入口，各自管理运行状态。
+    function clearModeOverlays() {
+      document.getElementById("tutorialOverlay").style.display = "none";
+      document.querySelectorAll(".sys-overlay,.ending,.cw-ending-overlay,.time-travel-overlay,.gallery-detail-overlay,.console-pwd-overlay,.console-panel").forEach(el => el.classList.remove("show"));
+      document.getElementById("actionTooltip").classList.remove("show");
+      document.getElementById("regionTooltip").classList.remove("show");
+      const event = document.getElementById("cwEventCard");
+      if (event) event.remove();
+      if (window._cwEventTimeout) clearTimeout(window._cwEventTimeout);
+    }
+    function prepareStandardMode() {
+      clearModeOverlays();
+      document.querySelector("main.app").hidden = false;
+      document.getElementById("btApp").hidden = true;
+      document.getElementById("cwHud").style.display = "none";
+      document.querySelector(".crisis-bar").style.display = "";
+      for (const id of ["globalStats", "abilityGroups", "nextDayBtn", "resetBtn", "saveBtn", "trendBtn", "galleryBtn", "achBtn"]) document.getElementById(id).style.display = "";
+      const cwButton = document.getElementById("cwNextDayBtn");
+      if (cwButton) cwButton.remove();
+      mapView = "map";
+      document.getElementById("regionGridWrap").style.display = "block";
+      document.getElementById("regionGrid").style.display = "none";
+      document.getElementById("mapToggle").textContent = "📋 列表";
+    }
+    window.returnToModes = function() {
+      if (gameMode === "mech") { window.btExit(); return; }
+      try {
+        if (gameMode === "coldwar" && cwState) cwAutoSave();
+        if (gameMode === "classic" && state) autoSave();
+      } catch (error) {
+        if (!confirm("浏览器未能保存当前进度。仍然返回模式选择？")) return;
+      }
+      clearModeOverlays();
+      document.querySelector("main.app").hidden = true;
+      document.getElementById("cwHud").style.display = "none";
+      gameMode = null;
+      showModeSelect();
+    };
+
+
+    initBGM();
+    btInitUI();
+    document.querySelector("main.app").hidden = true;
+    document.getElementById("cwHud").style.display = "none";
+    showModeSelect();
