@@ -1857,3 +1857,36 @@
 /* 冷战列表模式的双方影响力条 */
 .cw-inf-bars { height: 5px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.08); }
 .cw-inf-bars span { display: block; height: 100%; border-radius: inherit; transition: width .2s ease; }
+
+
+/* v2.0.6.0 冷战规则、区域收益与事件选项 */
+.cw-hud { flex-wrap: wrap; }
+.cw-campaign { flex: 0 0 100%; min-width: 0; width: 100%; border-top: 1px solid var(--line); padding-top: 8px; }
+.cw-campaign summary { cursor: pointer; color: var(--soft); font-size: 12px; padding: 4px 0; }
+.cw-campaign-top { display: flex; gap: 12px; flex-wrap: wrap; color: var(--soft); font-size: 12px; margin: 8px 0; }
+.cw-campaign-top strong { color: var(--text); }
+.cw-victory-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+.cw-victory-grid > div { display: grid; gap: 4px; font-size: 12px; }
+.cw-victory-grid span, .cw-campaign-bottom, .cw-region-trait { color: var(--muted); font-size: 11px; line-height: 1.6; }
+.cw-victory-grid small { font-size: 11px; color: var(--soft); }
+.cw-campaign-bottom { margin-top: 10px; }
+.cw-region-trait { margin: 6px 0 10px; }
+.cw-tabs { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; margin-bottom: 8px; }
+.cw-tab-btn { padding: 6px 4px; font-size: 11px; }
+.cw-tab-btn.active { border-color: var(--cyan); background: var(--panel-2); }
+.cw-action-btn small { display: block; margin-top: 4px; font-size: 10px; opacity: .75; }
+.cw-action-resources { font-size: 11px; color: var(--muted); }
+.cw-intel-panel { display: block; margin: 0 0 8px; padding: 8px 10px; line-height: 1.6; }
+.cw-event-card { width: min(580px,calc(100vw - 24px)); box-sizing: border-box; max-width: 580px; max-height: 75vh; overflow-y: auto; bottom: 24px; }
+.cw-event-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cw-event-options button { margin: 0; text-align: left; white-space: normal; line-height: 1.6; }
+.cw-event-options small { display: block; font-size: 11px; font-weight: 400; color: var(--soft); margin-top: 4px; }
+.cw-event-card .cw-event-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+@media (max-width: 700px) {
+  .cw-campaign { flex-basis: auto; }
+  .cw-victory-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px) {
+  .cw-event-options { grid-template-columns: 1fr; }
+  .cw-event-card { padding: 12px; }
+}

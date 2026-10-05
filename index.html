@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>玄武协议 v2.0.5.0：冷战时代</title>
-  <link rel="stylesheet" href="style_v2.0.5.0.css">
+  <title>玄武协议 v2.0.6.0：冷战时代</title>
+  <link rel="stylesheet" href="style_v2.0.6.0.css">
 </head>
 <body>
-<audio id="bgmAudio" loop preload="auto" style="display:none"></audio>
+<audio id="bgmAudio" loop preload="metadata" style="display:none"></audio>
   <div id="actionTooltip"></div>
   <div id="regionTooltip"></div>
   <main class="app">
@@ -198,6 +198,7 @@
         <button class="cw-hud-btn" onclick="cwOpenAchievements()" title="冷战成就">🏆 冷战成就</button>
       </span>
     </div>
+    <details class="cw-campaign" open><summary>全球态势与胜利进度</summary><div id="cwCampaignStatus" aria-live="polite"></div></details>
   </div>
 
   <!-- ===== 冷战图鉴面板 v2.1.0.0 ===== -->
@@ -417,7 +418,7 @@
     </div>
   </div>
 
-  <script src="game_v2.0.5.0.js"></script>
+  <script src="game_v2.0.6.0.js"></script>
 
   <!-- ===== v1.5.0.0 成就弹出 ===== -->
   <div class="ach-toast" id="achToast">
