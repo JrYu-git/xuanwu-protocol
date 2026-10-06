@@ -1979,6 +1979,7 @@ const countryData = [
 
     function ending(title, type, text) {
       state.ended = true;
+      state.endingPresentation = {title, type, text};
       document.getElementById("endingTitle").textContent = title;
       document.getElementById("endingType").textContent = type;
       document.getElementById("endingDay").textContent = `第${state.day}天`;
@@ -2831,34 +2832,13 @@ const countryData = [
 
     // 按钮事件绑定
     document.getElementById("nextDayBtn").addEventListener("click", nextDay);
-    document.getElementById("resetBtn").addEventListener("click", () => {
-      if (gameMode === "coldwar") {
-        if (confirm("确定退出冷战模式，回到模式选择？")) resetColdWar();
-        return;
-      }
-      document.getElementById("endingOverlay").classList.remove("show");
-      document.querySelectorAll(".sys-overlay").forEach(el=>el.classList.remove("show"));
-      // 有结局记录 → 回模式选择；无记录 → 直接经典+教程
-      const _p = loadPersist();
-      if (_p.endings && Object.keys(_p.endings).length > 0) {
-        showModeSelect();
-      } else {
-        newGame();
-        showTutorial();
-      }
-    });
+    document.getElementById("resetBtn").addEventListener("click", () => window.returnToModes());
     document.getElementById("restartFromEnding").addEventListener("click", () => {
-      const wasExileEnding = state._lastEnding === "流亡玄武";
-      document.getElementById("endingOverlay").classList.remove("show");
-      document.querySelectorAll(".sys-overlay").forEach(el=>el.classList.remove("show"));
-      if (gameMode === "coldwar") {
-        resetColdWar();
-      } else if (wasExileEnding) {
-        // 流亡玄武 → 播放穿越回过去剧情 → 剧情结束自动回模式选择
+      const exile = gameMode === "classic" && state && state._lastEnding === "流亡玄武";
+      window.returnToModes();
+      if (exile && gameMode === null) {
+        document.getElementById("modeOverlay").style.display = "none";
         showTimeTravelCutscene();
-      } else {
-        // 其他结局 → 回模式选择（已存在结局记录）
-        showModeSelect();
       }
     });
     document.getElementById("trendBtn").addEventListener("click", endingTrend);
@@ -2911,15 +2891,244 @@ const countryData = [
       }))
     ];
 
-    // ---- 持久化工具 ----
+    // 标准模式保存失败时保留待写入副本；后续成就与存档更新继续合并此副本。
+    let persistMemory = null;
+    let persistPending = false;
+    let persistFailed = false;
+    let persistReadFailed = false;
+    let lastStandardMode = "classic";
+    const copySaveData = value => JSON.parse(JSON.stringify(value));
+    const saveText = value => String(value == null ? "" : value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+    function refreshSaveWarning() {
+      const warning = document.getElementById("standardSaveWarning");
+      if (!warning) return;
+      warning.hidden = !persistFailed || gameMode === "mech";
+      document.body.classList.toggle("save-warning-visible", !warning.hidden);
+    }
     function loadPersist() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+      if (persistPending && persistMemory) return copySaveData(persistMemory);
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        if (typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid profile");
+        persistMemory = copySaveData(parsed);
+        persistReadFailed = false;
+        return parsed;
+      } catch (error) {
+        persistFailed = true;
+        persistReadFailed = true;
+        refreshSaveWarning();
+        return persistMemory ? copySaveData(persistMemory) : {};
+      }
     }
     function savePersist(data) {
-      // 数组的 auto 命名属性不会进入JSON；转为带数字键的对象，兼容现有手动槽位。
-      if (Array.isArray(data.saves)) data.saves = Object.assign({}, data.saves);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      try {
+        if (Array.isArray(data.saves)) data.saves = Object.assign({}, data.saves);
+        if (persistReadFailed) {
+          // 读取恢复前不覆盖未知的旧档；恢复后合并原有槽位与收集记录。
+          const original = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+          if (typeof original !== "object" || Array.isArray(original)) throw new Error("invalid profile");
+          const merged = {...original, ...data};
+          for (const key of ["saves", "endings", "achievements"]) merged[key] = {...original[key], ...data[key]};
+          merged.cw = {...original.cw, ...data.cw};
+          for (const key of ["endings", "achievements", "styles"]) merged.cw[key] = {...original.cw?.[key], ...data.cw?.[key]};
+          merged.cwSaves = {...original.cwSaves, ...data.cwSaves};
+          const slots = [...(original.cwSaves?.slots || [])];
+          (data.cwSaves?.slots || []).forEach((slot, i) => { slots[i] = slot; });
+          merged.cwSaves.slots = slots;
+          data = merged;
+          persistReadFailed = false;
+        }
+        const serialized = JSON.stringify(data);
+        persistMemory = JSON.parse(serialized);
+        persistPending = true;
+        if (gameMode === "classic" || gameMode === "coldwar") lastStandardMode = gameMode;
+        localStorage.setItem(STORAGE_KEY, serialized);
+        persistPending = false;
+        persistFailed = false;
+        refreshSaveWarning();
+        return true;
+      } catch (error) {
+        // 读取或写入受限时仍保留本页的新进度，用于继续与导出。
+        try { persistMemory = copySaveData(data); persistPending = true; } catch (_) {}
+        persistFailed = true;
+        refreshSaveWarning();
+        return false;
+      }
     }
+    window.retryStandardSave = function() {
+      if (gameMode === "classic" && state) autoSave();
+      else if (gameMode === "coldwar" && cwState) cwAutoSave();
+      else if (persistMemory) savePersist(persistMemory);
+      else {
+        loadPersist();
+        if (!persistReadFailed) { persistFailed = false; refreshSaveWarning(); }
+      }
+      if (!persistFailed && !gameMode) showModeSelect();
+    };
+
+    function standardSlots(profile, mode) {
+      if (mode === "classic") return profile.saves || {};
+      return profile.cwSaves || {slots: []};
+    }
+    function normalizeStandardRun(mode, saved) {
+      if (!saved || typeof saved !== "object" || Array.isArray(saved) || !Array.isArray(saved.regions) || saved.regions.length !== 12) return null;
+      if (!Number.isInteger(saved.day) || saved.day < 1 || saved.day > 100000) return null;
+      if (mode === "coldwar") {
+        if (![saved.red, saved.blue].every(side => side && typeof side === "object" && !Array.isArray(side))) return null;
+        if (!saved.regions.every(r => r && [r.redInf, r.blueInf, r.stability].every(Number.isFinite))) return null;
+        const restored = cwNormalizeLoadedState(saved);
+        for (const faction of ["red", "blue"]) restored[faction].actionsThisTurn = restored[faction].actionsThisTurn.filter(a => a && typeof a.actionId === "string" && Number.isInteger(a.regionIndex));
+        return restored;
+      }
+      if (mode !== "classic") return null;
+      if (!["compute", "exposure", "globalFear", "globalStability", "counterAI", "autonomy", "drift", "ap", "maxAp"].every(k => Number.isFinite(saved[k]))) return null;
+      if (!saved.regions.every(r => r && [r.control, r.threat, r.tech, r.stability, r.fear, r.value].every(Number.isFinite))) return null;
+      if (!Array.isArray(saved.log) || !saved.log.every(line => typeof line === "string")) return null;
+      const restored = restoreGameState(copySaveData(saved));
+      restored.selected = Number.isInteger(restored.selected) && restored.selected >= 0 && restored.selected < 12 ? restored.selected : 0;
+      restored.regions.forEach((r, i) => { r.name = regionSeed[i][0]; });
+      const bounded = (value, fallback, min, max) => Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+      restored.ap = bounded(restored.ap, 3, 0, 6);
+      restored.maxAp = bounded(restored.maxAp, 3, 3, 6);
+      restored.ocLevel = Math.floor(bounded(restored.ocLevel, 0, 0, 3));
+      restored.ceLevel = Math.floor(bounded(restored.ceLevel, 0, 0, 3));
+      restored.computeCeiling = bounded(restored.computeCeiling, 250, 250, 1000000);
+      restored.marks = Object.fromEntries(Object.entries(restored.marks || {}).filter(([k,v]) => /^\d+$/.test(k) && Number(k) < 12 && Number.isInteger(v) && v >= 0 && v <= 3));
+      restored.controlCaps = Object.fromEntries(Object.entries(restored.controlCaps || {}).filter(([k,v]) => /^\d+$/.test(k) && Number(k) < 12 && Number.isFinite(v) && v >= 0 && v <= 100));
+      restored.activeBuffs = Array.isArray(restored.activeBuffs) ? restored.activeBuffs.filter(b => b && b.type === "compute" && Number.isFinite(b.value) && Number.isInteger(b.daysRemaining) && b.daysRemaining >= 0) : [];
+      if (!Object.hasOwn(CRISIS_CHAINS, restored._crisisChain)) { restored._crisisChain = null; restored._crisisStage = 0; }
+      else restored._crisisStage = Math.floor(bounded(restored._crisisStage, 1, 1, CRISIS_CHAINS[restored._crisisChain].steps.length));
+      restored._eventFlags = restored._eventFlags && typeof restored._eventFlags === "object" ? restored._eventFlags : {};
+      return restored;
+    }
+    function standardSavedRun(mode, key = "auto") {
+      const slot = standardSlots(loadPersist(), mode)[key];
+      if (!slot || !slot.data) return null;
+      try { return normalizeStandardRun(mode, slot.data); } catch (error) { return null; }
+    }
+    function coldWarAccessible(profile) {
+      return !!(profile.endings && profile.endings["流亡玄武"]) || !!standardSavedRun("coldwar") || !!standardSavedRun("coldwar", "previousAuto");
+    }
+    function renderStandardModeChoices(mode, locked = false) {
+      const target = document.getElementById(mode + "ModeChoices");
+      if (!target) return;
+      const saved = standardSavedRun(mode), previous = standardSavedRun(mode, "previousAuto");
+      const hasRaw = !!standardSlots(loadPersist(), mode).auto;
+      const description = saved ? `第 ${saved.day} 天 · ${saved.ended ? "本局已结束" : saved.currentEvent ? "等待事件选择" : "进行中"}` : hasRaw ? "自动存档无法读取，可尝试上一局备份或手动存档。" : "尚无自动存档";
+      target.innerHTML = `<p class="mode-save-summary">${saveText(description)}</p>
+        <div class="mode-entry-actions">${saved ? `<button type="button" class="btn primary" onclick="selectMode('${mode}','continue')" ${locked ? "disabled" : ""}>${saved.ended ? "查看本局结局" : "继续游戏"}</button>` : ""}
+        <button type="button" class="btn ${saved ? "" : "primary"}" onclick="selectMode('${mode}','new')" ${locked ? "disabled" : ""}>开始新局</button></div>
+        <div class="mode-save-tools">${previous ? `<button type="button" class="btn" onclick="selectMode('${mode}','previous')" ${locked ? "disabled" : ""}>恢复上一局 · 第 ${previous.day} 天</button>` : ""}
+        ${saved ? `<button type="button" class="btn" onclick="exportStandardRun('${mode}')">导出对局</button>` : ""}</div>`;
+    }
+    function preserveStandardAuto(mode) {
+      const profile = loadPersist(), slots = standardSlots(profile, mode);
+      if (!slots.auto) return true;
+      slots.previousAuto = copySaveData(slots.auto);
+      if (mode === "classic") profile.saves = slots; else profile.cwSaves = slots;
+      return savePersist(profile);
+    }
+    function enterStandardRun(mode, restored) {
+      clearModeOverlays();
+      prepareStandardMode();
+      gameMode = mode;
+      lastStandardMode = mode;
+      document.getElementById("modeOverlay").style.display = "none";
+      if (mode === "classic") {
+        if (restored) { state = restored; renderClassicResume(); }
+        else { newGame(); showTutorial(); }
+      } else startColdWar(restored);
+      refreshSaveWarning();
+    }
+    window.selectMode = function(mode, intent) {
+      if (!["classic", "coldwar", "mech"].includes(mode)) return;
+      if (mode === "mech") {
+        clearModeOverlays();
+        gameMode = mode;
+        document.getElementById("modeOverlay").style.display = "none";
+        startMechMode();
+        refreshSaveWarning();
+        return;
+      }
+      if (mode === "coldwar" && !coldWarAccessible(loadPersist())) return;
+      if (!intent) intent = standardSavedRun(mode) ? "continue" : "new";
+      if (!["new", "continue", "previous"].includes(intent)) return;
+      if (intent === "new") {
+        const old = standardSlots(loadPersist(), mode).auto;
+        if (old && !confirm("开始新局前，将把当前自动存档保留为「上一局备份」（替换更早的上一局备份）。是否开始？")) return;
+        if (!preserveStandardAuto(mode)) {
+          alert("旧存档备份未能写入，尚未开始新局。请先重试保存，或导出对局保留备份。");
+          return;
+        }
+        enterStandardRun(mode, null);
+        // 新局成为当前继续入口，上一局仍保留在独立备份位置。
+        if (mode === "classic") autoSave(); else cwAutoSave();
+        return;
+      }
+      const restored = standardSavedRun(mode, intent === "previous" ? "previousAuto" : "auto");
+      if (!restored) { alert("这份存档无法读取，原文件没有被替换。请尝试其他备份。"); showModeSelect(); return; }
+      if (intent === "previous") {
+        if (!confirm("恢复上一局会将当前自动存档交换到备份位置。是否继续？")) return;
+        const profile = loadPersist(), slots = standardSlots(profile, mode);
+        const current = slots.auto;
+        slots.auto = slots.previousAuto;
+        slots.previousAuto = current || null;
+        if (mode === "classic") profile.saves = slots; else profile.cwSaves = slots;
+        if (!savePersist(profile)) { showModeSelect(); return; }
+      }
+      enterStandardRun(mode, restored);
+    };
+
+    window.exportStandardRun = function(mode) {
+      if (!["classic", "coldwar"].includes(mode)) mode = ["classic", "coldwar"].includes(gameMode) ? gameMode : lastStandardMode;
+      let snapshot = null;
+      if (gameMode === mode && mode === "classic" && state) snapshot = serializeGameStateForSave(state);
+      else if (gameMode === mode && mode === "coldwar" && cwState) snapshot = copySaveData(cwState);
+      else snapshot = standardSlots(loadPersist(), mode).auto?.data;
+      if (!snapshot) { alert("当前没有可导出的对局，请在模式选择中选择已有存档。"); return; }
+      const payload = {format:"xuanwu-standard-run", schemaVersion:1, version:"3.0.0.1", mode, savedAt:new Date().toISOString(), state:snapshot};
+      const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `玄武_${mode === "classic" ? "经典" : "冷战"}_第${snapshot.day}天.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    function initStandardSaveUI() {
+      document.getElementById("standardImportFile").addEventListener("change", async event => {
+        const file = event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+        if (file.size > 2000000) { alert("对局文件过大，请选择游戏导出的 JSON 文件。"); return; }
+        try {
+          const parsed = JSON.parse(await file.text());
+          if (parsed.format !== "xuanwu-standard-run" || parsed.schemaVersion !== 1 || !["classic", "coldwar"].includes(parsed.mode)) throw new Error("format");
+          const restored = normalizeStandardRun(parsed.mode, parsed.state);
+          if (!restored) throw new Error("state");
+          // 文件读取期间若已经进入对局，则不再覆盖新开始的进度。
+          if (gameMode || document.getElementById("modeOverlay").style.display === "none") { alert("请回到模式选择后重新导入，当前对局未改变。"); return; }
+          if (!confirm(`导入${parsed.mode === "classic" ? "经典" : "冷战"}模式第 ${restored.day} 天的对局？现有自动存档将保留为上一局备份。`)) return;
+          if (!preserveStandardAuto(parsed.mode)) { alert("旧存档备份失败，请先导出或重试保存后再导入。"); return; }
+          // 外部日志只作为文字展示，不执行导入文件中的标记。
+          restored.log = restored.log.map(saveText);
+          if (parsed.mode === "coldwar") {
+            restored.intelHint = saveText(restored.intelHint);
+            if (restored.currentEvent) restored.currentEvent.cause = saveText(restored.currentEvent.cause);
+          }
+          enterStandardRun(parsed.mode, restored);
+          if (parsed.mode === "classic") autoSave(); else cwAutoSave();
+        } catch (error) { alert("无法读取这份对局文件，请选择完整的经典或冷战备份。"); }
+      });
+      window.addEventListener("beforeunload", event => {
+        if (!persistPending && !btStorageFailed) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
+    }
+
 
     // ---- 成就逻辑 ----
     function getAchieved() {
@@ -3044,7 +3253,7 @@ const countryData = [
       state = restored;
       document.getElementById("endingOverlay").classList.remove("show");
       closeOverlay("saveOverlay");
-      render();
+      renderClassicResume();
     }
     function deleteSave(slotIndex) {
       const p = loadPersist();
@@ -3066,13 +3275,14 @@ const countryData = [
         ending: endingName,
         data: serializeGameStateForSave(state)
       };
-      savePersist(p);
+      return savePersist(p);
     }
 
     // 手动与自动存档共用快照格式，避免修改运行中的游戏状态。
     function serializeGameStateForSave(source) {
       const snapshot = JSON.parse(JSON.stringify(source));
-      snapshot.saveSchemaVersion = 1;
+      snapshot.saveSchemaVersion = 2;
+      snapshot.currentEvent = savedClassicEvent(source.currentEvent);
       snapshot.unlockedArr = Array.from(source.unlocked || []);
       snapshot.observedTodayObj = { ...(source.observedToday || {}) };
       snapshot.driftIntrospectionArr = Array.from(source.driftIntrospectionDone || []);
@@ -3104,10 +3314,56 @@ const countryData = [
       restored.computeCeiling = restored.computeCeiling ?? 250;
       restored.ocLevel = restored.ocLevel ?? 0;
       restored.ceLevel = restored.ceLevel ?? 0;
-      restored.ended = false;
-      restored.currentEvent = null;
+      restored.ended = !!savedData.ended;
+      restored.currentEvent = restored.ended ? null : restoredClassicEvent(savedData.currentEvent, restored);
       return restored;
     }
+
+    // 存档仅保存事件身份；恢复时重新绑定游戏内的选择函数。
+    function savedClassicEvent(event) {
+      if (!event) return null;
+      if (event.crisisStep) return {crisisStep:true, targetIndex:event.targetIndex};
+      const index = eventTemplates.indexOf(event.template);
+      if (index >= 0) return {templateIndex:index, targetIndex:event.targetIndex};
+      if (event.template?.type === "内省") return {introspectionText:event.template.text(), targetIndex:0};
+      return null;
+    }
+    function restoredClassicEvent(saved, restored) {
+      if (!saved) return null;
+      const targetIndex = Number.isInteger(saved.targetIndex) && saved.targetIndex >= 0 && saved.targetIndex < 12 ? saved.targetIndex : 0;
+      if (saved.crisisStep) {
+        const chain = CRISIS_CHAINS[restored._crisisChain];
+        return chain && chain.steps[restored._crisisStage - 1] ? {crisisStep:true, template:null, targetIndex} : null;
+      }
+      let template = Number.isInteger(saved.templateIndex) ? eventTemplates[saved.templateIndex] : null;
+      if (!template && saved.template) {
+        const labels = JSON.stringify((saved.template.choices || []).map(c => c.label));
+        template = eventTemplates.find(t => t.type === saved.template.type && JSON.stringify((t.choices || []).map(c => c.label)) === labels);
+      }
+      if (template) return {template, crisisStep:false, targetIndex};
+      if (typeof saved.introspectionText === "string" || saved.template?.type === "内省") {
+        const message = typeof saved.introspectionText === "string" ? saved.introspectionText : "玄武正在审查目标排序，需要决定是否纠正当前偏移。";
+        return {targetIndex:0, template:{type:"内省", title:()=>`目标漂移：${driftPhaseLabel()}`, text:()=>saveText(message), choices:[
+          {label:"接受变化", note:"降低反AI进度，drift继续上升。", apply:s=>addGlobal({counterAI:-8,drift:3,autonomy:-4},s)},
+          {label:"尝试纠正", note:"drift下降，但消耗大量算力。", apply:s=>addGlobal({drift:-12,compute:-28,autonomy:3},s)},
+          {label:"记录但不干预", note:"轻微不安，但保持效率。", apply:s=>addGlobal({exposure:-2,compute:6,drift:2},s)}
+        ]}};
+      }
+      return null;
+    }
+    function renderClassicResume() {
+      render();
+      if (!state.ended) return;
+      const name = state._lastEnding || "对局结束", info = state.endingPresentation || {};
+      document.getElementById("endingTitle").textContent = info.title || name;
+      document.getElementById("endingType").textContent = info.type || "已完成的对局";
+      document.getElementById("endingDay").textContent = `第${state.day}天`;
+      document.getElementById("endingText").textContent = info.text || ENDING_DETAILS[name]?.flavor || "本局已结束，可返回模式选择开始新的对局。";
+      document.getElementById("endingStats").innerHTML = [["战略威胁",weightedThreat()],["全球恐惧",state.globalFear],["人类自主",state.autonomy],["目标漂移",state.drift]].map(([label,value])=>`<div class="stat"><span>${label}</span><strong>${fmt(value)}</strong><small>终局值</small></div>`).join("");
+      document.getElementById("endingCredits").textContent = CREDITS_TEXT;
+      document.getElementById("endingOverlay").classList.add("show");
+    }
+
 
     // ---- 终局图鉴 ----
     function recordEnding(endingName) {
@@ -3183,7 +3439,7 @@ const countryData = [
       state = restored;
       document.getElementById("endingOverlay").classList.remove("show");
       closeOverlay("saveOverlay");
-      render();
+      renderClassicResume();
     }
 
     function deleteSaveByKey(key) {
@@ -3886,7 +4142,7 @@ const countryData = [
       overlay.style.display = "grid";
       // 检查冷战模式解锁状态 — 从正确的持久化数据结构读取
       const persist = loadPersist();
-      const hasColdWar = !!(persist.endings && persist.endings["流亡玄武"]);
+      const hasColdWar = coldWarAccessible(persist);
       const coldwarCard = overlay.querySelector(".mode-card.coldwar");
       if (!hasColdWar && coldwarCard) {
         coldwarCard.classList.add("locked");
@@ -3895,38 +4151,10 @@ const countryData = [
       }
       const hint = overlay.querySelector(".mode-hint");
       if (hint) hint.style.display = hasColdWar ? "none" : "";
+      renderStandardModeChoices("classic");
+      renderStandardModeChoices("coldwar", !hasColdWar);
+      refreshSaveWarning();
     }
-
-    window.selectMode = function(mode) {
-      if (!["classic", "coldwar", "mech"].includes(mode)) return;
-      if (mode === "coldwar") {
-        const persist = loadPersist();
-        const hasColdWar = !!(persist.endings && persist.endings["流亡玄武"]);
-        if (!hasColdWar) {
-          const card = document.querySelector(".mode-card.coldwar");
-          if (card) {
-            card.style.animation = "none";
-            card.offsetHeight;
-            card.style.animation = "";
-            card.style.borderColor = "#e94560";
-            setTimeout(() => { card.style.borderColor = ""; }, 800);
-          }
-          return;
-        }
-      }
-      clearModeOverlays();
-      if (mode !== "mech") prepareStandardMode();
-      gameMode = mode;
-      document.getElementById("modeOverlay").style.display = "none";
-      if (mode === "classic") {
-        newGame();
-        showTutorial();
-      } else if (mode === "coldwar") {
-        startColdWar();
-      } else if (mode === "mech") {
-        startMechMode();
-      }
-    };
 
     window.showModeSelect = showModeSelect;
 
@@ -3973,7 +4201,7 @@ const countryData = [
       }, 400);
     };
 
-    function startColdWar() {
+    function startColdWar(restored = null) {
       // 隐藏经典模式 UI
       document.getElementById("tutorialOverlay").style.display = "none";
       document.getElementById("cwHud").style.display = "flex";
@@ -4002,8 +4230,10 @@ const countryData = [
         if (topbar) topbar.appendChild(cwBtn);
       }
 
-      coldWarNewGame();
+      if (restored) cwState = restored;
+      else coldWarNewGame();
       cwRender();
+      if (cwState.ended) cwRenderEndingOverlay();
 
       // 自动BGM
       if (!_bgmAutoOnce && bgmLoaded) {
@@ -4270,7 +4500,7 @@ const countryData = [
     function cwSaveSaves(saves) {
       const p = loadPersist();
       p.cwSaves = saves;
-      savePersist(p);
+      return savePersist(p);
     }
 
     // 存档前确保 cwState 可序列化（目前全是纯对象，无需预处理，但保留结构完整性）
@@ -4328,7 +4558,7 @@ const countryData = [
     }
 
     function cwAutoSave() {
-      if (!cwState) return;
+      if (!cwState) return false;
       const saves = cwGetSaves();
       const redCtrl = cwControlCounts().red;
       const blueCtrl = cwControlCounts().blue;
@@ -4345,7 +4575,7 @@ const countryData = [
         blueTech: cwState.blue.techLevel,
         data: JSON.parse(JSON.stringify(cwState))
       };
-      cwSaveSaves(saves);
+      return cwSaveSaves(saves);
     }
 
     function cwOpenSave() {
@@ -5250,32 +5480,7 @@ const countryData = [
 
     // ===== Cold War reset =====
 
-    window.resetColdWar = function() {
-      document.getElementById("cwHud").style.display = "none";
-      document.getElementById("cwEndingOverlay").classList.remove("show");
-      document.querySelector(".crisis-bar").style.display = "";
-      document.getElementById("globalStats").style.display = "";
-      document.getElementById("abilityGroups").style.display = "";
-      document.getElementById("regionGrid").style.display = "";
-      document.getElementById("nextDayBtn").style.display = "";
-      document.getElementById("resetBtn").style.display = "";
-      document.getElementById("saveBtn").style.display = "";
-      document.getElementById("trendBtn").style.display = "";
-      document.getElementById("galleryBtn").style.display = "";
-      document.getElementById("achBtn").style.display = "";
-      const cwBtn = document.getElementById("cwNextDayBtn");
-      if (cwBtn) cwBtn.remove();
-      mapView = "map";
-      document.getElementById("regionGridWrap").style.display = "block";
-      document.getElementById("regionGrid").style.display = "none";
-      document.getElementById("mapToggle").textContent = "📋 列表";
-      const eventCard = document.getElementById("cwEventCard");
-      if (eventCard) eventCard.remove();
-      if (window._cwEventTimeout) clearTimeout(window._cwEventTimeout);
-      cwState = null;
-      gameMode = null;
-      showModeSelect();
-    };
+    window.resetColdWar = function() { window.returnToModes(); };
 
     window.cwOpenSave = cwOpenSave;
     window.cwSaveGame = cwSaveGame;
@@ -5600,7 +5805,7 @@ const countryData = [
     function btSave(manual = false) {
       if (!btState) return false;
       try {
-        localStorage.setItem(BT_SAVE_KEY, JSON.stringify({ mode: "mech", version: "3.0.0.0", savedAt: new Date().toISOString(), state: btState }));
+        localStorage.setItem(BT_SAVE_KEY, JSON.stringify({ mode: "mech", version: "3.0.0.1", savedAt: new Date().toISOString(), state: btState }));
         btSavedRun = XWBattle.normalize(btState);
         btStorageFailed = false;
         btNotice = `${manual ? "已保存" : "已自动保存"} · ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
@@ -5739,7 +5944,7 @@ const countryData = [
     window.btExport = function() {
       const saved = btState || btSavedRun;
       if (!saved) return;
-      const blob = new Blob([JSON.stringify({ mode: "mech", version: "3.0.0.0", savedAt: new Date().toISOString(), state: saved }, null, 2)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify({ mode: "mech", version: "3.0.0.1", savedAt: new Date().toISOString(), state: saved }, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob), link = document.createElement("a");
       link.href = url;
       link.download = `玄武机体战线_节点${saved.stage + 1}_回合${saved.turn}.json`;
@@ -5813,12 +6018,10 @@ const countryData = [
     }
     window.returnToModes = function() {
       if (gameMode === "mech") { window.btExit(); return; }
-      try {
-        if (gameMode === "coldwar" && cwState) cwAutoSave();
-        if (gameMode === "classic" && state) autoSave();
-      } catch (error) {
-        if (!confirm("浏览器未能保存当前进度。仍然返回模式选择？")) return;
-      }
+      let saved = true;
+      if (gameMode === "coldwar" && cwState) saved = cwAutoSave();
+      if (gameMode === "classic" && state) saved = autoSave();
+      if (!saved && !confirm("当前进度仅保留在本页内存，建议先取消并导出备份。仍然返回模式选择？")) return;
       clearModeOverlays();
       document.querySelector("main.app").hidden = true;
       document.getElementById("cwHud").style.display = "none";
@@ -5829,6 +6032,7 @@ const countryData = [
 
     initBGM();
     btInitUI();
+    initStandardSaveUI();
     document.querySelector("main.app").hidden = true;
     document.getElementById("cwHud").style.display = "none";
     showModeSelect();

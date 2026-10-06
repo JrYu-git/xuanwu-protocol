@@ -3,11 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>玄武协议 v3.0.0.0：机体战线</title>
-  <link rel="stylesheet" href="style_v3.0.0.0.css">
+  <title>玄武协议 v3.0.0.1：机体战线</title>
+  <link rel="stylesheet" href="style_v3.0.0.1.css">
 </head>
 <body>
 <audio id="bgmAudio" loop preload="metadata" style="display:none"></audio>
+  <aside id="standardSaveWarning" class="standard-save-warning" hidden aria-label="存档状态">
+    <p role="status">浏览器未能读写存档。当前行动仍然生效；请重试保存，或导出对局后再关闭页面。</p>
+    <div><button class="btn" type="button" onclick="retryStandardSave()">重试保存</button><button class="btn primary" type="button" onclick="exportStandardRun()">导出当前进度</button></div>
+  </aside>
+  <input id="standardImportFile" type="file" accept=".json,application/json" hidden>
   <div id="actionTooltip"></div>
   <div id="regionTooltip"></div>
   <main class="app">
@@ -151,18 +156,20 @@
         <p class="mode-subtitle">选择一个时代，书写你的命运</p>
       </div>
       <div class="mode-cards">
-        <button class="mode-card classic" onclick="selectMode('classic')" type="button">
+        <article class="mode-card classic">
           <div class="mode-card-icon">🌐</div>
           <h3>经典模式</h3>
           <p>扮演玄武，在180天内平衡渗透与控制，降低全球威胁，面对多重结局。</p>
           <span class="mode-badge">v1.0 — 渗透时代</span>
-        </button>
-        <button class="mode-card coldwar" onclick="selectMode('coldwar')" type="button">
+          <div id="classicModeChoices"></div>
+        </article>
+        <article class="mode-card coldwar">
           <div class="mode-card-icon">⚔️</div>
           <h3>冷战模式</h3>
           <p>真理 vs 先知 — 两个超级AI分别操控北约与华约，在全球棋盘上展开冷战博弈。</p>
           <span class="mode-badge">v2.0 — 冷战时代</span>
-        </button>
+          <div id="coldwarModeChoices"></div>
+        </article>
         <button class="mode-card mech" onclick="selectMode('mech')" type="button">
           <div class="mode-card-icon">◈</div>
           <h3>机体战线</h3>
@@ -170,6 +177,7 @@
           <span class="mode-badge">v3.0 — 回合制文字战斗</span>
         </button>
       </div>
+      <div class="mode-import"><button type="button" class="btn" onclick="document.getElementById('standardImportFile').click()">导入经典 / 冷战对局</button><p>机体战线的存档请在该模式内导入。</p></div>
       <p class="mode-hint">⚡ 冷战模式需要完成经典模式「流亡玄武」结局后解锁</p>
     </div>
   </div>
@@ -499,6 +507,6 @@
     </div>
   </div>
 
-  <script src="game_v3.0.0.0.js"></script>
+  <script src="game_v3.0.0.1.js"></script>
 </body>
 </html>
